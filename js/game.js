@@ -16,6 +16,9 @@ function newState() {
     active: [],       // power-ups ativos [{id, tier, left}]
     seen: {},         // marcos de história vistos
     time: 0, x: 0, y: 3,
+    gear: { detector: 0, ride: 0, light: 0 }, // equipamentos comprados no Bazar
+    riding: false, lightOn: true, detOn: true, detRes: null, sound: true,
+    clock: 0.3,       // hora do dia (0 = meia-noite, 0.5 = meio-dia)
   };
 }
 
@@ -56,6 +59,7 @@ const Game = {
     }
     return m;
   },
+  isNight() { const c = this.S.clock; return c < 0.23 || c > 0.77; },
   reach() { return 2.4 + Math.min(2.5, this.S.hammer * 0.04); },
 
   // ---------- entrada ----------
@@ -70,6 +74,11 @@ const Game = {
       if (k === ' ') this.jump();
       if (k === 'e') this.interact();
       if (k === 'v') Render.toggleView();
+      if (k === 'r') this.toggleRide();
+      if (k === 'l') this.toggleLight();
+      if (k === 'g') this.toggleDetector();
+      if (k === 't') this.cycleDetector(e.shiftKey ? -1 : 1);
+      if (k === 'm') { this.S.sound = !this.S.sound; UI.toast(this.S.sound ? 'Som ligado' : 'Som desligado'); }
       if (k === '1') this.activate('tonico');
       if (k === '2') this.activate('cafe');
       if (k === '3') this.activate('elixir');
@@ -181,6 +190,57 @@ const Game = {
     this.save();
   },
 
+  // ---------- equipamentos ----------
+  buyGadget(type, lvl) {
+    const G = GADGETS[type].levels[lvl];
+    if (this.S.gear[type] >= lvl || this.S.money < G.price) return;
+    this.S.money -= G.price; this.S.gear[type] = lvl;
+    if (type === 'ride') this.S.riding = true;
+    if (type === 'light') this.S.lightOn = true;
+    if (type === 'detector') { this.S.detOn = true; if (!this.S.detRes) this.S.detRes = this.defaultDetRes(); }
+    UI.toast(`Você comprou: ${G.n}! (tecla ${GADGETS[type].key})`, 'level');
+    this.save();
+  },
+  ride() { return this.S.riding && this.S.gear.ride ? GADGETS.ride.levels[this.S.gear.ride] : null; },
+  toggleRide() {
+    if (!this.S.gear.ride) { UI.toast('Você ainda não tem transporte. Veja o Tonho do Bazar.'); return; }
+    this.S.riding = !this.S.riding;
+    UI.toast(this.S.riding ? `Em cima do ${GADGETS.ride.levels[this.S.gear.ride].n}` : 'A pé');
+  },
+  toggleLight() {
+    if (!this.S.gear.light) { UI.toast('Você ainda não tem lanterna. Veja o Tonho do Bazar.'); return; }
+    this.S.lightOn = !this.S.lightOn; UI.toast(this.S.lightOn ? 'Luz ligada' : 'Luz desligada');
+  },
+  toggleDetector() {
+    if (!this.S.gear.detector) { UI.toast('Você ainda não tem detector. Veja o Tonho do Bazar.'); return; }
+    this.S.detOn = !this.S.detOn; UI.toast(this.S.detOn ? 'Detector ligado' : 'Detector desligado');
+  },
+  defaultDetRes() {
+    const L = Math.min(MAX_LEVEL, this.S.hammer + 1);
+    return HAMMERS[L].mat[0] || resourceForLevel(this.S.hammer).id;
+  },
+  cycleDetector(dir) {
+    if (!this.S.gear.detector) return;
+    const i = RESOURCES.findIndex(r => r.id === (this.S.detRes || this.defaultDetRes()));
+    this.S.detRes = RESOURCES[(i + dir + RESOURCES.length) % RESOURCES.length].id;
+    UI.toast('Detector procurando: ' + RES[this.S.detRes].name);
+  },
+  updateDetector(dt) {
+    this.detT = (this.detT || 0) - dt;
+    if (this.detT > 0) return; this.detT = 0.25;
+    const S = this.S, lv = S.gear.detector;
+    if (!lv || !S.detOn) { this.det = null; return; }
+    if (!S.detRes) S.detRes = this.defaultDetRes();
+    const G = GADGETS.detector.levels[lv], P = this.P;
+    let best = null, bd = Infinity;
+    for (const n of World.nodes) { if (n.res.id !== S.detRes) continue; const d = Math.hypot(n.x - P.x, n.y - P.y); if (d < bd) { bd = d; best = n; } }
+    if (!best || bd > G.range) { this.det = { res: S.detRes, none: true }; return; }
+    // direção aproximada: o erro diminui quando você chega perto
+    const err = G.err * Math.min(1, bd / G.range + 0.15) * Math.sin(S.time * 0.7 + best.seed);
+    const bearing = Math.atan2(best.y - P.y, best.x - P.x) + err;
+    this.det = { res: S.detRes, dist: bd, bearing, strength: 1 - bd / G.range, lv };
+  },
+
   // ---------- loop ----------
   update(dt) {
     const S = this.S, P = this.P;
@@ -188,6 +248,11 @@ const Game = {
     // timers
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= dt; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
     World.update(dt);
+    const wasNight = this.isNight();
+    S.clock = (S.clock + dt / DAY_LEN) % 1;
+    if (!wasNight && this.isNight()) UI.toast(S.gear.light ? 'Anoiteceu. Aperte L para ligar sua luz.' : 'Anoiteceu! O Tonho do Bazar vende lanternas.', 'veio');
+    if (wasNight && !this.isNight()) UI.toast('Amanheceu em Vale Ferrado.');
+    this.updateDetector(dt);
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(`${POWERUPS[S.active[i].id].name} acabou.`); S.active.splice(i, 1); } }
 
 
@@ -203,14 +268,17 @@ const Game = {
       const len = Math.hypot(mx, my);
       P.moving = len > 0;
       // corrida com cansaço
-      const wantSprint = this.keys['shift'] && P.moving && fw > 0;
+      const ride = this.ride();
+      const wantSprint = this.keys['shift'] && P.moving && fw > 0 && !(ride && ride.free);
       P.sprint = wantSprint && !P.tired && P.stamina > 0;
       if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast('Você está cansado! Espere o fôlego voltar.', 'warn'); } }
       else { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
       if (len) {
         mx /= len; my /= len;
-        const sp = this.speed() * (P.sprint ? 1.75 : 1) * (P.tired ? 0.8 : 1);
-        this.moveBy(mx * sp * dt, 0); this.moveBy(0, my * sp * dt);
+        const sp = this.speed() * (ride ? ride.mult : 1) * (P.sprint ? 1.75 : 1) * (P.tired && !ride ? 0.8 : 1);
+        // passos pequenos para não atravessar obstáculos em alta velocidade
+        const steps = Math.max(1, Math.ceil(sp * dt / 0.4));
+        for (let i = 0; i < steps; i++) { this.moveBy(mx * sp * dt / steps, 0); this.moveBy(0, my * sp * dt / steps); }
         P.face = Math.atan2(my, mx);
         P.walkT += dt * sp;
       }
@@ -308,7 +376,7 @@ const Game = {
   // ---------- salvamento ----------
   save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.S)); } catch (e) {} },
   load() {
-    try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) return Object.assign(newState(), s); } catch (e) {}
+    try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) { const n = Object.assign(newState(), s); n.gear = Object.assign({ detector: 0, ride: 0, light: 0 }, s.gear || {}); return n; } } catch (e) {}
     return null;
   },
   reset() { localStorage.removeItem(SAVE_KEY); location.reload(); },

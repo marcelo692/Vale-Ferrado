@@ -22,13 +22,19 @@ O jogo abre no navegador (Chrome, Edge ou Firefox). Não precisa instalar nada n
 | E perto de um NPC | Abrir a loja |
 | 1, 2, 3 | Ativar power-ups |
 | V | Alternar primeira e terceira pessoa |
+| R | Subir/descer do transporte |
+| L | Ligar/desligar a luz |
+| G | Ligar/desligar o detector · T troca o minério procurado |
+| M | Som on/off |
 | Esc | Soltar o mouse |
 
 ## O que já tem
 
 - Os 60 martelos, do graveto seco ao Martelo do Vale
 - 34 recursos em 6 regiões, cada uma numa direção e mais longe que a anterior
-- 4 NPCs: Seu Bento (martelo), Dona Cida (mineração, mochila, movimento e pulo), Zé da Botica (power-ups) e Seu Lauro (venda automática)
+- 5 NPCs: Seu Bento (martelo), Dona Cida (mineração, mochila, movimento e pulo), Zé da Botica (power-ups), Seu Lauro (venda automática) e Tonho do Bazar (equipamentos)
+- Equipamentos: detector de minério (3 níveis), transporte (patins, patinete, monociclo, hoverboard) e iluminação (lanterna, headlamp, drone, esquadrilha de drones)
+- Ciclo de dia e noite (um dia dura 16 minutos), com estrelas, lua e luzes na cidade
 - Power-ups que ocupam espaço na mochila e podem ser ativados juntos
 - Respawn dinâmico: pedras voltam em outro lugar, com outro tamanho, às vezes raras; eventos de veio aflorado
 - Personagem muda de visual a cada melhoria (martelo, mochila, luvas, calçados, pernas)

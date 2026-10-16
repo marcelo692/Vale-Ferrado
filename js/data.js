@@ -238,3 +238,34 @@ function fmtTime(s) {
   if (s < 86400) return (s / 3600).toFixed(1).replace('.', ',') + ' h';
   return Math.round(s / 86400) + ' dias';
 }
+
+// ---------- Equipamentos (Tonho do Bazar) ----------
+const GADGETS = {
+  detector: {
+    title: 'Detector de minério', key: 'G', desc: 'Aponta a direção do minério escolhido (T troca o minério).',
+    levels: [null,
+      { n: 'Detector de bolso',    price: 300,     range: 80,   err: 0.6,  info: 'Alcance 80 m · direção aproximada' },
+      { n: 'Detector de campo',    price: 15000,   range: 600,  err: 0.35, info: 'Alcance 600 m · mais preciso' },
+      { n: 'Detector de satélite', price: 1500000, range: 4500, err: 0.15, info: 'Alcance de quase o mapa inteiro' },
+    ],
+  },
+  ride: {
+    title: 'Transporte', key: 'R', desc: 'Suba e desça com R. Vale também para pular.',
+    levels: [null,
+      { n: 'Patins de rodinha',  price: 800,      mult: 1.5, info: '+50% de velocidade · correr ainda cansa' },
+      { n: 'Patinete',           price: 20000,    mult: 2.2, info: '+120% de velocidade · correr ainda cansa' },
+      { n: 'Monociclo elétrico', price: 600000,   mult: 3.2, info: '+220% de velocidade · correr ainda cansa' },
+      { n: 'Hoverboard',         price: 25000000, mult: 5.5, free: true, info: '+450% de velocidade · não gasta fôlego' },
+    ],
+  },
+  light: {
+    title: 'Iluminação', key: 'L', desc: 'Liga e desliga com L. À noite, sem luz, quase não se vê nada.',
+    levels: [null,
+      { n: 'Lanterna de mão',       price: 150,      info: 'Facho estreito de 28 m' },
+      { n: 'Lanterna de cabeça',    price: 6000,     info: 'Facho largo de 40 m, mãos livres' },
+      { n: 'Drone de luz',          price: 400000,   info: 'Lanterna de cabeça + drone que ilumina 45 m em volta' },
+      { n: 'Esquadrilha de drones', price: 12000000, info: 'Lanterna de cabeça + 3 drones iluminando 80 m' },
+    ],
+  },
+};
+const DAY_LEN = 16 * 60; // um dia inteiro dura 16 minutos

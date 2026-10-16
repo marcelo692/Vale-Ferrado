@@ -62,7 +62,7 @@ const Render = {
     addEventListener('resize', () => { this.r.setSize(innerWidth, innerHeight); this.cam.aspect = this.vmCam.aspect = innerWidth / innerHeight; this.cam.updateProjectionMatrix(); this.vmCam.updateProjectionMatrix(); });
 
     // luz
-    this.scene.add(new THREE.HemisphereLight('#cfe3ff', '#5a4a32', 0.75));
+    this.hemi = new THREE.HemisphereLight('#cfe3ff', '#5a4a32', 0.75); this.scene.add(this.hemi);
     this.sunDir = new V3(0.45, 0.62, 0.3).normalize();
     this.sun = new THREE.DirectionalLight('#fff1d6', 1.05);
     this.sun.castShadow = true; this.sun.shadow.mapSize.set(2048, 2048);
@@ -85,10 +85,90 @@ const Render = {
     this.buildFx();
     this.buildViewModel();
     this.player = new THREE.Group(); this.scene.add(this.player);
+    this.buildPlayerLights();
     this.mini = document.getElementById('minimap'); this.mctx = this.mini.getContext('2d');
     this.floatsEl = document.getElementById('floats');
     this.ray = new THREE.Raycaster();
   },
+
+  buildPlayerLights() {
+    this.spot = new THREE.SpotLight('#fff2d8', 0, 40, 0.5, 0.45, 1);
+    this.scene.add(this.spot, this.spot.target);
+    this.drones = [];
+    for (let i = 0; i < 3; i++) {
+      const L = new THREE.PointLight('#e2ecff', 0, 60, 1);
+      const d = new THREE.Group();
+      const body = mesh(new THREE.BoxGeometry(0.5, 0.14, 0.5), mat('#2a2f36', { shininess: 60 }), false); d.add(body);
+      const rotors = [];
+      for (const [x, z] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) {
+        const arm = mesh(new THREE.BoxGeometry(0.05, 0.04, 0.5), mat('#3a3f48'), false); arm.position.set(x / 2, 0, z / 2); arm.rotation.y = Math.atan2(x, z); d.add(arm);
+        const r = new THREE.Mesh(new THREE.CircleGeometry(0.2, 10).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#9aa0a6', transparent: true, opacity: 0.35, side: THREE.DoubleSide })); r.position.set(x, 0.09, z); d.add(r); rotors.push(r);
+      }
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' })); lamp.position.y = -0.1; d.add(lamp);
+      d.add(L); L.position.y = -0.2;
+      d.visible = false; this.scene.add(d);
+      this.drones.push({ g: d, light: L, rotors });
+    }
+    // postes de luz na praça
+    this.lampMat = new THREE.MeshBasicMaterial({ color: '#555' });
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2 + Math.PI / 8, x = Math.cos(a) * 17.5, z = Math.sin(a) * 17.5;
+      const post = mesh(new THREE.CylinderGeometry(0.07, 0.1, 3.6, 6), mat('#2a2a2e')); post.position.set(x, 1.8, z); this.city.add(post);
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), this.lampMat); bulb.position.set(x, 3.7, z); this.city.add(bulb);
+    }
+    this.cityLight = new THREE.PointLight('#ffcf8a', 0, 55, 1); this.cityLight.position.set(0, 7, 0); this.scene.add(this.cityLight);
+  },
+
+  // ---------- dia e noite ----------
+  updateDayNight() {
+    const c = Game.S.clock, ang = (c - 0.25) * Math.PI * 2, el = Math.sin(ang);
+    this.sunDir.set(Math.cos(ang) * 0.9, el, 0.35).normalize();
+    const moon = this.sunDir.clone().negate();
+    const df = THREE.MathUtils.smoothstep(el, -0.15, 0.2); this.day = df;
+    const dusk = Math.max(0, 1 - Math.abs(el) / 0.28);
+    const L = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t);
+    this.skyU.top.value.copy(L('#040916', '#3f7fd0', df));
+    this.skyU.mid.value.copy(L('#0b1430', '#9cc4e8', df)).lerp(new THREE.Color('#d08870'), dusk * 0.5);
+    this.horizon.copy(L('#141c30', '#cfd9d6', df)).lerp(new THREE.Color('#f0a060'), dusk * 0.6);
+    this.skyU.moon.value.copy(moon); this.skyU.night.value = 1 - df;
+    this.stars.material.opacity = Math.max(0, 1 - df * 1.6);
+    this.scene.fog.color.copy(this.horizon);
+    this.scene.fog.near = 15 + 45 * df; this.scene.fog.far = 140 + 280 * df;
+    this.hemi.intensity = 0.1 + 0.65 * df;
+    this.hemi.color.copy(L('#5a6a9a', '#cfe3ff', df));
+    if (el > -0.04) { this.lightDir = this.sunDir; this.sun.intensity = 1.05 * df; this.sun.color.copy(L('#ff9a50', '#fff1d6', Math.min(1, el * 4))); }
+    else { this.lightDir = moon; this.sun.intensity = 0.2 * (1 - df); this.sun.color.set('#9fb4ff'); }
+    this.cloudMat.color.copy(L('#2a3048', '#ffffff', df)); this.cloudMat.emissive.copy(L('#0a0e18', '#c8d4e0', df)).lerp(new THREE.Color('#e08860'), dusk * 0.4);
+    for (const m of this.ring.children) m.material.color.copy(m.userData.base).lerp(new THREE.Color('#0d1322'), (1 - df) * 0.85).lerp(new THREE.Color('#c07858'), dusk * 0.25);
+    const night = 1 - df;
+    this.lampMat.color.copy(L('#555555', '#ffd890', night));
+    this.cityLight.intensity = night * 0.9;
+    this.vmScene.children.forEach(o => { if (o.isLight) o.intensity = (o.isHemisphereLight ? 0.6 : 0.55) * (0.25 + 0.75 * df); });
+  },
+  updatePlayerLights() {
+    const S = Game.S, P = Game.P, lv = S.gear.light, on = lv > 0 && S.lightOn;
+    const fwd = new V3(); this.cam.getWorldDirection(fwd);
+    const gh = World.height(P.x, P.y) + P.z + this.rideH();
+    if (on) {
+      const head = new V3(P.x, gh + EYE, P.y);
+      const right = new V3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
+      if (lv === 1) { this.spot.position.copy(head).addScaledVector(right, 0.25).add(new V3(0, -0.3, 0)); this.spot.angle = 0.36; this.spot.distance = 30; this.spot.intensity = 2.4 * (0.3 + 0.7 * (1 - this.day)); }
+      else { this.spot.position.copy(head).add(new V3(0, 0.15, 0)); this.spot.angle = 0.62; this.spot.distance = 44; this.spot.intensity = 2.8 * (0.3 + 0.7 * (1 - this.day)); }
+      const look = this.view === 'fp' ? fwd : new V3(-Math.sin(P.yaw) * Math.cos(P.pitch), Math.sin(P.pitch), -Math.cos(P.yaw) * Math.cos(P.pitch));
+      this.spot.target.position.copy(this.spot.position).addScaledVector(look, 10);
+    } else this.spot.intensity = 0;
+    const nd = on && lv >= 3 ? (lv === 4 ? 3 : 1) : 0;
+    this.drones.forEach((d, i) => {
+      d.g.visible = i < nd;
+      if (i >= nd) { d.light.intensity = 0; return; }
+      const a = this.t * (lv === 4 ? 0.5 : 0.7) + i * Math.PI * 2 / nd, r = lv === 4 ? 8 : 3;
+      const tx = P.x + Math.cos(a) * r, tz = P.y + Math.sin(a) * r, ty = World.height(P.x, P.y) + (lv === 4 ? 8 : 5.5) + Math.sin(this.t * 2 + i) * 0.25;
+      d.g.position.lerp(new V3(tx, ty, tz), 0.15);
+      d.light.intensity = (lv === 4 ? 1.1 : 1.5) * (0.3 + 0.7 * (1 - this.day)); d.light.distance = lv === 4 ? 85 : 50; d.light.decay = 1.1;
+      d.rotors.forEach(rt => rt.rotation.y += 1.5);
+    });
+  },
+  rideH() { const r = Game.ride(); return r ? [0, 0.08, 0.12, 0.72, 0.4][Game.S.gear.ride] + (Game.S.gear.ride === 4 ? Math.sin(this.t * 3) * 0.05 : 0) : 0; },
 
   toggleView() { this.view = this.view === 'fp' ? 'tp' : 'fp'; UI.toast(this.view === 'fp' ? 'Primeira pessoa' : 'Terceira pessoa: veja seu personagem (V para voltar)'); },
 
@@ -96,16 +176,24 @@ const Render = {
   buildSky() {
     const skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      uniforms: { top: { value: new THREE.Color('#3f7fd0') }, mid: { value: new THREE.Color('#9cc4e8') }, hor: { value: this.horizon }, sun: { value: this.sunDir } },
+      uniforms: { top: { value: new THREE.Color('#3f7fd0') }, mid: { value: new THREE.Color('#9cc4e8') }, hor: { value: this.horizon }, sun: { value: this.sunDir }, moon: { value: new V3(0, -1, 0) }, night: { value: 0 } },
       vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 hor; uniform vec3 sun; varying vec3 vP;
+      fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 hor; uniform vec3 sun; uniform vec3 moon; uniform float night; varying vec3 vP;
         void main(){ float h = vP.y; vec3 c = mix(hor, mid, smoothstep(-0.02, 0.18, h)); c = mix(c, top, smoothstep(0.18, 0.75, h));
-          float s = max(dot(vP, sun), 0.0); c += vec3(1.0,0.85,0.6) * pow(s, 400.0) * 1.6 + vec3(1.0,0.8,0.5) * pow(s, 12.0) * 0.25;
+          float s = max(dot(vP, sun), 0.0); c += (vec3(1.0,0.85,0.6) * pow(s, 400.0) * 1.6 + vec3(1.0,0.8,0.5) * pow(s, 12.0) * 0.25) * (1.0 - night);
+          float m = max(dot(vP, moon), 0.0); c += vec3(0.85,0.9,1.0) * (pow(m, 900.0) * 2.2 + pow(m, 40.0) * 0.08) * night;
           gl_FragColor = vec4(c, 1.0); }`,
     });
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(6000, 32, 16), skyMat);
     this.sky.renderOrder = -10;
     this.scene.add(this.sky);
+    this.skyU = skyMat.uniforms;
+    // estrelas
+    const sp = [], rs = rng(5);
+    for (let i = 0; i < 1500; i++) { const a = rs() * Math.PI * 2, y = 0.05 + rs() * 0.95, rr = Math.sqrt(1 - y * y); sp.push(Math.cos(a) * rr * 5500, y * 5500, Math.sin(a) * rr * 5500); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+    this.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: '#ffffff', size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+    this.stars.renderOrder = -9.5; this.scene.add(this.stars);
     // anel de montanhas que acompanha o jogador (fundo infinito)
     this.ring = new THREE.Group();
     const rings = [[3000, '#7f97a8', 380, 1], [3800, '#9fb2bf', 520, 2], [4600, '#b8c7cf', 700, 3]];
@@ -120,13 +208,13 @@ const Render = {
       for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
       const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col, fog: false, side: THREE.DoubleSide }));
-      m.renderOrder = -9 + seed; this.ring.add(m);
+      m.renderOrder = -9 + seed; m.userData.base = new THREE.Color(col); this.ring.add(m);
       // neve nos picos do anel mais próximo
     }
     this.scene.add(this.ring);
     // nuvens low-poly
     this.clouds = new THREE.Group();
-    const cm = new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true, fog: false, emissive: '#c8d4e0' });
+    const cm = new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true, fog: false, emissive: '#c8d4e0' }); this.cloudMat = cm;
     const r = rng(7);
     for (let i = 0; i < 28; i++) {
       const c = new THREE.Group(), a = r() * Math.PI * 2, d = 900 + r() * 1800;
@@ -485,7 +573,7 @@ const Render = {
   },
   rebuildViewModel() {
     const gear = this.gear(), L = Game.S.hammer;
-    const sig = L + '|' + gear.glove.era + '|' + gear.glove.lvl;
+    const sig = L + '|' + gear.glove.era + '|' + gear.glove.lvl + '|' + Game.S.gear.light + Game.S.lightOn;
     if (this.sig.vm === sig) return; this.sig.vm = sig;
     this.vm.clear();
     const arm = new THREE.Group();
@@ -499,6 +587,15 @@ const Render = {
     ham.position.set(0, -0.06, 0); ham.rotation.set(-0.45, 0, 0.32);
     arm.add(ham);
     this.vmArm = arm; this.vm.add(arm);
+    this.vmTorch = null;
+    if (Game.S.gear.light === 1) {
+      const t = new THREE.Group();
+      const hand = mesh(new THREE.BoxGeometry(0.09, 0.08, 0.11), mat(G.col), false); t.add(hand);
+      const body = mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.24, 8), mat('#2a2a2e', { shininess: 60 }), false); body.rotation.x = Math.PI / 2; body.position.z = -0.12; t.add(body);
+      const lens = new THREE.Mesh(new THREE.CircleGeometry(0.034, 10), new THREE.MeshBasicMaterial({ color: Game.S.lightOn ? '#fff6d0' : '#555' })); lens.position.z = -0.245; lens.rotation.y = Math.PI; t.add(lens);
+      t.position.set(-0.32, -0.36, -0.55); t.rotation.set(0.05, 0.1, 0);
+      this.vm.add(t); this.vmTorch = t;
+    }
   },
   updateViewModel(dt) {
     this.rebuildViewModel();
@@ -507,6 +604,7 @@ const Render = {
     const rx = s < 0.7 ? (s / 0.7) * 0.5 : 0.5 - ((s - 0.7) / 0.3) * 1.3;
     this.vmArm.position.set(0.36 + bob * 0.012 + Math.max(0, rx) * 0.08, -0.4 + Math.abs(bob) * 0.015, -0.6);
     this.vmArm.rotation.set(rx, -0.12, bob * 0.03);
+    if (this.vmTorch) this.vmTorch.position.set(-0.32 - bob * 0.01, -0.36 + Math.abs(bob) * 0.012, -0.55);
   },
 
   // ---------- personagem (terceira pessoa e pés na primeira) ----------
@@ -523,7 +621,7 @@ const Render = {
   },
   rebuildPlayer() {
     const gear = this.gear(), A = Game.S.attrs, L = Game.S.hammer;
-    const sig = [L, A.bag, A.mine, A.move, A.jump].join('|');
+    const S = Game.S; const sig = [L, A.bag, A.mine, A.move, A.jump, S.gear.light, S.lightOn, S.gear.ride, S.riding].join('|');
     if (this.sig.pl === sig) return; this.sig.pl = sig;
     const g = this.player; g.clear();
     this.legs = [];
@@ -565,13 +663,44 @@ const Render = {
     const ham = this.makeHammer(L); ham.position.y = -0.64; ham.rotation.x = -Math.PI / 2; arm.add(ham);
     const arm2 = mesh(new THREE.BoxGeometry(0.16, 0.65, 0.18), mat('#3e6b8a')); arm2.position.set(-0.4, 1.22, 0); body.add(arm2);
     this.pArm = arm; this.pBody = body; this.pHead = [head, hair];
+    // lanterna de cabeça
+    if (S.gear.light >= 2) {
+      const band = mesh(new THREE.BoxGeometry(0.41, 0.06, 0.41), mat('#222')); band.position.y = 1.92; body.add(band);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.06), new THREE.MeshBasicMaterial({ color: S.lightOn ? '#fff6d0' : '#666' })); lamp.position.set(0, 1.92, -0.22); body.add(lamp);
+    }
+    // transporte
+    this.rideObj = null;
+    if (S.riding && S.gear.ride) {
+      const lv = S.gear.ride, r = new THREE.Group();
+      if (lv === 1) {
+        for (const leg of this.legs) { const sk = new THREE.Group(); const base = mesh(new THREE.BoxGeometry(0.26, 0.05, 0.44), mat('#d0303a')); sk.add(base); for (const z of [-0.15, 0.15]) for (const x of [-0.08, 0.08]) { const w = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 8), mat('#ffd34d')); w.rotation.z = Math.PI / 2; w.position.set(x, -0.04, z); sk.add(w); } sk.position.set(0, -0.93, -0.05); leg.add(sk); }
+      } else if (lv === 2) {
+        const deck = mesh(new THREE.BoxGeometry(0.26, 0.05, 0.95), mat('#2f8fd0')); deck.position.y = 0.06; r.add(deck);
+        const stem = mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 6), mat('#aab0b6', { shininess: 70 })); stem.position.set(0, 0.55, -0.45); stem.rotation.x = 0.12; r.add(stem);
+        const bar = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6), mat('#222')); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.03, -0.5); r.add(bar);
+        for (const z of [-0.42, 0.42]) { const w = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10), mat('#222')); w.rotation.z = Math.PI / 2; w.position.set(0, 0.04, z); r.add(w); }
+        r.position.y = -0.12;
+      } else if (lv === 3) {
+        const wheel = mesh(new THREE.TorusGeometry(0.34, 0.09, 6, 14), mat('#1f1f22')); wheel.rotation.y = Math.PI / 2; wheel.position.y = -0.3; r.add(wheel); this.wheel = wheel;
+        const hub = mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 10), mat('#ff7a1a', { emissive: '#ff7a1a', emissiveIntensity: 0.3 })); hub.rotation.z = Math.PI / 2; hub.position.y = -0.3; r.add(hub);
+        for (const x of [-0.18, 0.18]) { const pad = mesh(new THREE.BoxGeometry(0.16, 0.04, 0.3), mat('#333')); pad.position.set(x, -0.27, 0); r.add(pad); }
+      } else {
+        const board = mesh(new THREE.BoxGeometry(0.42, 0.08, 1.35), mat('#e0408a', { shininess: 90 })); board.position.y = -0.36; r.add(board);
+        const stripe = mesh(new THREE.BoxGeometry(0.43, 0.085, 0.3), mat('#40e0ff', { emissive: '#40e0ff', emissiveIntensity: 0.6 })); stripe.position.y = -0.36; r.add(stripe);
+        const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.5).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#40e0ff', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })); glow.position.y = -0.42; r.add(glow);
+      }
+      g.add(r); this.rideObj = r;
+    }
   },
   updatePlayer() {
     this.rebuildPlayer();
     const P = Game.P, g = this.player;
-    g.position.set(P.x, World.height(P.x, P.y) + P.z, P.y);
+    const rh = this.rideH();
+    g.position.set(P.x, World.height(P.x, P.y) + P.z + rh, P.y);
     g.rotation.y = P.yaw;
-    const w = P.moving ? Math.sin(P.walkT * 2.2) * 0.6 : 0;
+    const riding = !!Game.ride(), lvR = Game.S.gear.ride;
+    const w = P.moving ? Math.sin(P.walkT * 2.2) * (riding ? (lvR === 1 ? 0.35 : 0) : 0.6) : 0;
+    if (this.wheel && riding && lvR === 3) this.wheel.rotation.x += P.moving ? 0.3 : 0;
     this.legs[0].rotation.x = w; this.legs[1].rotation.x = -w;
     const s = P.swing, raise = s < 0.7 ? s / 0.7 : 1 - (s - 0.7) / 0.3;
     this.pArm.rotation.x = raise * 2.4;
@@ -585,29 +714,34 @@ const Render = {
   draw(dt) {
     this.t += dt;
     const P = Game.P;
+    this.updateDayNight();
     this.updateNearGround(); this.updateGrass(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.moving && P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) : 0;
     const shake = Game.shake * 0.012;
     this.cam.rotation.set(P.pitch + (Math.random() - 0.5) * shake, P.yaw + (Math.random() - 0.5) * shake, 0);
-    if (this.view === 'fp') this.cam.position.set(P.x, gh + P.z + EYE + bob, P.y);
+    const rh = this.rideH(), ridingNow = !!Game.ride();
+    if (this.view === 'fp') this.cam.position.set(P.x, gh + P.z + EYE + rh + (ridingNow ? bob * 0.2 : bob), P.y);
     else {
       const bs = this.gear().bag.size, back = 4 + bs * 2.2, fx = Math.sin(P.yaw) * Math.cos(P.pitch), fz = Math.cos(P.yaw) * Math.cos(P.pitch);
       const cx = P.x + fx * back + Math.cos(P.yaw) * 0.7, cz = P.y + fz * back - Math.sin(P.yaw) * 0.7; // câmera sobre o ombro
       this.cam.position.set(cx, Math.max(World.height(cx, cz) + 0.5, gh + P.z + 1.7 + bs * 0.9 - Math.sin(P.pitch) * back), cz);
     }
-    const wantFov = P.sprint ? 82 : 72; this.cam.fov += (wantFov - this.cam.fov) * Math.min(1, dt * 6); this.cam.updateProjectionMatrix();
+    const rr = Game.ride(); const wantFov = (P.sprint ? 82 : 72) + (rr && P.moving ? Math.min(14, rr.mult * 2.5) : 0); this.cam.fov += (wantFov - this.cam.fov) * Math.min(1, dt * 6); this.cam.updateProjectionMatrix();
     // céu, montanhas e nuvens acompanham o jogador (horizonte infinito)
     this.sky.position.copy(this.cam.position);
     this.ring.position.set(this.cam.position.x, 0, this.cam.position.z);
     this.clouds.position.set(this.cam.position.x, 0, this.cam.position.z);
     this.clouds.rotation.y = this.t * 0.004;
     // sol e sombra seguem o jogador
-    this.sun.position.set(P.x + this.sunDir.x * 120, gh + this.sunDir.y * 120, P.y + this.sunDir.z * 120);
+    const ld = this.lightDir || this.sunDir;
+    this.sun.position.set(P.x + ld.x * 120, gh + Math.max(0.15, ld.y) * 120, P.y + ld.z * 120);
     this.sun.target.position.set(P.x, gh, P.y);
     // efeitos de veio aflorado: recurso brilha
     this.water.position.y = 0.68 + Math.sin(this.t * 2) * 0.02;
+    this.updatePlayerLights();
+    this.stars.position.copy(this.cam.position);
 
     this.r.clear();
     this.r.render(this.scene, this.cam);

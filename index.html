@@ -17,8 +17,19 @@
   #tinfo .hp { height: 6px; background: #333; border-radius: 3px; margin: 4px 0; overflow: hidden; } #tinfo .hp i { display: block; height: 100%; }
   #floats { position: fixed; inset: 0; pointer-events: none; }
   #floats div { position: absolute; transform: translate(-50%,-50%); font: 700 16px system-ui, sans-serif; text-shadow: 0 2px 3px #000, 0 0 2px #000; white-space: nowrap; }
-  #stamwrap { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); width: 220px; height: 7px; background: rgba(0,0,0,.45); border-radius: 4px; overflow: hidden; transition: opacity .4s; }
+  #stamwrap { position: fixed; left: 50%; bottom: 158px; transform: translateX(-50%); width: 220px; height: 7px; background: rgba(0,0,0,.45); border-radius: 4px; overflow: hidden; transition: opacity .4s; }
   #stam { height: 100%; background: #7fd36a; width: 100%; } #stam.run { background: #a8f080; } #stam.tired { background: #ff6a4a; animation: pulse .6s infinite; }
+  #clock { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); font: 600 13px system-ui; background: rgba(20,14,8,.7); padding: 4px 10px; border-radius: 6px; }
+  #det { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 10px; background: rgba(20,14,8,.8); border: 1px solid var(--edge); padding: 6px 14px 6px 8px; border-radius: 30px; font-size: 12px; }
+  #det b { display: block; font-size: 13px; } #det span { opacity: .85; } #det kbd, .kbd { background: #4a3a28; border-radius: 4px; padding: 0 5px; font: 700 11px system-ui; color: var(--gold); }
+  .dial { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #6b5236; background: radial-gradient(circle, rgba(127,211,106,calc(var(--s,0)*0.6)) 0%, #1a140e 70%); position: relative; }
+  .dial i { position: absolute; left: 50%; top: 4px; width: 0; height: 0; margin-left: -7px; border: 7px solid transparent; border-bottom: 16px solid #ffd34d; border-top: 0; transform-origin: 7px 17px; transition: transform .25s; }
+  .dial.off i { border-bottom-color: #666; }
+  #equip { position: fixed; bottom: 128px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; font-size: 11px; }
+  #equip span { background: rgba(20,14,8,.7); padding: 3px 8px; border-radius: 6px; opacity: .55; } #equip span.on { opacity: 1; border: 1px solid #a08a3a; }
+  #equip kbd { background: #4a3a28; border-radius: 3px; padding: 0 4px; margin-right: 5px; color: var(--gold); font-weight: 700; }
+  .card.eq { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,211,77,.25); }
+  select { background: #1f1810; color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 4px 6px; font-size: 13px; }
   #lockhint { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(10,6,2,.45); z-index: 5; font: 700 22px Georgia, serif; color: var(--gold); cursor: pointer; text-align: center; }
   #lockhint small { font: 13px system-ui; color: var(--ink); opacity: .8; margin-top: 8px; }
   .box { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
@@ -49,7 +60,7 @@
   .pw.on { border-color: var(--c); box-shadow: 0 0 12px var(--c); } .pw em { position: absolute; top: -10px; right: 6px; background: var(--c); color: #111; font-style: normal; font-weight: 700; padding: 0 5px; border-radius: 6px; }
   #minimap { position: fixed; bottom: 14px; right: 14px; width: 190px; height: 190px; }
   #npchint { position: fixed; bottom: 150px; left: 50%; transform: translateX(-50%); padding: 8px 14px; background: rgba(0,0,0,.7); border-radius: 8px; font-weight: 600; color: var(--gold); display: none; }
-  #toasts { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: min(560px, 90vw); }
+  #toasts { position: fixed; top: 160px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; width: min(560px, 90vw); }
   .toast { background: rgba(20,16,12,.92); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 14px; font-size: 13px; transition: opacity .5s, transform .5s; text-align: center; }
   .toast.out { opacity: 0; transform: translateY(-8px); } .toast.money { border-color: #a08a3a; color: #ffe9a8; } .toast.level { border-color: #6a9a4a; color: #c9f0b0; } .toast.warn { border-color: #a04a3a; color: #ffc0b0; } .toast.veio { border-color: var(--gold); color: var(--gold); font-weight: 600; } .toast.power { border-color: #3a8ef0; color: #b8d8ff; }
   #panel { position: fixed; inset: 0; background: rgba(10,6,2,.55); display: flex; align-items: center; justify-content: center; z-index: 10; }
@@ -100,6 +111,9 @@
 </div>
 <canvas id="minimap" width="380" height="380"></canvas>
 <div id="cross"></div>
+<div id="clock"></div>
+<div id="det"></div>
+<div id="equip"></div>
 <div id="tinfo"></div>
 <div id="floats"></div>
 <div id="stamwrap"><div id="stam"></div></div>

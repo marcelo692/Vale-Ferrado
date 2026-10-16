@@ -86,6 +86,24 @@ const UI = {
       h += `</div><p class="hint">Ative com as teclas 1, 2 e 3. Dá para ativar vários ao mesmo tempo: os efeitos se multiplicam. Ao ativar, o espaço volta a ficar livre.</p>`;
     }
 
+    if (id === 'bazar') {
+      h += `<p class="free">Seu dinheiro: <b>🪙 ${fmt(S.money)}</b></p>`;
+      for (const type in GADGETS) {
+        const T = GADGETS[type], have = S.gear[type];
+        h += `<h4>${T.title} <span class="kbd">${T.key}</span></h4><p class="hint" style="margin:0 0 8px">${T.desc}</p><div class="grid">`;
+        for (let lv = 1; lv < T.levels.length; lv++) {
+          const G = T.levels[lv], owned = have >= lv, ok = !owned && S.money >= G.price;
+          h += `<div class="card ${have === lv ? 'eq' : ''}"><span class="lv">Nível ${lv}</span><h3>${G.n}</h3><p>${G.info}</p>
+            <ul class="cost"><li class="${S.money >= G.price || owned ? 'ok' : 'no'}">🪙 Moedas: <b>${fmt(G.price)}</b></li></ul>
+            ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você já tem melhor</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
+        }
+        h += `</div>`;
+        if (type === 'detector' && have) {
+          h += `<p class="free" style="margin-top:10px">Minério procurado: <select onchange="Game.S.detRes=this.value;Game.save()">${RESOURCES.map(r => `<option value="${r.id}" ${r.id === (S.detRes || Game.defaultDetRes()) ? 'selected' : ''}>${r.name} (região ${REGIONS[r.region].era})</option>`).join('')}</select></p>`;
+        }
+      }
+    }
+
     if (id === 'armazem') {
       const ids = Object.keys(S.stock).filter(k => S.stock[k] > 0);
       h += `<p>Tudo o que você traz na mochila é vendido automaticamente quando entra na cidade. O que for necessário para a próxima evolução fica guardado aqui.</p>`;
@@ -133,6 +151,8 @@ const UI = {
         <li><b>E</b> perto de um NPC: abrir a loja</li>
         <li><b>1, 2, 3</b>: ativar power-ups da mochila</li>
         <li><b>V</b>: alternar primeira e terceira pessoa</li>
+        <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: trocar o minério do detector</li>
+        <li><b>M</b>: ligar/desligar som</li>
         <li><b>Esc</b>: soltar o mouse</li>
       </ul>
       <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra tudo sozinho. Use o dinheiro no Ferreiro (martelo), na Tropeira (atributos) e na Botica (power-ups).</p>
@@ -141,6 +161,30 @@ const UI = {
       <div class="row"><button class="buy" onclick="UI.close()">Voltar ao jogo</button><button class="buy alt" onclick="if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()">Recomeçar do zero</button></div></div>`;
   },
 
+  updateDetectorHud() {
+    const el = $('det'), d = Game.det;
+    if (!d) { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+    const R = RES[d.res];
+    if (d.none) { el.innerHTML = `<div class="dial off"><i></i></div><div><b>${R.name}</b><span>Sem sinal · <kbd>T</kbd> troca</span></div>`; return; }
+    const P = Game.P, fx = -Math.sin(P.yaw), fy = -Math.cos(P.yaw), rx = Math.cos(P.yaw), ry = -Math.sin(P.yaw);
+    const dx = Math.cos(d.bearing), dy = Math.sin(d.bearing);
+    const ang = Math.atan2(dx * rx + dy * ry, dx * fx + dy * fy) * 180 / Math.PI;
+    const bars = Math.max(1, Math.ceil(d.strength * 5));
+    const dist = d.dist < 15 ? 'aqui perto!' : d.lv === 1 ? (d.dist < 40 ? 'perto' : 'um pouco longe') : '~' + fmt(Math.round(d.dist / (d.lv === 2 ? 25 : 50)) * (d.lv === 2 ? 25 : 50)) + ' m';
+    el.innerHTML = `<div class="dial" style="--s:${d.strength}"><i style="transform:rotate(${ang}deg)"></i></div><div><b>${R.name}</b><span>${dist} · ${'▮'.repeat(bars)}${'▯'.repeat(5 - bars)}</span></div>`;
+    // bipe que acelera conforme você se aproxima
+    this.beepT = (this.beepT || 0) - 0.1;
+    if (this.beepT <= 0 && Game.S.sound && started && !this.open) { this.beep(500 + d.strength * 700); this.beepT = 0.25 + (1 - d.strength) * 1.6; }
+  },
+  beep(freq) {
+    try {
+      this.ac = this.ac || new (window.AudioContext || window.webkitAudioContext)();
+      const o = this.ac.createOscillator(), g = this.ac.createGain();
+      o.frequency.value = freq; o.type = 'sine'; g.gain.setValueAtTime(0.04, this.ac.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, this.ac.currentTime + 0.12);
+      o.connect(g); g.connect(this.ac.destination); o.start(); o.stop(this.ac.currentTime + 0.13);
+    } catch (e) {}
+  },
   updateHud(dt) {
     this.hudT -= dt; if (this.hudT > 0) return; this.hudT = 0.1;
     const S = Game.S, G = Game;
@@ -179,6 +223,16 @@ const UI = {
     const npc = G.npcNear();
     $('npchint').textContent = npc && !this.open ? `[E] Falar com ${npc.name}` : '';
     $('npchint').style.display = npc && !this.open ? 'block' : 'none';
-    if (this.open && this.open !== 'story' && this.open !== 'help' && Math.random() < 0.05) this.renderPanel();
+    if (this.open && this.open !== 'story' && this.open !== 'help' && this.open !== 'bazar' && Math.random() < 0.05) this.renderPanel();
+    // relógio
+    const c = S.clock, hh = Math.floor(c * 24), mm = Math.floor((c * 24 - hh) * 60);
+    $('clock').textContent = `${G.isNight() ? '🌙' : '☀️'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    // equipamentos ativos
+    const eq = [];
+    if (S.gear.ride) eq.push(`<span class="${S.riding ? 'on' : ''}"><kbd>R</kbd>${GADGETS.ride.levels[S.gear.ride].n}</span>`);
+    if (S.gear.light) eq.push(`<span class="${S.lightOn ? 'on' : ''}"><kbd>L</kbd>${GADGETS.light.levels[S.gear.light].n}</span>`);
+    if (S.gear.detector) eq.push(`<span class="${S.detOn ? 'on' : ''}"><kbd>G</kbd>${GADGETS.detector.levels[S.gear.detector].n}</span>`);
+    $('equip').innerHTML = eq.join('');
+    this.updateDetectorHud();
   },
 };

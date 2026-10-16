@@ -9,6 +9,7 @@ const NPCS = [
   { id: 'tropeira', name: 'Dona Cida, a Tropeira', role: 'Mineração, mochila, movimento e pulo', x: 9,  y: -5, color: '#3f7a4a' },
   { id: 'botica',   name: 'Zé da Botica',          role: 'Vende power-ups',               x: -9, y: 8,  color: '#7a3fa0' },
   { id: 'armazem',  name: 'Seu Lauro, do Armazém', role: 'Compra tudo automaticamente',   x: 9,  y: 8,  color: '#a07a2a' },
+  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte e lanternas', x: 15, y: 1.5, color: '#2a7a9a' },
 ];
 
 function rng(seed) { // gerador determinístico
