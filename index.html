@@ -28,6 +28,11 @@
   #equip { position: fixed; bottom: 128px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; font-size: 11px; }
   #equip span { background: rgba(20,14,8,.7); padding: 3px 8px; border-radius: 6px; opacity: .55; } #equip span.on { opacity: 1; border: 1px solid #a08a3a; }
   #equip kbd { background: #4a3a28; border-radius: 3px; padding: 0 4px; margin-right: 5px; color: var(--gold); font-weight: 700; }
+  .pics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: -2px 0 6px; }
+  .pics figure { margin: 0; background: radial-gradient(circle at 50% 40%, #5a4a36, #241b12); border: 1px solid #5a4630; border-radius: 8px; position: relative; aspect-ratio: 1; overflow: hidden; }
+  .pics img { width: 100%; height: 100%; display: block; object-fit: contain; }
+  .pics figcaption { position: absolute; left: 6px; top: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; opacity: .7; }
+  .card.big .pics { grid-template-columns: 200px 200px; justify-content: start; }
   .card.eq { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,211,77,.25); }
   select { background: #1f1810; color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 4px 6px; font-size: 13px; }
   #lockhint { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(10,6,2,.45); z-index: 5; font: 700 22px Georgia, serif; color: var(--gold); cursor: pointer; text-align: center; }
@@ -66,7 +71,7 @@
   #panel { position: fixed; inset: 0; background: rgba(10,6,2,.55); display: flex; align-items: center; justify-content: center; z-index: 10; }
   #panel.hidden { display: none; }
   #panel > div { background: #2a2016; border: 2px solid var(--edge); border-radius: 14px; width: min(760px, 94vw); max-height: 88vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
-  .ph { display: flex; gap: 14px; align-items: center; padding: 16px 20px; border-bottom: 1px solid #4a3a28; background: linear-gradient(90deg, color-mix(in srgb, var(--npc) 35%, transparent), transparent); position: sticky; top: 0; }
+  .ph { display: flex; gap: 14px; align-items: center; padding: 16px 20px; border-bottom: 1px solid #4a3a28; background: linear-gradient(90deg, color-mix(in srgb, var(--npc) 35%, #2a2016), #2a2016); position: sticky; top: 0; z-index: 2; }
   .ph h2 { margin: 0; font: 700 20px Georgia, serif; } .ph p { margin: 2px 0 0; font-size: 13px; opacity: .8; }
   .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--npc); border: 2px solid #f3e6cc55; }
   .x { margin-left: auto; background: none; border: none; color: var(--ink); font-size: 20px; cursor: pointer; }

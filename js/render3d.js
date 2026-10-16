@@ -97,14 +97,7 @@ const Render = {
     this.drones = [];
     for (let i = 0; i < 3; i++) {
       const L = new THREE.PointLight('#e2ecff', 0, 60, 1);
-      const d = new THREE.Group();
-      const body = mesh(new THREE.BoxGeometry(0.5, 0.14, 0.5), mat('#2a2f36', { shininess: 60 }), false); d.add(body);
-      const rotors = [];
-      for (const [x, z] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) {
-        const arm = mesh(new THREE.BoxGeometry(0.05, 0.04, 0.5), mat('#3a3f48'), false); arm.position.set(x / 2, 0, z / 2); arm.rotation.y = Math.atan2(x, z); d.add(arm);
-        const r = new THREE.Mesh(new THREE.CircleGeometry(0.2, 10).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#9aa0a6', transparent: true, opacity: 0.35, side: THREE.DoubleSide })); r.position.set(x, 0.09, z); d.add(r); rotors.push(r);
-      }
-      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' })); lamp.position.y = -0.1; d.add(lamp);
+      const d = this.makeDrone(); const rotors = d.children.filter(o => o.geometry && o.geometry.type === 'CircleGeometry');
       d.add(L); L.position.y = -0.2;
       d.visible = false; this.scene.add(d);
       this.drones.push({ g: d, light: L, rotors });
@@ -168,7 +161,7 @@ const Render = {
       d.rotors.forEach(rt => rt.rotation.y += 1.5);
     });
   },
-  rideH() { const r = Game.ride(); return r ? [0, 0.08, 0.12, 0.72, 0.4][Game.S.gear.ride] + (Game.S.gear.ride === 4 ? Math.sin(this.t * 3) * 0.05 : 0) : 0; },
+  rideH() { const r = Game.ride(); return r ? this.rideHFor(Game.S.gear.ride) + (Game.S.gear.ride === 4 ? Math.sin(this.t * 3) * 0.05 : 0) : 0; },
 
   toggleView() { this.view = this.view === 'fp' ? 'tp' : 'fp'; UI.toast(this.view === 'fp' ? 'Primeira pessoa' : 'Terceira pessoa: veja seu personagem (V para voltar)'); },
 
@@ -591,8 +584,7 @@ const Render = {
     if (Game.S.gear.light === 1) {
       const t = new THREE.Group();
       const hand = mesh(new THREE.BoxGeometry(0.09, 0.08, 0.11), mat(G.col), false); t.add(hand);
-      const body = mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.24, 8), mat('#2a2a2e', { shininess: 60 }), false); body.rotation.x = Math.PI / 2; body.position.z = -0.12; t.add(body);
-      const lens = new THREE.Mesh(new THREE.CircleGeometry(0.034, 10), new THREE.MeshBasicMaterial({ color: Game.S.lightOn ? '#fff6d0' : '#555' })); lens.position.z = -0.245; lens.rotation.y = Math.PI; t.add(lens);
+      const tor = this.makeTorch(); tor.position.z = -0.1; tor.scale.setScalar(0.9); t.add(tor);
       t.position.set(-0.32, -0.36, -0.55); t.rotation.set(0.05, 0.1, 0);
       this.vm.add(t); this.vmTorch = t;
     }
@@ -608,8 +600,7 @@ const Render = {
   },
 
   // ---------- personagem (terceira pessoa e pés na primeira) ----------
-  gear() {
-    const A = Game.S.attrs;
+  gear(A = Game.S.attrs) {
     const tint = (base, lvl) => '#' + new THREE.Color(base).offsetHSL(0, 0, ((lvl - 1) % 10) * 0.012).getHexString();
     const bagE = eraOf(A.bag), mineE = eraOf(A.mine), moveE = eraOf(A.move), jumpE = eraOf(A.jump);
     return {
@@ -619,31 +610,181 @@ const Render = {
       leg: { era: jumpE, col: tint(['#4a4a52', '#7a5232', '#5a5a64', '#9aa0a8', '#c9a020', '#40d0ff'][jumpE - 1], A.jump), lvl: A.jump },
     };
   },
-  rebuildPlayer() {
-    const gear = this.gear(), A = Game.S.attrs, L = Game.S.hammer;
-    const S = Game.S; const sig = [L, A.bag, A.mine, A.move, A.jump, S.gear.light, S.lightOn, S.gear.ride, S.riding].join('|');
-    if (this.sig.pl === sig) return; this.sig.pl = sig;
-    const g = this.player; g.clear();
-    this.legs = [];
+  charState(over = {}) {
+    const S = Game.S;
+    return Object.assign({ hammer: S.hammer, attrs: Object.assign({}, S.attrs), gear: Object.assign({}, S.gear), riding: S.riding, lightOn: S.lightOn, detOn: S.detOn, pw: S.pw.slice() }, over);
+  },
+  tag(o, part) { o.userData.part = part; return o; },
+
+  // ---------- modelos dos equipamentos ----------
+  makeSkate() {
+    const sk = new THREE.Group();
+    const base = mesh(new THREE.BoxGeometry(0.26, 0.05, 0.44), mat('#d0303a')); sk.add(base);
+    const cuff = mesh(new THREE.BoxGeometry(0.27, 0.16, 0.2), mat('#f0f0f0')); cuff.position.set(0, 0.1, 0.08); sk.add(cuff);
+    for (const z of [-0.15, 0.15]) for (const x of [-0.08, 0.08]) { const w = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.05, 10), mat('#ffd34d')); w.rotation.z = Math.PI / 2; w.position.set(x, -0.05, z); sk.add(w); }
+    const stop = mesh(new THREE.BoxGeometry(0.08, 0.06, 0.06), mat('#222')); stop.position.set(0, -0.04, -0.25); sk.add(stop);
+    return sk;
+  },
+  makeRide(lv) {
+    const r = new THREE.Group();
+    if (lv === 1) { const a = this.makeSkate(), b = this.makeSkate(); a.position.x = -0.16; b.position.x = 0.16; r.add(a, b); r.position.y = 0.07; }
+    else if (lv === 2) {
+      const deck = mesh(new THREE.BoxGeometry(0.26, 0.05, 0.95), mat('#2f8fd0')); deck.position.y = 0.06; r.add(deck);
+      const grip = mesh(new THREE.BoxGeometry(0.2, 0.052, 0.7), mat('#1a1a1a')); grip.position.set(0, 0.062, 0.05); r.add(grip);
+      const stem = mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 6), mat('#aab0b6', { shininess: 70 })); stem.position.set(0, 0.55, -0.45); stem.rotation.x = 0.12; r.add(stem);
+      const bar = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6), mat('#222')); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.03, -0.5); r.add(bar);
+      for (const x of [-0.25, 0.25]) { const h = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.1, 6), mat('#e04040')); h.rotation.z = Math.PI / 2; h.position.set(x, 1.03, -0.5); r.add(h); }
+      for (const z of [-0.42, 0.42]) { const w = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10), mat('#222')); w.rotation.z = Math.PI / 2; w.position.set(0, 0.04, z); r.add(w); }
+      r.position.y = -0.12;
+    } else if (lv === 3) {
+      const wheel = mesh(new THREE.TorusGeometry(0.34, 0.09, 6, 14), mat('#1f1f22')); wheel.rotation.y = Math.PI / 2; wheel.position.y = -0.3; r.add(wheel); r.userData.wheel = wheel;
+      const hub = mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 10), mat('#ff7a1a', { emissive: '#ff7a1a', emissiveIntensity: 0.3 })); hub.rotation.z = Math.PI / 2; hub.position.y = -0.3; r.add(hub);
+      const shell = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.16, 12, 1, true, -Math.PI / 2, Math.PI), mat('#f2f2f2', { side: THREE.DoubleSide })); shell.rotation.z = Math.PI / 2; shell.position.y = -0.3; r.add(shell);
+      for (const x of [-0.18, 0.18]) { const pad = mesh(new THREE.BoxGeometry(0.16, 0.04, 0.3), mat('#333')); pad.position.set(x, -0.27, 0); r.add(pad); }
+    } else {
+      const board = mesh(new THREE.BoxGeometry(0.42, 0.08, 1.35), mat('#e0408a', { shininess: 90 })); board.position.y = -0.36; r.add(board);
+      const nose = mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.08, 12, 1, false, 0, Math.PI), mat('#e0408a', { shininess: 90 })); nose.position.set(0, -0.36, -0.675); nose.rotation.y = Math.PI / 2; r.add(nose);
+      const stripe = mesh(new THREE.BoxGeometry(0.43, 0.085, 0.3), mat('#40e0ff', { emissive: '#40e0ff', emissiveIntensity: 0.6 })); stripe.position.y = -0.36; r.add(stripe);
+      for (const z of [-0.45, 0.45]) { const pad = mesh(new THREE.BoxGeometry(0.3, 0.04, 0.22), mat('#ffd34d', { emissive: '#ffd34d', emissiveIntensity: 0.4 })); pad.position.set(0, -0.42, z); r.add(pad); }
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.5).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#40e0ff', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })); glow.position.y = -0.45; r.add(glow);
+    }
+    return r;
+  },
+  makeTorch() {
+    const t = new THREE.Group();
+    const body = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.26, 10), mat('#2a2a2e', { shininess: 60 }), false); body.rotation.x = Math.PI / 2; t.add(body);
+    const head = mesh(new THREE.CylinderGeometry(0.06, 0.04, 0.08, 10), mat('#c9a020', { shininess: 80 }), false); head.rotation.x = Math.PI / 2; head.position.z = -0.16; t.add(head);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.055, 12), new THREE.MeshBasicMaterial({ color: '#fff6d0' })); lens.position.z = -0.201; lens.rotation.y = Math.PI; t.add(lens);
+    const btn = mesh(new THREE.BoxGeometry(0.02, 0.015, 0.04), mat('#e04040'), false); btn.position.set(0, 0.035, 0); t.add(btn);
+    return t;
+  },
+  makeHeadlamp(on = true) {
+    const g = new THREE.Group();
+    const band = mesh(new THREE.TorusGeometry(0.21, 0.025, 4, 16), mat('#222')); band.rotation.x = Math.PI / 2; g.add(band);
+    const box = mesh(new THREE.BoxGeometry(0.13, 0.09, 0.07), mat('#e0a020')); box.position.z = -0.23; g.add(box);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.035, 10), new THREE.MeshBasicMaterial({ color: on ? '#fff6d0' : '#666' })); lens.position.z = -0.266; lens.rotation.y = Math.PI; g.add(lens);
+    return g;
+  },
+  makeDrone() {
+    const d = new THREE.Group();
+    const body = mesh(new THREE.BoxGeometry(0.5, 0.14, 0.5), mat('#2a2f36', { shininess: 60 }), false); d.add(body);
+    for (const [x, z] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) {
+      const arm = mesh(new THREE.BoxGeometry(0.05, 0.04, 0.5), mat('#3a3f48'), false); arm.position.set(x / 2, 0, z / 2); arm.rotation.y = Math.atan2(x, z); d.add(arm);
+      const r = new THREE.Mesh(new THREE.CircleGeometry(0.2, 12).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#9aa0a6', transparent: true, opacity: 0.45, side: THREE.DoubleSide })); r.position.set(x, 0.09, z); d.add(r);
+    }
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' })); lamp.position.y = -0.1; d.add(lamp);
+    return d;
+  },
+  makeLightItem(lv) {
+    if (lv === 1) return this.makeTorch();
+    if (lv === 2) return this.makeHeadlamp(true);
+    const g = new THREE.Group(), n = lv === 4 ? 3 : 1;
+    for (let i = 0; i < n; i++) { const d = this.makeDrone(); d.position.set((i - (n - 1) / 2) * 0.75, i === 1 ? 0.25 : 0, i === 1 ? -0.3 : 0); g.add(d); }
+    return g;
+  },
+  makeDetector(lv) {
+    const g = new THREE.Group();
+    if (lv === 1) {
+      const box = mesh(new THREE.BoxGeometry(0.16, 0.22, 0.06), mat('#d8c070')); g.add(box);
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.08), new THREE.MeshBasicMaterial({ color: '#7fd36a' })); scr.position.set(0, 0.04, -0.031); scr.rotation.y = Math.PI; g.add(scr);
+      const dial = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 10), mat('#333')); dial.rotation.x = Math.PI / 2; dial.position.set(0, -0.06, -0.035); g.add(dial);
+      const ant = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.22, 4), mat('#aaa', { shininess: 80 })); ant.position.set(0.05, 0.22, 0); g.add(ant);
+      const tip = mesh(new THREE.SphereGeometry(0.015, 6, 4), mat('#e04040')); tip.position.set(0.05, 0.33, 0); g.add(tip);
+    } else if (lv === 2) {
+      const pole = mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.1, 6), mat('#9aa0a8', { shininess: 70 })); pole.position.y = 0.55; g.add(pole);
+      const coil = mesh(new THREE.TorusGeometry(0.16, 0.03, 6, 16), mat('#2a2a2e')); coil.rotation.x = Math.PI / 2; coil.position.set(0, 0, -0.08); g.add(coil);
+      const plate = mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.02, 16), mat('#e0a020')); plate.position.set(0, 0, -0.08); g.add(plate);
+      const ctrl = mesh(new THREE.BoxGeometry(0.12, 0.08, 0.16), mat('#2a2a2e')); ctrl.position.set(0, 0.85, 0.05); g.add(ctrl);
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.05), new THREE.MeshBasicMaterial({ color: '#7fd36a' })); scr.position.set(0, 0.891, 0.05); scr.rotation.x = -Math.PI / 2; g.add(scr);
+      const grip = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.18, 6), mat('#222')); grip.position.set(0, 1.05, 0); g.add(grip);
+    } else {
+      const dish = mesh(new THREE.SphereGeometry(0.22, 12, 6, 0, Math.PI * 2, 0, Math.PI / 3), mat('#e8eef4', { side: THREE.DoubleSide, shininess: 80 })); dish.rotation.x = Math.PI * 0.75; g.add(dish);
+      const feed = mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2, 4), mat('#888')); feed.position.set(0, 0.06, -0.08); feed.rotation.x = -0.8; g.add(feed);
+      const lnb = mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), mat('#40d0ff', { emissive: '#40d0ff', emissiveIntensity: 0.6 })); lnb.position.set(0, 0.13, -0.16); g.add(lnb);
+      const mast = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.25, 6), mat('#555')); mast.position.y = -0.18; g.add(mast);
+      const tab = new THREE.Group(); tab.position.set(0.4, -0.2, 0);
+      const tb = mesh(new THREE.BoxGeometry(0.2, 0.03, 0.14), mat('#22262c')); tab.add(tb);
+      const ts = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.11), new THREE.MeshBasicMaterial({ color: '#40d0ff' })); ts.rotation.x = -Math.PI / 2; ts.position.y = 0.016; tab.add(ts);
+      g.add(tab); g.userData.tablet = tab;
+    }
+    return g;
+  },
+  makeFlask(id, scale = 1) {
+    const g = new THREE.Group(), c = POWERUPS[id].color;
+    const glass = mesh(new THREE.SphereGeometry(0.1 * scale, 10, 8), mat('#dfe8ec', { transparent: true, opacity: 0.45, shininess: 100 }), false); g.add(glass);
+    const liq = mesh(new THREE.SphereGeometry(0.085 * scale, 10, 8, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.65), mat(c, { emissive: c, emissiveIntensity: 0.35 }), false); g.add(liq);
+    const neck = mesh(new THREE.CylinderGeometry(0.03 * scale, 0.04 * scale, 0.09 * scale, 8), mat('#dfe8ec', { transparent: true, opacity: 0.5 }), false); neck.position.y = 0.12 * scale; g.add(neck);
+    const cork = mesh(new THREE.CylinderGeometry(0.033 * scale, 0.03 * scale, 0.05 * scale, 8), mat('#8a6a44'), false); cork.position.y = 0.18 * scale; g.add(cork);
+    if (id === 'elixir') { const star = mesh(new THREE.OctahedronGeometry(0.03 * scale, 0), mat('#fff', { emissive: '#ffd34d', emissiveIntensity: 1 }), false); star.position.y = 0.23 * scale; g.add(star); }
+    return g;
+  },
+
+  // peças da Tropeira em destaque (para a loja)
+  makeGloveItem(G) {
+    const g = new THREE.Group(), m = mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {});
+    const palm = mesh(new THREE.BoxGeometry(0.34, 0.36, 0.12), m, false); g.add(palm);
+    for (let i = 0; i < 4; i++) { const f = mesh(new THREE.BoxGeometry(0.075, 0.22 - Math.abs(i - 1.5) * 0.03, 0.1), m, false); f.position.set(-0.12 + i * 0.08, 0.28 - Math.abs(i - 1.5) * 0.015, 0); g.add(f); }
+    const th = mesh(new THREE.BoxGeometry(0.08, 0.18, 0.1), m, false); th.position.set(0.21, 0.02, 0); th.rotation.z = -0.6; g.add(th);
+    const cuff = mesh(new THREE.BoxGeometry(0.38, 0.14, 0.15), mat(new THREE.Color(G.col).offsetHSL(0, 0, -0.12).getStyle()), false); cuff.position.y = -0.24; g.add(cuff);
+    if (G.era >= 2) for (let i = 0; i < 3; i++) { const st = mesh(new THREE.BoxGeometry(0.3, 0.012, 0.125), mat('#2a1a10'), false); st.position.set(0, -0.08 + i * 0.09, 0); g.add(st); }
+    if (G.era >= 4) { const br = mesh(new THREE.BoxGeometry(0.4, 0.2, 0.17), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 70 }), false); br.position.y = -0.4; g.add(br); }
+    if (G.era >= 5) for (const x of [-0.12, 0.12]) { const pis = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.4, 6), mat('#d8dde2', { shininess: 90 }), false); pis.position.set(x, -0.15, 0.09); g.add(pis); }
+    if (G.era === 6) { const led = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.01), new THREE.MeshBasicMaterial({ color: '#40d0ff' })); led.position.set(0, -0.4, 0.09); g.add(led); }
+    return g;
+  },
+  makeBootItem(B) {
+    const g = new THREE.Group();
+    for (const x of [-0.2, 0.2]) {
+      const b = new THREE.Group(); b.position.x = x;
+      const tall = B.era >= 3 ? 0.32 : B.era === 1 ? 0.05 : 0.12;
+      const sole = mesh(new THREE.BoxGeometry(0.28, 0.06, 0.48), mat(B.sole, B.era === 6 ? { emissive: B.sole, emissiveIntensity: 0.8 } : {}), false); b.add(sole);
+      const up = mesh(new THREE.BoxGeometry(0.26, 0.12 + tall, 0.3), mat(B.col), false); up.position.set(0, 0.06 + (0.12 + tall) / 2, 0.07); b.add(up);
+      const toe = mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.26, 10, 1, false, 0, Math.PI), mat(B.col), false); toe.rotation.z = Math.PI / 2; toe.rotation.y = Math.PI / 2; toe.position.set(0, 0.06, -0.08); toe.scale.set(1, 1, 0.8); b.add(toe);
+      if (B.era >= 3) for (let i = 0; i < 3; i++) { const l = mesh(new THREE.BoxGeometry(0.16, 0.015, 0.02), mat('#e8e0c8'), false); l.position.set(0, 0.16 + i * 0.08, -0.085); b.add(l); }
+      if (B.era === 5) { const sp = mesh(new THREE.TorusGeometry(0.06, 0.02, 4, 8), mat('#d8dde2', { shininess: 80 }), false); sp.position.set(0, -0.05, 0.12); sp.rotation.y = Math.PI / 2; b.add(sp); }
+      if (B.era === 6) { const jet = mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.1, 8), mat('#40d0ff', { emissive: '#40d0ff', emissiveIntensity: 0.9 }), false); jet.position.set(0, -0.06, 0.15); b.add(jet); }
+      g.add(b);
+    }
+    return g;
+  },
+  makeKneeItem(J) {
+    const g = new THREE.Group();
+    for (const x of [-0.2, 0.2]) {
+      const k = new THREE.Group(); k.position.x = x;
+      const legp = mesh(new THREE.BoxGeometry(0.2, 0.7, 0.22), mat('#3d4250', { transparent: true, opacity: 0.35 }), false); k.add(legp);
+      if (J.era === 1) { const w = mesh(new THREE.BoxGeometry(0.22, 0.1, 0.24), mat('#a89070'), false); k.add(w); }
+      else { const kp = mesh(new THREE.BoxGeometry(0.24, J.era >= 4 ? 0.3 : 0.2, 0.1), mat(J.col, J.era === 6 ? { emissive: J.col, emissiveIntensity: 0.4 } : { shininess: J.era >= 4 ? 60 : 8 }), false); kp.position.z = -0.14; k.add(kp);
+        for (const y of [-0.08, 0.08]) { const st = mesh(new THREE.BoxGeometry(0.235, 0.035, 0.235), mat('#2a2a2e'), false); st.position.y = y; k.add(st); } }
+      if (J.era >= 4) { const spr = new THREE.Group(); for (let i = 0; i < 6; i++) { const c = mesh(new THREE.TorusGeometry(0.05, 0.012, 4, 10), mat(J.col, { shininess: 90 }), false); c.rotation.x = Math.PI / 2; c.position.y = -0.3 + i * 0.05; spr.add(c); } spr.position.set(x > 0 ? 0.13 : -0.13, 0, 0.05); k.add(spr); }
+      g.add(k);
+    }
+    return g;
+  },
+
+  // monta o personagem completo a partir de um estado (jogador ou prévia da loja)
+  buildCharacter(st) {
+    const gear = this.gear(st.attrs), L = st.hammer, out = { g: new THREE.Group(), legs: [] }, g = out.g;
     for (const s of [-1, 1]) {
       const leg = new THREE.Group(); leg.position.set(s * 0.14, 0.9, 0);
       const pant = mesh(new THREE.BoxGeometry(0.22, 0.8, 0.24), mat('#3d4250')); pant.position.y = -0.4; leg.add(pant);
       const B = gear.boot, bh = B.era >= 3 ? 0.28 : 0.12;
-      const boot = mesh(new THREE.BoxGeometry(0.25, bh, 0.38), mat(B.col, B.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.2 } : {})); boot.position.set(0, -0.86 + bh / 2, -0.05); leg.add(boot);
-      const sole = mesh(new THREE.BoxGeometry(0.26, 0.05, 0.4), mat(B.sole, B.era === 6 ? { emissive: B.sole, emissiveIntensity: 0.8 } : {})); sole.position.set(0, -0.88, -0.05); leg.add(sole);
-      if (B.era === 5) { const sp = mesh(new THREE.TorusGeometry(0.07, 0.02, 4, 8), mat('#d8dde2', { shininess: 80 })); sp.position.set(0, -0.93, 0.08); sp.rotation.y = Math.PI / 2; leg.add(sp); }
+      const boot = this.tag(mesh(new THREE.BoxGeometry(0.25, bh, 0.38), mat(B.col, B.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.2 } : {})), 'move'); boot.position.set(0, -0.86 + bh / 2, -0.05); leg.add(boot);
+      const sole = this.tag(mesh(new THREE.BoxGeometry(0.26, 0.05, 0.4), mat(B.sole, B.era === 6 ? { emissive: B.sole, emissiveIntensity: 0.8 } : {})), 'move'); sole.position.set(0, -0.88, -0.05); leg.add(sole);
+      if (B.era === 5) { const sp = this.tag(mesh(new THREE.TorusGeometry(0.07, 0.02, 4, 8), mat('#d8dde2', { shininess: 80 })), 'move'); sp.position.set(0, -0.93, 0.08); sp.rotation.y = Math.PI / 2; leg.add(sp); }
       const J = gear.leg;
-      if (J.era >= 2) { const kp = mesh(new THREE.BoxGeometry(0.25, J.era >= 4 ? 0.3 : 0.18, 0.1), mat(J.col, J.era === 6 ? { emissive: J.col, emissiveIntensity: 0.4 } : { shininess: J.era >= 4 ? 60 : 8 })); kp.position.set(0, -0.42, -0.13); leg.add(kp); }
-      if (J.era >= 4) { const spr = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6), mat(J.col, { shininess: 80 })); spr.position.set(s * 0.12, -0.6, 0.05); leg.add(spr); }
-      g.add(leg); this.legs.push(leg);
+      if (J.era >= 2) { const kp = this.tag(mesh(new THREE.BoxGeometry(0.25, J.era >= 4 ? 0.3 : 0.18, 0.1), mat(J.col, J.era === 6 ? { emissive: J.col, emissiveIntensity: 0.4 } : { shininess: J.era >= 4 ? 60 : 8 })), 'jump'); kp.position.set(0, -0.42, -0.13); leg.add(kp); }
+      if (J.era >= 4) { const spr = this.tag(mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6), mat(J.col, { shininess: 80 })), 'jump'); spr.position.set(s * 0.12, -0.6, 0.05); leg.add(spr); }
+      if (J.era === 1) { const wrap = this.tag(mesh(new THREE.BoxGeometry(0.235, 0.08, 0.25), mat('#a89070')), 'jump'); wrap.position.y = -0.62; leg.add(wrap); }
+      g.add(leg); out.legs.push(leg);
     }
-    const body = new THREE.Group(); body.name = 'body'; g.add(body);
+    const body = new THREE.Group(); g.add(body); out.body = body;
     const torso = mesh(new THREE.BoxGeometry(0.6, 0.72, 0.34), mat('#3e6b8a')); torso.position.y = 1.28; body.add(torso);
     const belt = mesh(new THREE.BoxGeometry(0.62, 0.1, 0.36), mat('#5a3d24')); belt.position.y = 0.95; body.add(belt);
     const head = mesh(new THREE.BoxGeometry(0.38, 0.4, 0.38), mat('#d4a17a')); head.position.y = 1.86; body.add(head);
+    for (const x of [-0.08, 0.08]) { const eye = mesh(new THREE.BoxGeometry(0.05, 0.05, 0.01), mat('#2a1a10'), false); eye.position.set(x, 1.88, -0.195); body.add(eye); }
     const hair = mesh(new THREE.BoxGeometry(0.4, 0.14, 0.4), mat('#4a2e1a')); hair.position.y = 2.08; body.add(hair);
     const hairB = mesh(new THREE.BoxGeometry(0.4, 0.3, 0.08), mat('#4a2e1a')); hairB.position.set(0, 1.93, 0.17); body.add(hairB);
-    // mochila (forma e tamanho por nível)
+    // mochila
     const B = gear.bag, s = B.size, bag = new THREE.Group(); bag.position.set(0, 1.3 + (s - 0.5) * 0.4, 0.17 + s * 0.3);
     let bgeo;
     if (B.era === 1) bgeo = jitterGeo(new THREE.SphereGeometry(s * 0.5, 7, 5), 0.04, 1);
@@ -651,47 +792,123 @@ const Render = {
     else if (B.era === 3) bgeo = new THREE.BoxGeometry(s * 0.8, s * 1.1, s * 0.55);
     else if (B.era === 4) bgeo = new THREE.CylinderGeometry(s * 0.5, s * 0.38, s * 1.2, 8);
     else bgeo = new THREE.BoxGeometry(s * 0.85, s * 1.3, s * 0.6);
-    const bm = mesh(bgeo, mat(B.col)); bag.add(bm);
-    if (B.era >= 5) { const fr = mesh(new THREE.BoxGeometry(s * 0.95, s * 1.45, 0.05), mat(B.era === 6 ? '#22262c' : '#8a9098', { shininess: 60 })); fr.position.z = -s * 0.32; bag.add(fr); }
-    if (B.era === 6) for (let i = 0; i < 3; i++) { const li = new THREE.Mesh(new THREE.BoxGeometry(s * 0.2, 0.04, 0.02), new THREE.MeshBasicMaterial({ color: '#40d0ff' })); li.position.set(-s * 0.2, -s * 0.4 + i * s * 0.4, s * 0.31); bag.add(li); }
-    for (let i = 0; i < (B.lvl - 1) % 10; i++) { const rv = mesh(new THREE.SphereGeometry(0.02, 4, 3), mat('#e8d8a8', { shininess: 80 }), false); rv.position.set(-s * 0.3 + (i % 5) * s * 0.15, -s * 0.25 - Math.floor(i / 5) * 0.06, s * 0.28); bag.add(rv); }
+    bag.add(this.tag(mesh(bgeo, mat(B.col)), 'bag'));
+    for (const x of [-0.18, 0.18]) { const strap = this.tag(mesh(new THREE.BoxGeometry(0.06, 0.6, 0.03), mat(B.strap)), 'bag'); strap.position.set(x, 1.28, -0.175); body.add(strap); }
+    if (B.era >= 5) { const fr = this.tag(mesh(new THREE.BoxGeometry(s * 0.95, s * 1.45, 0.05), mat(B.era === 6 ? '#22262c' : '#8a9098', { shininess: 60 })), 'bag'); fr.position.z = -s * 0.32; bag.add(fr); }
+    if (B.era === 6) for (let i = 0; i < 3; i++) { const li = this.tag(new THREE.Mesh(new THREE.BoxGeometry(s * 0.2, 0.04, 0.02), new THREE.MeshBasicMaterial({ color: '#40d0ff' })), 'bag'); li.position.set(-s * 0.2, -s * 0.4 + i * s * 0.4, s * 0.31); bag.add(li); }
+    for (let i = 0; i < (B.lvl - 1) % 10; i++) { const rv = this.tag(mesh(new THREE.SphereGeometry(0.02, 4, 3), mat('#e8d8a8', { shininess: 80 }), false), 'bag'); rv.position.set(-s * 0.3 + (i % 5) * s * 0.15, -s * 0.25 - Math.floor(i / 5) * 0.06, s * 0.28); bag.add(rv); }
     body.add(bag);
+    // frascos de power-up pendurados na mochila
+    (st.pw || []).slice(0, 6).forEach((p, i) => { const f = this.tag(this.makeFlask(p.id, 0.8), 'pw_' + p.id); f.position.set((i % 2 ? 1 : -1) * (s * 0.45 + 0.06), -s * 0.1 - Math.floor(i / 2) * 0.17, 0); bag.add(f); });
     // braço com martelo
-    const arm = new THREE.Group(); arm.position.set(0.4, 1.55, 0); body.add(arm);
-    const up = mesh(new THREE.BoxGeometry(0.16, 0.62, 0.18), mat('#3e6b8a')); up.position.y = -0.3; arm.add(up);
-    const G = gear.glove; const gl = mesh(new THREE.BoxGeometry(0.17 + G.era * 0.012, 0.16, 0.2), mat(G.col)); gl.position.y = -0.64; arm.add(gl);
-    const ham = this.makeHammer(L); ham.position.y = -0.64; ham.rotation.x = -Math.PI / 2; arm.add(ham);
-    const arm2 = mesh(new THREE.BoxGeometry(0.16, 0.65, 0.18), mat('#3e6b8a')); arm2.position.set(-0.4, 1.22, 0); body.add(arm2);
-    this.pArm = arm; this.pBody = body; this.pHead = [head, hair];
-    // lanterna de cabeça
-    if (S.gear.light >= 2) {
-      const band = mesh(new THREE.BoxGeometry(0.41, 0.06, 0.41), mat('#222')); band.position.y = 1.92; body.add(band);
-      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.06), new THREE.MeshBasicMaterial({ color: S.lightOn ? '#fff6d0' : '#666' })); lamp.position.set(0, 1.92, -0.22); body.add(lamp);
-    }
+    const arm = new THREE.Group(); arm.position.set(0.4, 1.55, 0); body.add(arm); out.arm = arm;
+    { const up = mesh(new THREE.BoxGeometry(0.16, 0.62, 0.18), mat('#3e6b8a')); up.position.y = -0.3; arm.add(up); }
+    const G = gear.glove;
+    const gl = this.tag(mesh(new THREE.BoxGeometry(0.17 + G.era * 0.012, 0.16, 0.2), mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {})), 'mine'); gl.position.y = -0.64; arm.add(gl);
+    if (G.era >= 4) { const br = this.tag(mesh(new THREE.BoxGeometry(0.19, 0.16, 0.21), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 })), 'mine'); br.position.y = -0.45; arm.add(br); }
+    const ham = this.tag(this.makeHammer(L), 'hammer'); ham.position.y = -0.64; ham.rotation.x = -Math.PI / 2; arm.add(ham);
+    const arm2 = new THREE.Group(); arm2.position.set(-0.4, 1.55, 0); body.add(arm2);
+    { const up2 = mesh(new THREE.BoxGeometry(0.16, 0.65, 0.18), mat('#3e6b8a')); up2.position.y = -0.32; arm2.add(up2); }
+    const gl2 = this.tag(mesh(new THREE.BoxGeometry(0.17 + G.era * 0.012, 0.16, 0.2), mat(G.col)), 'mine'); gl2.position.y = -0.66; arm2.add(gl2);
+    // iluminação
+    const lv = st.gear.light;
+    if (lv === 1) { const t = this.tag(this.makeTorch(), 'light'); t.position.set(0, -0.7, -0.08); arm2.add(t); arm2.rotation.x = -0.5; }
+    if (lv >= 2) { const hl = this.tag(this.makeHeadlamp(st.lightOn), 'light'); hl.position.y = 1.95; body.add(hl); }
+    if (lv >= 3 && st.preview) { const n = lv === 4 ? 3 : 1; for (let i = 0; i < n; i++) { const d = this.tag(this.makeDrone(), 'light'); d.scale.setScalar(0.8); d.position.set((i - (n - 1) / 2) * 1.1, 2.7 + (i === 1 ? 0.25 : 0), 0.3); g.add(d); } }
+    // detector
+    const dl = st.gear.detector;
+    if (dl === 1) { const d = this.tag(this.makeDetector(1), 'detector'); d.position.set(-0.33, 0.95, -0.05); d.rotation.y = Math.PI / 2; d.scale.setScalar(0.9); body.add(d); }
+    if (dl === 2) { const d = this.tag(this.makeDetector(2), 'detector'); d.position.set(-0.36, 0.55, 0.32); d.rotation.set(0.5, 0, 0.35); d.scale.setScalar(0.9); body.add(d); }
+    if (dl === 3) { const d = this.tag(this.makeDetector(3), 'detector'); const tab = d.userData.tablet; d.remove(tab); d.position.set(0, bag.position.y + s * 0.75 + 0.2, bag.position.z); d.scale.setScalar(0.8); body.add(d);
+      const t2 = this.tag(tab, 'detector'); t2.position.set(0, -0.5, -0.11); t2.rotation.set(-Math.PI / 2, 0, 0); t2.scale.setScalar(0.6); arm2.add(t2); }
     // transporte
-    this.rideObj = null;
-    if (S.riding && S.gear.ride) {
-      const lv = S.gear.ride, r = new THREE.Group();
-      if (lv === 1) {
-        for (const leg of this.legs) { const sk = new THREE.Group(); const base = mesh(new THREE.BoxGeometry(0.26, 0.05, 0.44), mat('#d0303a')); sk.add(base); for (const z of [-0.15, 0.15]) for (const x of [-0.08, 0.08]) { const w = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.05, 8), mat('#ffd34d')); w.rotation.z = Math.PI / 2; w.position.set(x, -0.04, z); sk.add(w); } sk.position.set(0, -0.93, -0.05); leg.add(sk); }
-      } else if (lv === 2) {
-        const deck = mesh(new THREE.BoxGeometry(0.26, 0.05, 0.95), mat('#2f8fd0')); deck.position.y = 0.06; r.add(deck);
-        const stem = mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 6), mat('#aab0b6', { shininess: 70 })); stem.position.set(0, 0.55, -0.45); stem.rotation.x = 0.12; r.add(stem);
-        const bar = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6), mat('#222')); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.03, -0.5); r.add(bar);
-        for (const z of [-0.42, 0.42]) { const w = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10), mat('#222')); w.rotation.z = Math.PI / 2; w.position.set(0, 0.04, z); r.add(w); }
-        r.position.y = -0.12;
-      } else if (lv === 3) {
-        const wheel = mesh(new THREE.TorusGeometry(0.34, 0.09, 6, 14), mat('#1f1f22')); wheel.rotation.y = Math.PI / 2; wheel.position.y = -0.3; r.add(wheel); this.wheel = wheel;
-        const hub = mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 10), mat('#ff7a1a', { emissive: '#ff7a1a', emissiveIntensity: 0.3 })); hub.rotation.z = Math.PI / 2; hub.position.y = -0.3; r.add(hub);
-        for (const x of [-0.18, 0.18]) { const pad = mesh(new THREE.BoxGeometry(0.16, 0.04, 0.3), mat('#333')); pad.position.set(x, -0.27, 0); r.add(pad); }
-      } else {
-        const board = mesh(new THREE.BoxGeometry(0.42, 0.08, 1.35), mat('#e0408a', { shininess: 90 })); board.position.y = -0.36; r.add(board);
-        const stripe = mesh(new THREE.BoxGeometry(0.43, 0.085, 0.3), mat('#40e0ff', { emissive: '#40e0ff', emissiveIntensity: 0.6 })); stripe.position.y = -0.36; r.add(stripe);
-        const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.5).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#40e0ff', transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })); glow.position.y = -0.42; r.add(glow);
-      }
-      g.add(r); this.rideObj = r;
+    if ((st.riding || st.preview === 'ride') && st.gear.ride) {
+      const rl = st.gear.ride;
+      if (rl === 1) for (const leg of out.legs) { const sk = this.tag(this.makeSkate(), 'ride'); sk.position.set(0, -0.93, -0.05); leg.add(sk); }
+      else { const r = this.tag(this.makeRide(rl), 'ride'); g.add(r); out.wheel = r.userData.wheel; }
+      if (st.preview) g.position.y = this.rideHFor(rl);
     }
+    return out;
   },
+  rideHFor(lv) { return [0, 0.08, 0.12, 0.72, 0.4][lv] || 0; },
+  rebuildPlayer() {
+    const S = Game.S, A = S.attrs;
+    const sig = [S.hammer, A.bag, A.mine, A.move, A.jump, S.gear.light, S.lightOn, S.gear.ride, S.riding, S.gear.detector, S.pw.map(p => p.id).join('')].join('|');
+    if (this.sig.pl === sig) return; this.sig.pl = sig;
+    const out = this.buildCharacter(this.charState());
+    this.player.clear();
+    while (out.g.children.length) this.player.add(out.g.children[0]);
+    this.legs = out.legs; this.pArm = out.arm; this.pBody = out.body; this.wheel = out.wheel;
+  },
+
+  // ---------- imagens dos itens para as lojas ----------
+  thumbCache: {},
+  thumbInit() {
+    if (this.tr) return;
+    const c = document.createElement('canvas'); c.width = c.height = 200;
+    this.tr = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    this.tr.outputEncoding = THREE.sRGBEncoding; this.tr.setClearColor(0x000000, 0);
+    this.tScene = new THREE.Scene();
+    this.tScene.add(new THREE.HemisphereLight('#ffffff', '#6a5a40', 0.55));
+    const d = new THREE.DirectionalLight('#fff4e0', 0.7); d.position.set(2, 3, -2.5); this.tScene.add(d);
+    const d2 = new THREE.DirectionalLight('#9fc0ff', 0.35); d2.position.set(-3, 1, 2); this.tScene.add(d2);
+    this.tCam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+  },
+  snap(obj, dir) {
+    this.thumbInit();
+    this.tScene.add(obj);
+    obj.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(obj), c = box.getCenter(new V3()), size = box.getSize(new V3());
+    const r = Math.max(size.x, size.y, size.z) * 0.66 + 0.02;
+    const dist = r / Math.sin(THREE.MathUtils.degToRad(15));
+    this.tCam.position.copy(c).addScaledVector(dir.clone().normalize(), dist);
+    this.tCam.lookAt(c);
+    this.tr.render(this.tScene, this.tCam);
+    const url = this.tr.domElement.toDataURL();
+    this.tScene.remove(obj);
+    return url;
+  },
+  // imagem do item sozinho
+  itemImg(kind, a) {
+    const key = 'i|' + kind + '|' + a;
+    if (this.thumbCache[key]) return this.thumbCache[key];
+    let obj, dir = new V3(1.2, 0.7, -1);
+    if (kind === 'hammer') { obj = this.makeHammer(a); obj.rotation.z = -0.7; dir = new V3(0.2, 0.15, -1); }
+    else if (kind === 'ride') { obj = this.makeRide(a); dir = new V3(1.3, 0.8, -0.6); }
+    else if (kind === 'light') { obj = this.makeLightItem(a); if (a === 1) dir = new V3(1, 0.5, -1.4); if (a === 2) dir = new V3(0.6, 0.9, -1.4); if (a >= 3) dir = new V3(0.5, 0.8, -1.2); }
+    else if (kind === 'detector') { obj = this.makeDetector(a); if (a === 1) dir = new V3(0.5, 0.3, -1.4); if (a === 2) { obj.rotation.z = 0.5; dir = new V3(1, 0.4, -1); } if (a === 3) dir = new V3(0.4, 0.8, -1.2); }
+    else if (kind === 'pw') { obj = this.makeFlask(a, 1.6); dir = new V3(0.6, 0.35, -1.2); }
+    else { // partes do personagem (Tropeira): mochila, luvas, calçados, pernas
+      const A = Object.assign({}, Game.S.attrs, { [kind]: a }), G = this.gear(A);
+      if (kind === 'mine') { obj = this.makeGloveItem(G.glove); dir = new V3(0.5, 0.35, -1.3); }
+      else if (kind === 'move') { obj = this.makeBootItem(G.boot); dir = new V3(1.1, 0.8, -1.2); }
+      else if (kind === 'jump') { obj = this.makeKneeItem(G.leg); dir = new V3(0.8, 0.3, -1.3); }
+      else {
+        const st = this.charState(); st.attrs = A; st.gear = { light: 0, ride: 0, detector: 0 }; st.pw = [];
+        const ch = this.buildCharacter(st).g; ch.updateMatrixWorld(true);
+        obj = new THREE.Group();
+        ch.traverse(o => { if (o.isMesh && o.userData.part === 'bag') { const m = o.clone(); o.matrixWorld.decompose(m.position, m.quaternion, m.scale); obj.add(m); } });
+        dir = new V3(1.2, 0.5, 1.4);
+      }
+    }
+    return (this.thumbCache[key] = this.snap(obj, dir));
+  },
+  // imagem do personagem usando o item
+  charImg(kind, a) {
+    const S = Game.S, over = {};
+    if (kind === 'hammer') over.hammer = a;
+    else if (kind in GADGETS) { over.gear = Object.assign({}, S.gear, { [kind]: a }); over.preview = kind === 'ride' ? 'ride' : true; over.lightOn = true; }
+    else if (kind === 'pw') over.pw = [{ id: a }, { id: a }, { id: a }];
+    else { over.attrs = Object.assign({}, S.attrs, { [kind]: a }); }
+    const st = this.charState(over); st.preview = st.preview || true;
+    const key = 'c|' + kind + '|' + a + '|' + JSON.stringify([st.hammer, st.attrs, st.gear, st.lightOn, (st.pw || []).map(p => p.id)]);
+    if (this.thumbCache[key]) return this.thumbCache[key];
+    const ch = this.buildCharacter(st).g;
+    ch.rotation.y = kind === 'bag' || kind === 'pw' || (kind === 'detector' && a >= 2) ? -2.2 : -0.55;
+    if (kind === 'light' && a === 1) ch.rotation.y = 0.6;
+    return (this.thumbCache[key] = this.snap(ch, new V3(0, 0.25, -1)));
+  },
+
   updatePlayer() {
     this.rebuildPlayer();
     const P = Game.P, g = this.player;

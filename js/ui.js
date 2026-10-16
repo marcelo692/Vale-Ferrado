@@ -29,6 +29,11 @@ const UI = {
 
   freeMouse() { if (document.pointerLockElement) document.exitPointerLock(); },
   lockHint(show) { $('lockhint').style.display = show && started ? 'flex' : 'none'; },
+  pics(kind, a) {
+    try {
+      return `<div class="pics"><figure><img src="${Render.itemImg(kind, a)}" alt=""><figcaption>Item</figcaption></figure><figure><img src="${Render.charImg(kind, a)}" alt=""><figcaption>Em você</figcaption></figure></div>`;
+    } catch (e) { return ''; }
+  },
   openNpc(id) {
     this.freeMouse();
     this.open = id;
@@ -48,7 +53,7 @@ const UI = {
       h += `<div class="cur"><span class="lv">Nível ${L}</span><h3>${HAMMERS[L].n}</h3><p>Força ${fmt(HAMMERS[L].f)}</p></div>`;
       if (L < MAX_LEVEL) {
         const c = hammerCost(L + 1);
-        h += `<div class="card big"><span class="lv">Próximo · nível ${L + 1}</span><h3>${HAMMERS[L + 1].n}</h3><p>Força ${fmt(HAMMERS[L].f)} → <b>${fmt(HAMMERS[L + 1].f)}</b></p>${this.costHtml(c)}
+        h += `<div class="card big">${this.pics('hammer', L + 1)}<span class="lv">Próximo · nível ${L + 1}</span><h3>${HAMMERS[L + 1].n}</h3><p>Força ${fmt(HAMMERS[L].f)} → <b>${fmt(HAMMERS[L + 1].f)}</b></p>${this.costHtml(c)}
           <button class="buy" ${Game.canPay(c) ? '' : 'disabled'} onclick="Game.buyHammer();UI.renderPanel()">Forjar</button></div>`;
         h += `<h4>Pela frente</h4><ol class="road" start="${L + 2}">`;
         for (let i = L + 2; i <= Math.min(MAX_LEVEL, L + 6); i++) h += `<li>${HAMMERS[i].n} <i>força ${fmt(HAMMERS[i].f)}</i></li>`;
@@ -61,7 +66,7 @@ const UI = {
       h += `<div class="grid">`;
       for (const k in ATTRS) {
         const L = S.attrs[k];
-        h += `<div class="card"><span class="lv">${ATTRS[k].part} · nível ${L}</span><h3>${ATTRS[k].name}</h3>`;
+        h += `<div class="card">${this.pics(k, Math.min(MAX_LEVEL, L + 1))}<span class="lv">${ATTRS[k].part} · nível ${L}</span><h3>${ATTRS[k].name}</h3>`;
         if (L < MAX_LEVEL) {
           const c = attrCost(k, L + 1);
           h += `<p>${attrLabel(k, L)} → <b>${attrLabel(k, L + 1)}</b></p>${this.costHtml(c)}<button class="buy" ${Game.canPay(c) ? '' : 'disabled'} onclick="Game.buyAttr('${k}');UI.renderPanel()">Melhorar</button>`;
@@ -78,7 +83,7 @@ const UI = {
         const P = POWERUPS[pid], price = powerPrice(pid, S.hammer);
         const owned = S.pw.filter(p => p.id === pid).length;
         const ok = S.money >= price && Game.free() >= P.slots;
-        h += `<div class="card"><span class="lv" style="color:${P.color}">Tecla ${P.key} · na mochila: ${owned}</span><h3>${P.name} ${ROMAN[tier]}</h3>
+        h += `<div class="card">${this.pics('pw', pid)}<span class="lv" style="color:${P.color}">Tecla ${P.key} · na mochila: ${owned}</span><h3>${P.name} ${ROMAN[tier]}</h3>
           <p>+${Math.round(powerBonus(pid, tier) * 100)}% ${P.desc} por ${P.dur / 60} min</p><p>Ocupa <b>${P.slots} espaços</b> na mochila</p>
           <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}">🪙 Moedas: <b>${fmt(price)}</b></li></ul>
           <button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyPower('${pid}');UI.renderPanel()">Comprar</button></div>`;
@@ -93,7 +98,7 @@ const UI = {
         h += `<h4>${T.title} <span class="kbd">${T.key}</span></h4><p class="hint" style="margin:0 0 8px">${T.desc}</p><div class="grid">`;
         for (let lv = 1; lv < T.levels.length; lv++) {
           const G = T.levels[lv], owned = have >= lv, ok = !owned && S.money >= G.price;
-          h += `<div class="card ${have === lv ? 'eq' : ''}"><span class="lv">Nível ${lv}</span><h3>${G.n}</h3><p>${G.info}</p>
+          h += `<div class="card ${have === lv ? 'eq' : ''}">${this.pics(type, lv)}<span class="lv">Nível ${lv}</span><h3>${G.n}</h3><p>${G.info}</p>
             <ul class="cost"><li class="${S.money >= G.price || owned ? 'ok' : 'no'}">🪙 Moedas: <b>${fmt(G.price)}</b></li></ul>
             ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você já tem melhor</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
         }
