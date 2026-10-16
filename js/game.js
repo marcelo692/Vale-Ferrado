@@ -21,7 +21,7 @@ function newState() {
 
 const Game = {
   S: null,
-  P: { x: 0, y: 3, z: 0, vz: 0, face: 0, swing: 0, moving: false, walkT: 0 },
+  P: { x: 0, y: 6, z: 0, vz: 0, face: 0, swing: 0, moving: false, walkT: 0, yaw: 0, pitch: -0.08, stamina: 1, tired: false, sprint: false },
   keys: {}, mouse: { x: 0, y: 0, down: false, wx: 0, wy: 0 },
   timers: [], fx: [], floats: [],
   target: null, mineT: 0, inCity: true, wasInCity: true, saveT: 0, fullWarnT: 0,
@@ -60,27 +60,34 @@ const Game = {
 
   // ---------- entrada ----------
   bindInput() {
+    const cv = document.getElementById('game');
+    this.locked = () => document.pointerLockElement === cv;
     addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
       if (UI.open) { if (k === 'escape' || k === 'e') UI.close(); return; }
+      if (k === ' ' || k === 'tab') e.preventDefault();
       this.keys[k] = true;
-      if (k === ' ') { e.preventDefault(); this.jump(); }
+      if (k === ' ') this.jump();
       if (k === 'e') this.interact();
+      if (k === 'v') Render.toggleView();
       if (k === '1') this.activate('tonico');
       if (k === '2') this.activate('cafe');
       if (k === '3') this.activate('elixir');
     });
     addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
     addEventListener('blur', () => { this.keys = {}; this.mouse.down = false; });
-    const cv = document.getElementById('game');
-    cv.addEventListener('mousemove', e => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
+    addEventListener('mousemove', e => {
+      if (!this.locked()) return;
+      this.P.yaw -= e.movementX * 0.0022;
+      this.P.pitch = Math.max(-1.45, Math.min(1.45, this.P.pitch - e.movementY * 0.0022));
+    });
     cv.addEventListener('mousedown', e => {
       if (UI.open) return;
-      this.mouse.down = true;
-      const npc = this.npcUnderMouse();
-      if (npc) { this.mouse.down = false; if (this.npcNear() === npc) UI.openNpc(npc.id); else UI.toast('Chegue mais perto para falar com ' + npc.name.split(',')[0] + '.'); }
+      if (!this.locked()) { cv.requestPointerLock(); return; }
+      if (e.button === 0) this.mouse.down = true;
     });
-    addEventListener('mouseup', () => { this.mouse.down = false; });
+    addEventListener('mouseup', e => { if (e.button === 0) this.mouse.down = false; });
+    document.addEventListener('pointerlockchange', () => { UI.lockHint(!this.locked() && !UI.open); if (!this.locked()) { this.mouse.down = false; this.keys = {}; } });
     cv.addEventListener('contextmenu', e => e.preventDefault());
   },
 
@@ -92,10 +99,6 @@ const Game = {
     let best = null, bd = 4;
     for (const n of NPCS) { const d = Math.hypot(n.x - this.P.x, n.y - this.P.y); if (d < bd) { bd = d; best = n; } }
     return best;
-  },
-  npcUnderMouse() {
-    for (const n of NPCS) if (Math.hypot(n.x - this.mouse.wx, n.y - this.mouse.wy) < 1.6) return n;
-    return null;
   },
   interact() {
     const n = this.npcNear();
@@ -187,28 +190,34 @@ const Game = {
     World.update(dt);
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(`${POWERUPS[S.active[i].id].name} acabou.`); S.active.splice(i, 1); } }
 
-    // mouse no mundo
-    const cam = Render.cam;
-    this.mouse.wx = (this.mouse.x - innerWidth / 2) / (PX * cam.zoom) + cam.x;
-    this.mouse.wy = (this.mouse.y - innerHeight / 2) / (PX * cam.zoom) + cam.y;
 
     if (!UI.open) {
-      // movimento
-      let mx = 0, my = 0;
-      if (this.keys['w'] || this.keys['arrowup']) my -= 1;
-      if (this.keys['s'] || this.keys['arrowdown']) my += 1;
-      if (this.keys['a'] || this.keys['arrowleft']) mx -= 1;
-      if (this.keys['d'] || this.keys['arrowright']) mx += 1;
+      // movimento relativo à câmera (W A S D)
+      let fw = 0, st = 0;
+      if (this.keys['w'] || this.keys['arrowup']) fw += 1;
+      if (this.keys['s'] || this.keys['arrowdown']) fw -= 1;
+      if (this.keys['d'] || this.keys['arrowright']) st += 1;
+      if (this.keys['a'] || this.keys['arrowleft']) st -= 1;
+      const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
+      let mx = -sy * fw + cy * st, my = -cy * fw - sy * st;
       const len = Math.hypot(mx, my);
       P.moving = len > 0;
+      // corrida com cansaço
+      const wantSprint = this.keys['shift'] && P.moving && fw > 0;
+      P.sprint = wantSprint && !P.tired && P.stamina > 0;
+      if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast('Você está cansado! Espere o fôlego voltar.', 'warn'); } }
+      else { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
       if (len) {
         mx /= len; my /= len;
-        const sp = this.speed();
+        const sp = this.speed() * (P.sprint ? 1.75 : 1) * (P.tired ? 0.8 : 1);
         this.moveBy(mx * sp * dt, 0); this.moveBy(0, my * sp * dt);
         P.face = Math.atan2(my, mx);
         P.walkT += dt * sp;
       }
-    } else P.moving = false;
+      // limite do mundo
+      const R = Math.hypot(P.x, P.y), LIM = 4300;
+      if (R > LIM) { P.x *= LIM / R; P.y *= LIM / R; if (!this.limT || S.time - this.limT > 5) { this.limT = S.time; UI.toast('Daqui pra frente só há montanhas. Volte para o vale.'); } }
+    } else { P.moving = false; P.sprint = false; }
 
     // pulo
     if (P.z > 0) {
@@ -223,10 +232,9 @@ const Game = {
     this.wasInCity = this.inCity;
 
     // mineração
-    this.pickTarget();
-    const mining = !UI.open && this.target && (this.mouse.down || this.keys['e'] || this.keys['f']) && P.z === 0;
+    this.target = UI.open ? null : Render.pickTarget(this.reach());
+    const mining = !UI.open && this.target && (this.mouse.down || this.keys['f'] || (this.keys['e'] && !this.npcNear())) && P.z === 0;
     if (mining) {
-      P.face = Math.atan2(this.target.y - P.y, this.target.x - P.x);
       this.mineT += dt;
       const iv = this.interval();
       P.swing = Math.min(1, this.mineT / iv);
@@ -242,19 +250,6 @@ const Game = {
 
     S.x = P.x; S.y = P.y;
     this.saveT += dt; if (this.saveT > 5) { this.saveT = 0; this.save(); }
-  },
-
-  pickTarget() {
-    const P = this.P, reach = this.reach();
-    let best = null, bd = Infinity;
-    // prioridade: nó sob o mouse
-    for (const n of World.nodes) {
-      const dm = Math.hypot(n.x - this.mouse.wx, n.y - this.mouse.wy);
-      const dp = Math.hypot(n.x - P.x, n.y - P.y);
-      if (dm < n.r + 0.4 && dp < reach + n.r) { this.target = n; return; }
-      if (dp < reach + n.r && dp < bd) { bd = dp; best = n; }
-    }
-    this.target = best;
   },
 
   hit(n) {

@@ -8,7 +8,19 @@
   :root { --ink: #f3e6cc; --panel: rgba(28, 22, 16, 0.92); --edge: #6b5236; --gold: #ffd34d; --ok: #7fd36a; --no: #ff7a6a; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #1a140e; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); user-select: none; }
-  #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+  #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%,-50%); pointer-events: none; }
+  #cross::before, #cross::after { content: ''; position: absolute; background: rgba(255,255,255,.85); box-shadow: 0 0 2px #000; }
+  #cross::before { left: 10px; top: 3px; width: 2px; height: 16px; } #cross::after { top: 10px; left: 3px; height: 2px; width: 16px; }
+  #cross.on::before, #cross.on::after { background: #ffd34d; }
+  #tinfo { position: fixed; left: 50%; top: calc(50% + 26px); transform: translateX(-50%); text-align: center; font-size: 13px; background: rgba(20,14,8,.7); padding: 6px 12px; border-radius: 8px; display: none; pointer-events: none; min-width: 170px; }
+  #tinfo .hp { height: 6px; background: #333; border-radius: 3px; margin: 4px 0; overflow: hidden; } #tinfo .hp i { display: block; height: 100%; }
+  #floats { position: fixed; inset: 0; pointer-events: none; }
+  #floats div { position: absolute; transform: translate(-50%,-50%); font: 700 16px system-ui, sans-serif; text-shadow: 0 2px 3px #000, 0 0 2px #000; white-space: nowrap; }
+  #stamwrap { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); width: 220px; height: 7px; background: rgba(0,0,0,.45); border-radius: 4px; overflow: hidden; transition: opacity .4s; }
+  #stam { height: 100%; background: #7fd36a; width: 100%; } #stam.run { background: #a8f080; } #stam.tired { background: #ff6a4a; animation: pulse .6s infinite; }
+  #lockhint { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(10,6,2,.45); z-index: 5; font: 700 22px Georgia, serif; color: var(--gold); cursor: pointer; text-align: center; }
+  #lockhint small { font: 13px system-ui; color: var(--ink); opacity: .8; margin-top: 8px; }
   .box { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
   #tl { position: fixed; top: 14px; left: 14px; padding: 12px 16px; min-width: 240px; }
   #tl .money { font: 700 26px Georgia, serif; color: var(--gold); }
@@ -87,20 +99,26 @@
   <div id="pws"></div>
 </div>
 <canvas id="minimap" width="380" height="380"></canvas>
+<div id="cross"></div>
+<div id="tinfo"></div>
+<div id="floats"></div>
+<div id="stamwrap"><div id="stam"></div></div>
+<div id="lockhint" onclick="document.getElementById('game').requestPointerLock()">Clique para jogar<small>Mouse olha · WASD anda · Shift corre · Espaço pula · Clique minera · E fala · V muda a câmera · Esc solta o mouse</small></div>
 <div id="panel" class="hidden"></div>
 
 <div id="title">
   <h1>Vale Ferrado</h1>
   <p>Do graveto ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.</p>
   <button class="buy" id="play">Jogar</button>
-  <p style="font-size:12px;opacity:.6;margin-top:18px">WASD para andar · Espaço para pular · Segure o mouse para minerar · E para falar com NPCs</p>
+  <p style="font-size:12px;opacity:.6;margin-top:18px">Mouse olha · WASD anda · Shift corre · Espaço pula · Segure o clique para minerar · E fala com NPCs · V muda a câmera</p>
 </div>
 
 <script src="js/data.js"></script>
 <script src="js/world.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
-<script src="js/render.js"></script>
+<script src="lib/three.min.js"></script>
+<script src="js/render3d.js"></script>
 <script>
   'use strict';
   let started = false, last = performance.now();
@@ -114,6 +132,7 @@
   document.getElementById('play').textContent = Game.S.time > 1 ? 'Continuar' : 'Jogar';
   document.getElementById('play').onclick = () => {
     document.getElementById('title').remove(); started = true;
+    document.getElementById('game').requestPointerLock();
     if (!Game.S.seen[1]) UI.story(1);
   };
   addEventListener('beforeunload', () => Game.save());

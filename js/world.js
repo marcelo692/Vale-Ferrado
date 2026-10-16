@@ -86,6 +86,7 @@ const World = {
   },
 
   breakNode(node) {
+    node.dead = true;
     node.pt.used = false;
     node.sub.nodes.splice(node.sub.nodes.indexOf(node), 1);
     this.nodes.splice(this.nodes.indexOf(node), 1);
@@ -128,7 +129,19 @@ const World = {
     return null;
   },
 
-  // cor do chão (biome)
+  // relevo suave do terreno (plano na cidade)
+  height(x, y) {
+    const d = Math.hypot(x, y);
+    const flat = Math.min(1, Math.max(0, (d - CITY_R - 4) / 30));
+    if (flat <= 0) return 0;
+    const amp = Math.min(5, 1.2 + d / 700);
+    const h = Math.sin(x * 0.021 + 1.3) * Math.cos(y * 0.017 - 0.7) * 0.9
+            + Math.sin(x * 0.0063 - y * 0.0051) * 1.4
+            + Math.sin((x + y) * 0.047) * 0.25;
+    return h * amp * flat * flat;
+  },
+
+    // cor do chão (biome)
   groundAt(x, y) {
     const dist = Math.hypot(x, y);
     if (dist < CITY_R) return null; // cidade é desenhada à parte

@@ -1,6 +1,6 @@
 # Vale Ferrado
 
-Jogo incremental de coleta: comece com um graveto seco e chegue ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.
+Jogo incremental de coleta em 3D, primeira pessoa, visual low-poly: comece com um graveto seco e chegue ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.
 
 ## Como baixar e jogar
 
@@ -14,12 +14,15 @@ O jogo abre no navegador (Chrome, Edge ou Firefox). Não precisa instalar nada n
 
 | Tecla | Ação |
 | --- | --- |
-| W A S D ou setas | Andar |
+| Mouse | Olhar em volta (clique na tela para prender o mouse) |
+| W A S D | Andar |
+| Shift | Correr (gasta fôlego; se zerar, você cansa) |
 | Espaço | Pular (passa por cima de troncos, muros e penhascos) |
-| Segurar o mouse ou E | Minerar a pedra mais próxima |
+| Segurar o botão esquerdo | Minerar a pedra na mira |
 | E perto de um NPC | Abrir a loja |
 | 1, 2, 3 | Ativar power-ups |
-| Rodinha do mouse | Zoom |
+| V | Alternar primeira e terceira pessoa |
+| Esc | Soltar o mouse |
 
 ## O que já tem
 
@@ -41,6 +44,7 @@ O jogo abre no navegador (Chrome, Edge ou Firefox). Não precisa instalar nada n
 | `js/world.js` | Mundo: trechos, obstáculos, nós de recurso e respawn |
 | `js/game.js` | Regras: movimento, pulo, mineração, mochila, economia, salvamento |
 | `js/ui.js` | Interface: HUD, lojas dos NPCs, avisos |
-| `js/render.js` | Desenho do mundo e do personagem |
+| `js/render3d.js` | Mundo 3D: céu, terreno, cidade, pedras, personagem e martelo na mão |
+| `lib/three.min.js` | Three.js r149 (biblioteca 3D, incluída para rodar sem internet) |
 
 Para balancear preços e valores, mexa em `js/data.js`.

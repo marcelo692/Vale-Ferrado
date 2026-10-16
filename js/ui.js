@@ -27,12 +27,15 @@ const UI = {
     return `<ul class="cost"><li class="${okM ? 'ok' : 'no'}">🪙 Moedas: <b>${fmt(c.money)}</b></li>${c.mats.map(m => this.matLine(m)).join('')}</ul>`;
   },
 
+  freeMouse() { if (document.pointerLockElement) document.exitPointerLock(); },
+  lockHint(show) { $('lockhint').style.display = show && started ? 'flex' : 'none'; },
   openNpc(id) {
+    this.freeMouse();
     this.open = id;
     $('panel').classList.remove('hidden');
     this.renderPanel();
   },
-  close() { this.open = null; $('panel').classList.add('hidden'); },
+  close() { this.open = null; $('panel').classList.add('hidden'); const cv = $('game'); try { cv.requestPointerLock(); } catch (e) {} },
 
   renderPanel() {
     const S = Game.S, id = this.open;
@@ -110,24 +113,30 @@ const UI = {
   story(L) {
     const st = STORY[L]; if (!st) return;
     Game.S.seen[L] = true; Game.save();
+    this.freeMouse();
     this.open = 'story';
     $('panel').classList.remove('hidden');
     $('panel').innerHTML = `<div class="story"><span class="lv">${L === 1 ? 'Prólogo' : 'Marco · nível ' + L}</span><h2>${st.t}</h2><p>${st.s}</p><button class="buy" onclick="UI.close()">Continuar</button></div>`;
   },
 
   help() {
+    this.freeMouse();
     this.open = 'help';
     $('panel').classList.remove('hidden');
     $('panel').innerHTML = `<div class="story"><h2>Como jogar</h2>
       <ul class="help">
-        <li><b>W A S D</b> ou setas: andar</li>
-        <li><b>Espaço</b>: pular (pule por cima de troncos, muros e penhascos para cortar caminho)</li>
-        <li><b>Segurar o mouse</b> ou <b>E</b> perto de uma pedra: minerar</li>
-        <li><b>E</b> perto de um NPC ou clique nele: abrir a loja</li>
+        <li><b>Mouse</b>: olhar em volta</li>
+        <li><b>W A S D</b>: andar</li>
+        <li><b>Shift</b>: correr (gasta fôlego; se zerar, você cansa e fica mais lento)</li>
+        <li><b>Espaço</b>: pular (passe por cima de troncos, muros e penhascos para cortar caminho)</li>
+        <li><b>Segurar o botão esquerdo</b> mirando uma pedra: minerar</li>
+        <li><b>E</b> perto de um NPC: abrir a loja</li>
         <li><b>1, 2, 3</b>: ativar power-ups da mochila</li>
+        <li><b>V</b>: alternar primeira e terceira pessoa</li>
+        <li><b>Esc</b>: soltar o mouse</li>
       </ul>
       <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra tudo sozinho. Use o dinheiro no Ferreiro (martelo), na Tropeira (atributos) e na Botica (power-ups).</p>
-      <p>Qualquer martelo quebra qualquer pedra, mas a barra em cima da pedra mostra quanto tempo vai levar: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
+      <p>Qualquer martelo quebra qualquer pedra, mas a informação embaixo da mira mostra quanto tempo vai levar: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
       <p>O jogo salva sozinho no seu computador.</p>
       <div class="row"><button class="buy" onclick="UI.close()">Voltar ao jogo</button><button class="buy alt" onclick="if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()">Recomeçar do zero</button></div></div>`;
   },
@@ -140,6 +149,8 @@ const UI = {
     $('hlv').textContent = 'Martelo nível ' + S.hammer + ' / 60';
     $('hforce').textContent = 'Força ' + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');
     const used = G.used(), cap = G.capacity();
+    const st = $('stam'); st.style.width = (G.P.stamina * 100) + '%'; st.className = G.P.tired ? 'tired' : G.P.sprint ? 'run' : '';
+    $('stamwrap').style.opacity = G.P.stamina < 0.999 || G.P.sprint ? 1 : 0.35;
     $('bagtxt').textContent = `Mochila ${fmt(used)} / ${fmt(cap)}`;
     $('bagfill').style.width = Math.min(100, used / cap * 100) + '%';
     $('bagfill').className = used >= cap ? 'full' : used / cap > 0.8 ? 'warn' : '';
