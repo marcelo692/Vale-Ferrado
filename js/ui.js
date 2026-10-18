@@ -114,6 +114,8 @@ const UI = {
       const ids = Object.keys(S.stock).filter(k => S.stock[k] > 0);
       h += `<p>Tudo o que você traz na mochila é vendido automaticamente quando entra na cidade. O que for necessário para a próxima evolução fica guardado aqui.</p>`;
       h += `<p class="free">Total ganho até hoje: <b>${fmt(S.earned)}</b> moedas</p>`;
+      h += `<p class="hint" style="margin-top:0">Regra: ao entrar na cidade eu guardo no depósito só o que falta para a próxima evolução do martelo e de cada atributo (no máximo 60% de cada material que você traz, para sempre entrar dinheiro). Todo o resto eu compro na hora.</p>`;
+      if ((S.receipts || []).length) h += `<h4>Última entrega</h4><div class="receipt-in">${this.receiptHtml(S.receipts[0])}</div>`;
       if (ids.length) {
         h += `<h4>Depósito</h4><ul class="stock">${ids.map(k => `<li><span class="dot" style="background:${RES[k].c2}"></span>${RES[k].name}<b>${fmt(S.stock[k])}</b><i>${fmt(RES[k].value)} cada</i></li>`).join('')}</ul>
           <button class="buy alt" onclick="UI.sellStock()">Vender o excedente do depósito</button>`;
@@ -231,6 +233,22 @@ const UI = {
     }
     html += `<div class="leg"><span class="s2">✔ pronto</span> <span class="s1">● está na mochila, volte à cidade</span> <span class="s0">✖ falta</span></div>`;
     if (html !== this.invHtml) { el.innerHTML = html; this.invHtml = html; }
+  },
+  // ---------- recibo do Seu Lauro (o que foi guardado e o que foi vendido) ----------
+  receiptHtml(r, full) {
+    let h = `<table><tr><th>Material</th><th>Trouxe</th><th>🏠 Guardou</th><th>Vendeu</th></tr>`;
+    for (const l of r.lines) {
+      h += `<tr><td><i style="background:${RES[l.id].c2}"></i>${RES[l.id].name.split(' (')[0]}</td><td>${fmt(l.q)}</td><td class="${l.k ? 'k' : ''}">${l.k ? fmt(l.k) : '—'}</td><td class="${l.sq ? 'v' : ''}">${l.sq ? fmt(l.sq) + ' <small>= ' + fmt(l.money) + '</small>' : '—'}</td></tr>`;
+      h += `<tr class="why"><td colspan="4">${l.k && l.for.length ? 'Para: ' + l.for.join(', ') + ' · ' : ''}${l.why}</td></tr>`;
+    }
+    h += `</table><div class="tot"><span>🏠 ${fmt(r.kept)} guardados</span><span><i class="coin"></i>+${fmt(r.earned)} moedas</span></div>`;
+    return h;
+  },
+  showReceipt(r) {
+    const el = $('receipt');
+    el.innerHTML = `<div class="rh">Seu Lauro, do Armazém</div><p class="rule">Guardo no depósito só o que falta para a <b>próxima</b> evolução (até 60% de cada material que você traz) e vendo o resto.</p>${this.receiptHtml(r)}<p class="rule dim">Veja de novo no Armazém · some em instantes</p>`;
+    el.classList.add('on');
+    clearTimeout(this.rcT); this.rcT = setTimeout(() => el.classList.remove('on'), 9000 + r.lines.length * 1200);
   },
   updateDetectorHud() {
     const el = $('det'), d = Game.det;

@@ -108,6 +108,14 @@
   #inv .s2, #inv .s2 b { color: #8fe07a; } #inv .s1, #inv .s1 b { color: #ffd34d; } #inv .s0, #inv .s0 b { color: #ff8a7a; } #inv tr.s3 { color: var(--ink); opacity: .8; }
   #inv .up.s2 .un, #inv .up.s1 .un, #inv .up.s0 .un { color: var(--ink); }
   #inv .leg { margin-top: 6px; font-size: 10px; opacity: .8; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+  #receipt { position: fixed; left: 14px; top: 240px; width: 360px; background: rgba(20,14,8,.86); border: 1px solid #a08a3a; border-radius: 12px; padding: 10px 12px; font-size: 12px; z-index: 4; opacity: 0; transform: translateX(-20px); transition: opacity .4s, transform .4s; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+  #receipt.on { opacity: 1; transform: none; }
+  #receipt .rh { font: 700 14px Georgia, serif; color: var(--gold); } .rule { margin: 4px 0 6px; font-size: 11.5px; opacity: .9; } .rule.dim { opacity: .55; margin: 6px 0 0; font-size: 10.5px; }
+  #receipt table, .receipt-in table { width: 100%; border-collapse: collapse; } #receipt th, .receipt-in th { text-align: left; font-weight: 600; opacity: .7; font-size: 10.5px; padding: 2px; }
+  #receipt td, .receipt-in td { padding: 2px; white-space: nowrap; } #receipt td i, .receipt-in td i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  #receipt td.k, .receipt-in td.k { color: #8fe07a; font-weight: 700; } #receipt td.v, .receipt-in td.v { color: #ffd34d; font-weight: 700; } #receipt td small, .receipt-in td small { font-weight: 400; opacity: .8; }
+  #receipt tr.why td, .receipt-in tr.why td { white-space: normal; font-size: 10.5px; opacity: .7; padding: 0 2px 4px 14px; border-bottom: 1px solid rgba(255,255,255,.07); }
+  #receipt .tot, .receipt-in .tot { display: flex; justify-content: space-between; margin-top: 6px; font-weight: 700; } .receipt-in { font-size: 13px; background: #1f1810; border-radius: 8px; padding: 8px 10px; }
   #upd { position: fixed; top: 64px; right: 290px; display: none; gap: 10px; align-items: center; background: #2f5a2a; border: 1px solid #7fd36a; color: #eaffdf; padding: 8px 10px 8px 14px; border-radius: 10px; z-index: 6; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
   #upd button { background: #7fd36a; color: #10200c; border: 0; border-radius: 6px; padding: 5px 10px; font-weight: 700; cursor: pointer; } #upd button.x { background: none; color: #eaffdf; padding: 0 4px; }
   #tr small { opacity: .6; font-size: 11px; }
@@ -147,6 +155,7 @@
 <div id="det"></div>
 <div id="equip"></div>
 <div id="inv"></div>
+<div id="receipt" onclick="this.classList.remove('on')"></div>
 <div id="tinfo"></div>
 <div id="floats"></div>
 <div id="stamwrap"><div id="stam"></div></div>

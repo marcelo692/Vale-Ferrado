@@ -161,24 +161,40 @@ const Game = {
     for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(attrCost(k, this.S.attrs[k] + 1));
     return need;
   },
+  // quais evoluções usam cada material (para explicar ao jogador)
+  needsBy() {
+    const by = {};
+    const add = (label, c) => c.mats.forEach(m => { (by[m.id] = by[m.id] || []).push(label); });
+    if (this.S.hammer < MAX_LEVEL) add('Martelo nv ' + (this.S.hammer + 1), hammerCost(this.S.hammer + 1));
+    for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(ATTRS[k].short + ' nv ' + (this.S.attrs[k] + 1), attrCost(k, this.S.attrs[k] + 1));
+    return by;
+  },
   unload() {
     const ids = Object.keys(this.S.bag);
     if (!ids.length) return;
-    const need = this.needs();
+    const need = this.needs(), by = this.needsBy();
     let earned = 0, kept = 0, sold = 0;
+    const lines = [];
     for (const id of ids) {
       const q = this.S.bag[id];
       const want = Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
-      const k = Math.min(want, Math.floor(q * 0.6)); // vende sempre pelo menos 40% de cada carga
+      const cap = Math.floor(q * 0.6);
+      const k = Math.min(want, cap); // vende sempre pelo menos 40% de cada carga
       if (k > 0) { this.S.stock[id] = (this.S.stock[id] || 0) + k; kept += k; }
-      const s = q - k;
-      if (s > 0) { earned += s * RES[id].value; sold += s; }
+      const sq = q - k, money = sq * RES[id].value;
+      if (sq > 0) { earned += money; sold += sq; }
+      let why;
+      if (!need[id]) why = 'nenhuma evolução próxima usa';
+      else if (want === 0) why = 'o depósito já tem o suficiente';
+      else if (k < want) why = `guardei 60% da carga; faltam ${fmt(want - k)}`;
+      else why = 'guardei tudo que faltava';
+      lines.push({ id, q, k, sq, money, why, for: by[id] || [] });
     }
     this.S.bag = {};
     this.S.money += earned; this.S.earned += earned;
-    let msg = `Seu Lauro comprou ${fmt(sold)} itens por ${fmt(earned)} moedas.`;
-    if (kept) msg += ` ${fmt(kept)} guardados no depósito para suas evoluções.`;
-    UI.toast(msg, 'money');
+    const r = { lines, earned, kept, sold, t: Date.now() };
+    this.S.receipts = [r, ...(this.S.receipts || [])].slice(0, 5);
+    UI.showReceipt(r);
     if (earned) Snd.coins(earned); else if (kept) Snd.pickup();
     if (earned) this.floats.push({ x: this.P.x, y: this.P.y - 2, txt: '+' + fmt(earned) + ' moedas', c: '#ffd34d', t: 1.6 });
     this.save();

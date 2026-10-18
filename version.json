@@ -1,8 +1,9 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "date": "2026-10-18",
   "notes": [
-    "Tabela no canto da tela com as próximas evoluções e os materiais guardados, na mochila e necessários (tecla I esconde)"
+    "Recibo do Seu Lauro ao entrar na cidade: mostra o que foi guardado, para qual evolução, o que foi vendido e por quanto",
+    "Armazém mostra a regra de venda e a última entrega"
   ],
   "files": [
     {
@@ -15,7 +16,7 @@
     },
     {
       "path": "index.html",
-      "size": 19492
+      "size": 21129
     },
     {
       "path": "js/audio.js",
@@ -27,7 +28,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 22078
+      "size": 22933
     },
     {
       "path": "js/render3d.js",
@@ -35,7 +36,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 21056
+      "size": 22817
     },
     {
       "path": "js/updater.js",
@@ -55,7 +56,7 @@
     },
     {
       "path": "version.json",
-      "size": 1148
+      "size": 1020
     }
   ]
 }
