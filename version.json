@@ -1,9 +1,8 @@
 {
-  "version": "1.7.4",
+  "version": "1.8.0",
   "date": "2026-10-18",
   "notes": [
-    "Céu novo em degradê de 4 cores, com paletas diferentes para dia, entardecer/amanhecer e noite",
-    "Brilho alaranjado do lado do sol no nascer e no pôr do sol"
+    "Todos os recursos agora têm forma própria: cascalho é um monte de pedrinhas, pedra-sabão é lisa e esverdeada, arenito em camadas, basalto em colunas, sílex em lascas, minérios com cristais e cores diferentes e muito mais"
   ],
   "files": [
     {
@@ -32,7 +31,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 79890
+      "size": 93042
     },
     {
       "path": "js/ui.js",
@@ -56,7 +55,7 @@
     },
     {
       "path": "version.json",
-      "size": 1095
+      "size": 1060
     }
   ]
 }

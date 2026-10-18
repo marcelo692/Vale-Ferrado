@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '1.7.4';
+const GAME_VERSION = '1.8.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -24,12 +24,12 @@ const RESOURCES = [
   { id: 'lenha',       name: 'Lenha',                   region: 0, ideal: 4,  hard: 20,       kind: 'log',     c: '#6b4a2e', c2: '#c9a57a' },
   { id: 'argila',      name: 'Argila',                  region: 0, ideal: 6,  hard: 33,       kind: 'clay',    c: '#a5603d', c2: '#c27a52' },
   { id: 'cascalho',    name: 'Cascalho',                region: 0, ideal: 8,  hard: 52,       kind: 'rock',    c: '#8b8578', c2: '#a8a294' },
-  { id: 'pedrasabao',  name: 'Pedra-sabão',             region: 0, ideal: 10, hard: 82,       kind: 'rock',    c: '#7f8f84', c2: '#9fb0a3' },
+  { id: 'pedrasabao',  name: 'Pedra-sabão',             region: 0, ideal: 10, hard: 82,       kind: 'rock',    c: '#4e7464', c2: '#6f9a86' },
   { id: 'seixo',       name: 'Seixo de rio',            region: 1, ideal: 11, hard: 104,      kind: 'rock',    c: '#9aa0a2', c2: '#c3c8c9' },
   { id: 'arenito',     name: 'Arenito',                 region: 1, ideal: 13, hard: 166,      kind: 'rock',    c: '#c49a6c', c2: '#dcb98d' },
   { id: 'silex',       name: 'Sílex',                   region: 1, ideal: 15, hard: 265,      kind: 'rock',    c: '#4b4743', c2: '#7d7570' },
   { id: 'basalto',     name: 'Basalto',                 region: 1, ideal: 17, hard: 423,      kind: 'rock',    c: '#35383b', c2: '#575b5f' },
-  { id: 'granito',     name: 'Granito',                 region: 1, ideal: 19, hard: 676,      kind: 'rock',    c: '#a39a96', c2: '#d1c6c1' },
+  { id: 'granito',     name: 'Granito',                 region: 1, ideal: 19, hard: 676,      kind: 'rock',    c: '#a87870', c2: '#d8a8a0' },
   { id: 'sucata',      name: 'Sucata e pregos velhos',  region: 2, ideal: 21, hard: 1080,     kind: 'scrap',   c: '#7d5b45', c2: '#a37350' },
   { id: 'malaquita',   name: 'Malaquita (cobre)',       region: 2, ideal: 23, hard: 1730,     kind: 'ore',     c: '#3f8a63', c2: '#6fc496' },
   { id: 'cassiterita', name: 'Cassiterita (estanho)',   region: 2, ideal: 25, hard: 2770,     kind: 'ore',     c: '#4d3d33', c2: '#9a8b7e' },
