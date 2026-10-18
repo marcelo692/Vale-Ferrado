@@ -149,9 +149,11 @@ const Render = {
     const df = THREE.MathUtils.smoothstep(el, -0.15, 0.2); this.day = df;
     const dusk = Math.max(0, 1 - Math.abs(el) / 0.28);
     const L = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t);
-    this.skyU.top.value.copy(L('#040916', '#3f7fd0', df));
-    this.skyU.mid.value.copy(L('#0b1430', '#9cc4e8', df)).lerp(new THREE.Color('#d08870'), dusk * 0.5);
-    this.horizon.copy(L('#141c30', '#cfd9d6', df)).lerp(new THREE.Color('#f0a060'), dusk * 0.6);
+    // paletas: noite, dia e entardecer (horizonte, baixo, meio, topo)
+    const P4 = { night: ['#2c2a52', '#1b2150', '#0f1638', '#050816'], day: ['#f2e6cc', '#a8d4f0', '#5aa0e0', '#1f5fb8'], dusk: ['#ff9a4a', '#f07a6a', '#8a5aa8', '#283a80'] };
+    const band = i => L(P4.night[i], P4.day[i], df).lerp(new THREE.Color(P4.dusk[i]), dusk * (i === 3 ? 0.35 : 0.7));
+    this.horizon.copy(band(0)); this.skyU.c1.value.copy(band(1)); this.skyU.c2.value.copy(band(2)); this.skyU.c3.value.copy(band(3));
+    this.skyU.glowAmt.value = dusk * 0.85;
     this.skyU.moon.value.copy(moon); this.skyU.night.value = 1 - df;
     this.stars.material.opacity = Math.max(0, 1 - df * 1.6);
     this.scene.fog.color.copy(this.horizon);
@@ -196,12 +198,20 @@ const Render = {
 
   // ---------- céu e horizonte infinito ----------
   buildSky() {
+    // céu em degradê de 4 cores (horizonte → baixo → meio → topo) + brilho do sol perto do horizonte
     const skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      uniforms: { top: { value: new THREE.Color('#3f7fd0') }, mid: { value: new THREE.Color('#9cc4e8') }, hor: { value: this.horizon }, sun: { value: this.sunDir }, moon: { value: new V3(0, -1, 0) }, night: { value: 0 } },
+      uniforms: { c0: { value: this.horizon }, c1: { value: new THREE.Color('#a8d4f0') }, c2: { value: new THREE.Color('#5aa0e0') }, c3: { value: new THREE.Color('#1f5fb8') },
+        glow: { value: new THREE.Color('#ffb070') }, glowAmt: { value: 0 }, sun: { value: this.sunDir }, moon: { value: new V3(0, -1, 0) }, night: { value: 0 } },
       vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: `uniform vec3 top; uniform vec3 mid; uniform vec3 hor; uniform vec3 sun; uniform vec3 moon; uniform float night; varying vec3 vP;
-        void main(){ float h = vP.y; vec3 c = mix(hor, mid, smoothstep(-0.02, 0.18, h)); c = mix(c, top, smoothstep(0.18, 0.75, h));
+      fragmentShader: `uniform vec3 c0; uniform vec3 c1; uniform vec3 c2; uniform vec3 c3; uniform vec3 glow; uniform float glowAmt; uniform vec3 sun; uniform vec3 moon; uniform float night; varying vec3 vP;
+        void main(){ float h = vP.y;
+          vec3 c = mix(c0, c1, smoothstep(-0.03, 0.12, h));
+          c = mix(c, c2, smoothstep(0.10, 0.38, h));
+          c = mix(c, c3, smoothstep(0.35, 0.85, h));
+          // brilho alaranjado do lado do sol no nascer e no pôr do sol
+          vec2 sh = normalize(sun.xz + vec2(1e-4)); float side = max(dot(normalize(vP.xz + vec2(1e-4)), sh), 0.0);
+          c = mix(c, glow, glowAmt * pow(side, 3.0) * (1.0 - smoothstep(0.0, 0.45, h)));
           float s = max(dot(vP, sun), 0.0); c += (vec3(1.0,0.85,0.6) * pow(s, 400.0) * 1.6 + vec3(1.0,0.8,0.5) * pow(s, 12.0) * 0.25) * (1.0 - night);
           float m = max(dot(vP, moon), 0.0); c += vec3(0.85,0.9,1.0) * (pow(m, 900.0) * 2.2 + pow(m, 40.0) * 0.08) * night;
           gl_FragColor = vec4(c, 1.0); }`,
