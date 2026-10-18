@@ -35,12 +35,12 @@ const UI = {
     } catch (e) { return ''; }
   },
   openNpc(id) {
-    this.freeMouse();
+    this.freeMouse(); Snd.open();
     this.open = id;
     $('panel').classList.remove('hidden');
     this.renderPanel();
   },
-  close() { this.open = null; $('panel').classList.add('hidden'); const cv = $('game'); try { cv.requestPointerLock(); } catch (e) {} },
+  close() { if (this.open) Snd.close(); this.open = null; $('panel').classList.add('hidden'); const cv = $('game'); try { cv.requestPointerLock(); } catch (e) {} },
 
   renderPanel() {
     const S = Game.S, id = this.open;
@@ -136,12 +136,22 @@ const UI = {
   story(L) {
     const st = STORY[L]; if (!st) return;
     Game.S.seen[L] = true; Game.save();
-    this.freeMouse();
+    this.freeMouse(); Snd.story();
     this.open = 'story';
     $('panel').classList.remove('hidden');
     $('panel').innerHTML = `<div class="story"><span class="lv">${L === 1 ? 'Prólogo' : 'Marco · nível ' + L}</span><h2>${st.t}</h2><p>${st.s}</p><button class="buy" onclick="UI.close()">Continuar</button></div>`;
   },
 
+  soundPanel() {
+    this.freeMouse(); Snd.start();
+    this.open = 'sound';
+    $('panel').classList.remove('hidden');
+    const row = (k, label) => `<label class="vol"><span>${label}</span><input type="range" min="0" max="100" value="${Math.round(Snd.vol[k] * 100)}" oninput="Snd.set('${k}', this.value/100); this.nextElementSibling.textContent=this.value+'%'"><b>${Math.round(Snd.vol[k] * 100)}%</b></label>`;
+    $('panel').innerHTML = `<div class="story"><h2>Som</h2>
+      ${row('master', 'Volume geral')}${row('music', 'Música')}${row('sfx', 'Efeitos (martelo, passos, moedas)')}${row('amb', 'Ambiente (vento, pássaros, grilos)')}
+      <label class="vol mute"><input type="checkbox" ${Snd.muted ? 'checked' : ''} onchange="Snd.muted=this.checked;Snd.apply();Snd.saveCfg()"> <span>Silenciar tudo (tecla M)</span></label>
+      <div class="row"><button class="buy alt" onclick="Snd.hit('ore', Game.S.hammer); Snd.coins(500)">Testar efeitos</button><button class="buy" onclick="UI.close()">Voltar ao jogo</button></div></div>`;
+  },
   help() {
     this.freeMouse();
     this.open = 'help';
@@ -152,12 +162,13 @@ const UI = {
         <li><b>W A S D</b>: andar</li>
         <li><b>Shift</b>: correr (gasta fôlego; se zerar, você cansa e fica mais lento)</li>
         <li><b>Espaço</b>: pular (passe por cima de troncos, muros e penhascos para cortar caminho)</li>
-        <li><b>Segurar o botão esquerdo</b> mirando uma pedra: minerar</li>
+        <li><b>Segurar o botão esquerdo</b> mirando uma pedra: minera na velocidade normal, sem cansar</li>
+        <li><b>Clicar várias vezes</b>: golpes bem mais rápidos, mas cada clique gasta fôlego</li>
         <li><b>E</b> perto de um NPC: abrir a loja</li>
         <li><b>1, 2, 3</b>: ativar power-ups da mochila</li>
         <li><b>V</b>: alternar primeira e terceira pessoa</li>
         <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: trocar o minério do detector</li>
-        <li><b>M</b>: ligar/desligar som</li>
+        <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
         <li><b>Esc</b>: soltar o mouse</li>
       </ul>
       <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra tudo sozinho. Use o dinheiro no Ferreiro (martelo), na Tropeira (atributos) e na Botica (power-ups).</p>
@@ -180,7 +191,7 @@ const UI = {
     el.innerHTML = `<div class="dial" style="--s:${d.strength}"><i style="transform:rotate(${ang}deg)"></i></div><div><b>${R.name}</b><span>${dist} · ${'▮'.repeat(bars)}${'▯'.repeat(5 - bars)}</span></div>`;
     // bipe que acelera conforme você se aproxima
     this.beepT = (this.beepT || 0) - 0.1;
-    if (this.beepT <= 0 && Game.S.sound && started && !this.open) { this.beep(500 + d.strength * 700); this.beepT = 0.25 + (1 - d.strength) * 1.6; }
+    if (this.beepT <= 0 && started && !this.open) { Snd.beep(500 + d.strength * 700); this.beepT = 0.25 + (1 - d.strength) * 1.6; }
   },
   beep(freq) {
     try {

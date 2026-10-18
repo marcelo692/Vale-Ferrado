@@ -297,7 +297,7 @@ const Render = {
       const roof = mesh(new THREE.BoxGeometry(5.4, 0.18, 3.2), mat(n.color)); roof.position.set(0, 2.85, 0); roof.rotation.x = -0.18; g.add(roof);
       for (let i = 0; i < 5; i++) { const st = mesh(new THREE.BoxGeometry(1.08, 0.2, 3.22), mat(i % 2 ? '#e8dcc0' : n.color), false); st.position.set(-2.16 + i * 1.08, 2.86, 0); st.rotation.x = -0.18; g.add(st); }
       const counter = mesh(new THREE.BoxGeometry(4.2, 1, 0.8), mat('#7a5a3a')); counter.position.set(0, 0.5, 0.9); g.add(counter);
-      const goods = { ferreiro: '#5f666e', tropeira: '#c49a6c', botica: '#7a3fa0', armazem: '#a07a2a' }[n.id];
+      const goods = { ferreiro: '#5f666e', tropeira: '#c49a6c', botica: '#7a3fa0', armazem: '#a07a2a', bazar: '#e0a020' }[n.id];
       for (let i = 0; i < 4; i++) { const it = mesh(n.id === 'botica' ? new THREE.CylinderGeometry(0.12, 0.12, 0.4, 6) : new THREE.BoxGeometry(0.4, 0.3, 0.3), mat(goods)); it.position.set(-1.4 + i * 0.9, 1.15, 0.9); g.add(it); }
       if (n.id === 'ferreiro') { const anvil = mesh(new THREE.BoxGeometry(0.9, 0.5, 0.45), mat('#3a3d42', { shininess: 40 })); anvil.position.set(1.6, 0.25, 2.4); g.add(anvil); }
       const person = this.makePerson({ shirt: n.color, skin: n.id === 'tropeira' ? '#a8754f' : '#c48c62', hair: n.id === 'ferreiro' ? '#d8d8d8' : '#3a2a1c' });

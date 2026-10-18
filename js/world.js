@@ -112,6 +112,7 @@ const World = {
         const res = cands[Math.floor(Math.random() * cands.length)];
         const R = REGIONS[res.region];
         this.veio = { res: res.id, t: 120 };
+        Snd.veio();
         UI.toast(`⛏ Veio de ${res.name} aflorou no ${R.dir} (${R.name})! Abundante por 2 min.`, 'veio');
         // troca alguns nós da região por esse recurso
         for (const s of this.subs) if (s.R === R) for (const n of s.nodes) if (Math.random() < 0.35 && n.hp === n.maxHp) { n.res = res; n.hp = n.maxHp = res.hard * n.size; }

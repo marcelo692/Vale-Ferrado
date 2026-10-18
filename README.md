@@ -18,14 +18,15 @@ O jogo abre no navegador (Chrome, Edge ou Firefox). Não precisa instalar nada n
 | W A S D | Andar |
 | Shift | Correr (gasta fôlego; se zerar, você cansa) |
 | Espaço | Pular (passa por cima de troncos, muros e penhascos) |
-| Segurar o botão esquerdo | Minerar a pedra na mira |
+| Segurar o botão esquerdo | Minerar na velocidade normal, sem cansar |
+| Clicar várias vezes | Golpes quase 3x mais rápidos, mas cada clique gasta fôlego |
 | E perto de um NPC | Abrir a loja |
 | 1, 2, 3 | Ativar power-ups |
 | V | Alternar primeira e terceira pessoa |
 | R | Subir/descer do transporte |
 | L | Ligar/desligar a luz |
 | G | Ligar/desligar o detector · T troca o minério procurado |
-| M | Som on/off |
+| M | Som on/off (volumes no botão 🔊 Som) |
 | Esc | Soltar o mouse |
 
 ## O que já tem
@@ -34,6 +35,7 @@ O jogo abre no navegador (Chrome, Edge ou Firefox). Não precisa instalar nada n
 - 34 recursos em 6 regiões, cada uma numa direção e mais longe que a anterior
 - 5 NPCs: Seu Bento (martelo), Dona Cida (mineração, mochila, movimento e pulo), Zé da Botica (power-ups), Seu Lauro (venda automática) e Tonho do Bazar (equipamentos)
 - Equipamentos: detector de minério (3 níveis), transporte (patins, patinete, monociclo, hoverboard) e iluminação (lanterna, headlamp, drone, esquadrilha de drones)
+- Música de fundo gerada pelo jogo (viola calma de dia, mais lenta e misteriosa à noite) e sons para tudo: passos por tipo de chão, golpes por material, quebra, moedas, forja, pulo, power-ups, vento, pássaros, grilos e riacho
 - Ciclo de dia e noite (um dia dura 16 minutos), com estrelas, lua e luzes na cidade
 - Power-ups que ocupam espaço na mochila e podem ser ativados juntos
 - Respawn dinâmico: pedras voltam em outro lugar, com outro tamanho, às vezes raras; eventos de veio aflorado
@@ -50,6 +52,7 @@ O jogo abre no navegador (Chrome, Edge ou Firefox). Não precisa instalar nada n
 | `js/world.js` | Mundo: trechos, obstáculos, nós de recurso e respawn |
 | `js/game.js` | Regras: movimento, pulo, mineração, mochila, economia, salvamento |
 | `js/ui.js` | Interface: HUD, lojas dos NPCs, avisos |
+| `js/audio.js` | Música e efeitos sonoros, todos sintetizados (sem arquivos de áudio) |
 | `js/render3d.js` | Mundo 3D: céu, terreno, cidade, pedras, personagem e martelo na mão |
 | `lib/three.min.js` | Three.js r149 (biblioteca 3D, incluída para rodar sem internet) |
 

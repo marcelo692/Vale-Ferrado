@@ -5,6 +5,9 @@
 
 const SAVE_KEY = 'valeferrado_save_v1';
 const GRAV = 20; // m/s²
+const CLICK_COST = 0.08;  // fôlego gasto por golpe de clique
+const CLICK_CD = 0.35;    // clique pode golpear a cada 35% do intervalo normal (quase 3x mais rápido)
+const SWING_ANIM = 0.16;  // duração da animação do golpe rápido
 
 function newState() {
   return {
@@ -78,7 +81,7 @@ const Game = {
       if (k === 'l') this.toggleLight();
       if (k === 'g') this.toggleDetector();
       if (k === 't') this.cycleDetector(e.shiftKey ? -1 : 1);
-      if (k === 'm') { this.S.sound = !this.S.sound; UI.toast(this.S.sound ? 'Som ligado' : 'Som desligado'); }
+      if (k === 'm') { const on = Snd.toggleMute(); UI.toast(on ? 'Som ligado' : 'Som desligado'); }
       if (k === '1') this.activate('tonico');
       if (k === '2') this.activate('cafe');
       if (k === '3') this.activate('elixir');
@@ -92,8 +95,9 @@ const Game = {
     });
     cv.addEventListener('mousedown', e => {
       if (UI.open) return;
+      Snd.start();
       if (!this.locked()) { cv.requestPointerLock(); return; }
-      if (e.button === 0) this.mouse.down = true;
+      if (e.button === 0) { this.mouse.down = true; this.mouse.holdT = 0; this.clickStrike(); }
     });
     addEventListener('mouseup', e => { if (e.button === 0) this.mouse.down = false; });
     document.addEventListener('pointerlockchange', () => { UI.lockHint(!this.locked() && !UI.open); if (!this.locked()) { this.mouse.down = false; this.keys = {}; } });
@@ -101,7 +105,25 @@ const Game = {
   },
 
   jump() {
-    if (this.P.z <= 0.001) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()); this.P.z = 0.001; }
+    if (this.P.z <= 0.001) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()); this.P.z = 0.001; this.P.peak = 0; Snd.jump(); }
+  },
+
+  // golpe por clique: mais rápido, mas gasta fôlego
+  clickStrike() {
+    const P = this.P, n = this.target;
+    if (UI.open || !n || P.z > 0) return;
+    if (this.clickCD > 0) return;
+    if (P.tired || P.stamina < CLICK_COST) {
+      if (!this.noBreathT || this.S.time - this.noBreathT > 3) { this.noBreathT = this.S.time; UI.toast('Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar.', 'warn'); Snd.denied(); }
+      return;
+    }
+    P.stamina -= CLICK_COST; this.lastClickT = this.S.time;
+    if (P.stamina <= 0) { P.stamina = 0; P.tired = true; Snd.tired(); }
+    this.clickCD = this.interval() * CLICK_CD;
+    this.swingAnim = SWING_ANIM;
+    this.mineT = 0;
+    Snd.swing(true);
+    this.hit(n);
   },
 
   npcNear() {
@@ -124,6 +146,7 @@ const Game = {
     const cur = this.S.active.find(a => a.id === id);
     if (cur) { cur.left += POWERUPS[id].dur; cur.tier = Math.max(cur.tier, p.tier); }
     else this.S.active.push({ id, tier: p.tier, left: POWERUPS[id].dur });
+    Snd.power(id);
     UI.toast(`${POWERUPS[id].name} ${ROMAN[p.tier]} ativado! +${Math.round(powerBonus(id, p.tier) * 100)}%`, 'power');
   },
 
@@ -153,6 +176,7 @@ const Game = {
     let msg = `Seu Lauro comprou ${fmt(sold)} itens por ${fmt(earned)} moedas.`;
     if (kept) msg += ` ${fmt(kept)} guardados no depósito para suas evoluções.`;
     UI.toast(msg, 'money');
+    if (earned) Snd.coins(earned); else if (kept) Snd.pickup();
     if (earned) this.floats.push({ x: this.P.x, y: this.P.y - 2, txt: '+' + fmt(earned) + ' 🪙', c: '#ffd34d', t: 1.6 });
     this.save();
   },
@@ -167,7 +191,7 @@ const Game = {
   buyHammer() {
     const L = this.S.hammer + 1; if (L > MAX_LEVEL) return;
     const c = hammerCost(L); if (!this.canPay(c)) return;
-    this.pay(c); this.S.hammer = L;
+    this.pay(c); this.S.hammer = L; Snd.forge();
     UI.toast(`Seu Bento forjou: ${HAMMERS[L].n}! Força ${fmt(HAMMERS[L].f)}.`, 'level');
     this.fxBurst(this.P.x, this.P.y, '#ffb347', 30);
     if (STORY[L] && !this.S.seen[L]) setTimeout(() => UI.story(L), 400);
@@ -176,7 +200,7 @@ const Game = {
   buyAttr(key) {
     const L = this.S.attrs[key] + 1; if (L > MAX_LEVEL) return;
     const c = attrCost(key, L); if (!this.canPay(c)) return;
-    this.pay(c); this.S.attrs[key] = L;
+    this.pay(c); this.S.attrs[key] = L; Snd.levelUp();
     UI.toast(`Dona Cida melhorou ${ATTRS[key].short}: nível ${L} (${attrLabel(key, L)}).`, 'level');
     this.fxBurst(this.P.x, this.P.y, '#7fd36a', 20);
     this.save();
@@ -185,7 +209,7 @@ const Game = {
     const price = powerPrice(id, this.S.hammer);
     if (this.S.money < price) return;
     if (this.free() < POWERUPS[id].slots) { UI.toast('Sem espaço na mochila para esse power-up.'); return; }
-    this.S.money -= price;
+    this.S.money -= price; Snd.buy();
     this.S.pw.push({ id, tier: eraOf(this.S.hammer) });
     this.save();
   },
@@ -194,7 +218,7 @@ const Game = {
   buyGadget(type, lvl) {
     const G = GADGETS[type].levels[lvl];
     if (this.S.gear[type] >= lvl || this.S.money < G.price) return;
-    this.S.money -= G.price; this.S.gear[type] = lvl;
+    this.S.money -= G.price; this.S.gear[type] = lvl; Snd.levelUp();
     if (type === 'ride') this.S.riding = true;
     if (type === 'light') this.S.lightOn = true;
     if (type === 'detector') { this.S.detOn = true; if (!this.S.detRes) this.S.detRes = this.defaultDetRes(); }
@@ -204,16 +228,16 @@ const Game = {
   ride() { return this.S.riding && this.S.gear.ride ? GADGETS.ride.levels[this.S.gear.ride] : null; },
   toggleRide() {
     if (!this.S.gear.ride) { UI.toast('Você ainda não tem transporte. Veja o Tonho do Bazar.'); return; }
-    this.S.riding = !this.S.riding;
+    this.S.riding = !this.S.riding; Snd.toggle(this.S.riding);
     UI.toast(this.S.riding ? `Em cima do ${GADGETS.ride.levels[this.S.gear.ride].n}` : 'A pé');
   },
   toggleLight() {
     if (!this.S.gear.light) { UI.toast('Você ainda não tem lanterna. Veja o Tonho do Bazar.'); return; }
-    this.S.lightOn = !this.S.lightOn; UI.toast(this.S.lightOn ? 'Luz ligada' : 'Luz desligada');
+    this.S.lightOn = !this.S.lightOn; Snd.toggle(this.S.lightOn); UI.toast(this.S.lightOn ? 'Luz ligada' : 'Luz desligada');
   },
   toggleDetector() {
     if (!this.S.gear.detector) { UI.toast('Você ainda não tem detector. Veja o Tonho do Bazar.'); return; }
-    this.S.detOn = !this.S.detOn; UI.toast(this.S.detOn ? 'Detector ligado' : 'Detector desligado');
+    this.S.detOn = !this.S.detOn; Snd.toggle(this.S.detOn); UI.toast(this.S.detOn ? 'Detector ligado' : 'Detector desligado');
   },
   defaultDetRes() {
     const L = Math.min(MAX_LEVEL, this.S.hammer + 1);
@@ -271,8 +295,8 @@ const Game = {
       const ride = this.ride();
       const wantSprint = this.keys['shift'] && P.moving && fw > 0 && !(ride && ride.free);
       P.sprint = wantSprint && !P.tired && P.stamina > 0;
-      if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast('Você está cansado! Espere o fôlego voltar.', 'warn'); } }
-      else { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
+      if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast('Você está cansado! Espere o fôlego voltar.', 'warn'); Snd.tired(); } }
+      else if (this.S.time - (this.lastClickT || -9) > 1.2) { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
       if (len) {
         mx /= len; my /= len;
         const sp = this.speed() * (ride ? ride.mult : 1) * (P.sprint ? 1.75 : 1) * (P.tired && !ride ? 0.8 : 1);
@@ -281,6 +305,12 @@ const Game = {
         for (let i = 0; i < steps; i++) { this.moveBy(mx * sp * dt / steps, 0); this.moveBy(0, my * sp * dt / steps); }
         P.face = Math.atan2(my, mx);
         P.walkT += dt * sp;
+        // passos
+        if (P.z === 0 && (!ride || this.S.gear.ride === 1)) {
+          this.stepAcc = (this.stepAcc || 0) + sp * dt;
+          const stride = ride ? 2.4 : P.sprint ? 1.9 : 1.5;
+          if (this.stepAcc >= stride) { this.stepAcc = 0; Snd.step(this.surface(), P.sprint); }
+        }
       }
       // limite do mundo
       const R = Math.hypot(P.x, P.y), LIM = 4300;
@@ -289,8 +319,8 @@ const Game = {
 
     // pulo
     if (P.z > 0) {
-      P.vz -= GRAV * dt; P.z += P.vz * dt;
-      if (P.z <= 0) { P.z = 0; P.vz = 0; this.pushOut(); this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); }
+      P.vz -= GRAV * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
+      if (P.z <= 0) { P.z = 0; P.vz = 0; this.pushOut(); this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(P.peak || 0); }
     }
 
     // cidade e venda automática
@@ -301,13 +331,23 @@ const Game = {
 
     // mineração
     this.target = UI.open ? null : Render.pickTarget(this.reach());
-    const mining = !UI.open && this.target && (this.mouse.down || this.keys['f'] || (this.keys['e'] && !this.npcNear())) && P.z === 0;
+    // segurar = velocidade normal sem gastar fôlego; clicar = golpes rápidos que gastam fôlego (clickStrike)
+    this.clickCD = Math.max(0, (this.clickCD || 0) - dt);
+    this.swingAnim = Math.max(0, (this.swingAnim || 0) - dt);
+    if (this.mouse.down) this.mouse.holdT = (this.mouse.holdT || 0) + dt;
+    const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear());
+    const mining = !UI.open && this.target && holding && P.z === 0;
     if (mining) {
       this.mineT += dt;
       const iv = this.interval();
       P.swing = Math.min(1, this.mineT / iv);
-      while (this.mineT >= iv && this.target) { this.mineT -= iv; this.hit(this.target); }
+      while (this.mineT >= iv && this.target) { this.mineT -= iv; Snd.swing(false); this.hit(this.target); }
+    } else if (this.swingAnim > 0) {
+      P.swing = 1 - this.swingAnim / SWING_ANIM;
     } else { this.mineT = Math.min(this.mineT, this.interval() * 0.6); P.swing = Math.max(0, P.swing - dt * 4); }
+
+    // som ambiente e música
+    Snd.update(dt, { dist: Math.hypot(P.x, P.y), night: this.isNight(), speed: P.moving ? this.speed() * ((this.ride() || {}).mult || 1) : 0, moving: P.moving, ride: this.ride() ? S.gear.ride : 0, river: this.riverNear() });
 
     // efeitos
     for (let i = this.fx.length - 1; i >= 0; i--) { const f = this.fx[i]; f.t -= dt; f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt; f.vz -= 18 * dt; if (f.z < 0) { f.z = 0; f.vz *= -0.3; f.vx *= 0.6; f.vy *= 0.6; } if (f.t <= 0) this.fx.splice(i, 1); }
@@ -320,13 +360,28 @@ const Game = {
     this.saveT += dt; if (this.saveT > 5) { this.saveT = 0; this.save(); }
   },
 
+  surface() {
+    if (this.inCity) return 'stone';
+    const sub = World.subAt(this.P.x, this.P.y);
+    if (!sub) return 'grass';
+    return ['grass', 'grass', 'dirt', 'dirt', 'stone', 'crystal'][sub.R.id];
+  },
+  riverNear() {
+    const R = REGIONS[1]; if (!R.ux) return 0;
+    const { d, p } = World.local(R, this.P.x, this.P.y);
+    if (d < R.dMin - 30 || d > R.dMax + 30) return 0;
+    const rp = Math.sin(d / 37) * 30 + Math.sin(d / 13) * 6;
+    return Math.max(0, 1 - Math.abs(p - rp) / 28);
+  },
+
   hit(n) {
     if (this.free() <= 0) {
-      if (this.fullWarnT <= 0) { UI.toast('Mochila cheia! Volte à cidade para vender.', 'warn'); this.fullWarnT = 4; }
+      if (this.fullWarnT <= 0) { UI.toast('Mochila cheia! Volte à cidade para vender.', 'warn'); this.fullWarnT = 4; Snd.warn(); }
       this.mineT = 0; return;
     }
     const dmg = this.force();
     n.hp -= dmg; n.hitT = 0.15;
+    Snd.hit(n.res.kind, this.S.hammer, n.rare > 1);
     this.shake = Math.min(1, this.shake + 0.15 + Math.min(0.4, this.S.hammer / 120));
     this.fxBurst(n.x, n.y, n.res.c2, 4 + Math.min(10, Math.floor(this.S.hammer / 6)), 0.8);
     if (this.mult('force') > 1) this.fxBurst(n.x, n.y, '#ff8a3d', 3, 0.6);
@@ -339,6 +394,7 @@ const Game = {
       this.floats.push({ x: n.x, y: n.y - 1, txt, c: n.rare > 1 ? '#ffe27a' : '#fff', t: 1.4 });
       if (got < units) UI.toast(`Mochila cheia: ${units - got} ${n.res.name} ficaram no chão.`, 'warn');
       this.fxBurst(n.x, n.y, n.res.c, 14, 1.4);
+      Snd.breakNode(n.res.kind, n.rare); Snd.pickup();
       World.breakNode(n);
       if (this.target === n) this.target = null;
     }
