@@ -1,9 +1,8 @@
 {
-  "version": "2.0.2",
+  "version": "2.0.3",
   "date": "2026-10-18",
   "notes": [
-    "Corrigido: o personagem parecia entrar dentro da montanha (o terreno distante aparecia por cima do terreno de perto)",
-    "Montanhas com encostas mais suaves (no máximo ~33°) e superfície lisa, dá para subir andando pelo caminho normal"
+    "Pausa silencia absolutamente todos os sons, inclusive o bipe do detector (na janela de Som o áudio continua para você ajustar)"
   ],
   "files": [
     {
@@ -20,7 +19,7 @@
     },
     {
       "path": "js/audio.js",
-      "size": 17140
+      "size": 17336
     },
     {
       "path": "js/backup.js",
@@ -40,7 +39,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 25144
+      "size": 25161
     },
     {
       "path": "js/updater.js",
@@ -60,7 +59,7 @@
     },
     {
       "path": "version.json",
-      "size": 1081
+      "size": 1202
     }
   ]
 }

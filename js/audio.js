@@ -38,7 +38,7 @@ const Snd = {
   apply() {
     if (!this.ready) return;
     const t = this.ctx.currentTime;
-    this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol.master * 2.2, t, 0.05);
+    this.master.gain.setTargetAtTime(this.muted || this.paused ? 0 : this.vol.master * 2.2, t, this.paused ? 0.08 : 0.05);
     this.busMusic.gain.setTargetAtTime(this.paused ? 0 : this.vol.music * 1.1, t, 0.05);
     this.busSfx.gain.setTargetAtTime(this.vol.sfx, t, 0.05);
     this.busAmb.gain.setTargetAtTime(this.paused ? 0 : this.vol.amb * 0.8, t, 0.05);
@@ -48,8 +48,8 @@ const Snd = {
     if (!this.ready || this.paused === p) return;
     this.paused = p;
     const t = this.ctx.currentTime;
-    this.busMusic.gain.cancelScheduledValues(t); this.busAmb.gain.cancelScheduledValues(t);
-    if (p) { this.busMusic.gain.setTargetAtTime(0, t, 0.15); this.busAmb.gain.setTargetAtTime(0, t, 0.15); if (this.humG) this.humG.gain.setTargetAtTime(0, t, 0.05); if (this.roll) this.roll.g.gain.setTargetAtTime(0, t, 0.05); }
+    this.busMusic.gain.cancelScheduledValues(t); this.busAmb.gain.cancelScheduledValues(t); this.master.gain.cancelScheduledValues(t);
+    if (p) { this.master.gain.setTargetAtTime(0, t, 0.08); /* pausa: silencia absolutamente tudo */ this.busMusic.gain.setTargetAtTime(0, t, 0.15); this.busAmb.gain.setTargetAtTime(0, t, 0.15); if (this.humG) this.humG.gain.setTargetAtTime(0, t, 0.05); if (this.roll) this.roll.g.gain.setTargetAtTime(0, t, 0.05); }
     else this.apply();
   },
   set(k, v) { this.vol[k] = v; this.apply(); this.saveCfg(); },
@@ -68,7 +68,7 @@ const Snd = {
 
   // ---------- blocos básicos ----------
   tone(freq, dur, { type = 'sine', vol = 0.3, attack = 0.005, bus, at = 0, slide = 0, filter } = {}) {
-    if (!this.ready) return;
+    if (!this.ready || this.paused) return;
     const c = this.ctx, t = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
     o.type = type; o.frequency.setValueAtTime(freq, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, freq * slide), t + dur);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -79,7 +79,7 @@ const Snd = {
     return g;
   },
   noise(dur, { vol = 0.3, f = 1000, q = 1, type = 'bandpass', attack = 0.002, bus, at = 0, fEnd } = {}) {
-    if (!this.ready) return;
+    if (!this.ready || this.paused) return;
     const c = this.ctx, t = c.currentTime + at, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
     s.buffer = this.noiseBuf; s.loop = true;
     fl.type = type; fl.frequency.setValueAtTime(f, t); if (fEnd) fl.frequency.exponentialRampToValueAtTime(fEnd, t + dur); fl.Q.value = q;

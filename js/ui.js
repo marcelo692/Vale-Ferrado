@@ -277,7 +277,7 @@ const UI = {
     el.innerHTML = `<div class="dial" style="--s:${d.strength}"><i style="transform:rotate(${ang}deg)"></i></div><div><b>${tag}${R.name.split(' (')[0]}</b><span>${dist} · ${'▮'.repeat(bars)}${'▯'.repeat(5 - bars)}${falta}${more}</span></div>`;
     // bipe que acelera conforme você se aproxima
     this.beepT = (this.beepT || 0) - 0.1;
-    if (this.beepT <= 0 && started && !this.open) { Snd.beep(500 + d.strength * 700); this.beepT = 0.25 + (1 - d.strength) * 1.6; }
+    if (this.beepT <= 0 && started && !this.open && Game.locked()) { Snd.beep(500 + d.strength * 700); this.beepT = 0.25 + (1 - d.strength) * 1.6; }
   },
   beep(freq) {
     try {
