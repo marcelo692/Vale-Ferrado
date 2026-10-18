@@ -174,7 +174,24 @@ const UI = {
       <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra tudo sozinho. Use o dinheiro no Ferreiro (martelo), na Tropeira (atributos) e na Botica (power-ups).</p>
       <p>Qualquer martelo quebra qualquer pedra, mas a informação embaixo da mira mostra quanto tempo vai levar: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
       <p>O jogo salva sozinho no seu computador.</p>
-      <div class="row"><button class="buy" onclick="UI.close()">Voltar ao jogo</button><button class="buy alt" onclick="if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()">Recomeçar do zero</button></div></div>`;
+      <h4>Seu progresso</h4><p class="hint" style="margin-top:0">Guarde uma cópia do seu progresso ou leve para outro computador/navegador.</p>
+      <div class="row"><button class="buy alt" onclick="UI.exportSave()">Salvar cópia do progresso</button><button class="buy alt" onclick="document.getElementById('impfile').click()">Carregar progresso</button><input type="file" id="impfile" accept=".json" style="display:none" onchange="UI.importSave(this.files[0])"></div>
+      <div class="row" style="margin-top:12px"><button class="buy" onclick="UI.close()">Voltar ao jogo</button><button class="buy alt" onclick="if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()">Recomeçar do zero</button></div><p class="hint" style="text-align:center">Vale Ferrado v${GAME_VERSION}</p></div>`;
+  },
+  exportSave() {
+    Game.save();
+    const blob = new Blob([JSON.stringify(Game.S)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `vale-ferrado-progresso-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  },
+  importSave(file) {
+    if (!file) return;
+    file.text().then(t => {
+      const d = JSON.parse(t);
+      if (!d || !d.hammer) throw new Error();
+      if (!confirm(`Carregar progresso com martelo nível ${d.hammer} e ${fmt(d.money || 0)} moedas? O progresso atual será substituído.`)) return;
+      localStorage.setItem(SAVE_KEY, JSON.stringify(d)); location.reload();
+    }).catch(() => this.toast('Arquivo de progresso inválido.', 'warn'));
   },
 
   updateDetectorHud() {

@@ -10,6 +10,10 @@ Jogo incremental de coleta em 3D, primeira pessoa, visual low-poly: comece com u
 
 O jogo abre no navegador (Chrome, Edge ou Firefox). Não precisa instalar nada nem estar conectado à internet. O progresso é salvo automaticamente no seu computador.
 
+## Atualizações
+
+O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quando houver, aparece um aviso verde no canto da tela: clique em **Ver e atualizar** e depois em **Atualizar agora**. Na primeira vez, escolha a pasta do jogo e permita salvar arquivos nela; das próximas vezes é um clique. Funciona no Chrome e no Edge. O botão **⬆ Atualizações** também verifica na hora.
+
 ## Controles
 
 | Tecla | Ação |

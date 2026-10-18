@@ -1,0 +1,64 @@
+{
+  "version": "1.6.0",
+  "date": "2026-10-18",
+  "notes": [
+    "Atualizador automático: o jogo avisa quando sai versão nova e atualiza a pasta com um clique",
+    "Sons e música de fundo, com controle de volume",
+    "Mineração por clique (rápida, gasta fôlego) ou segurando (normal, sem cansar)",
+    "Salvar e carregar cópia do progresso (menu Ajuda)"
+  ],
+  "files": [
+    {
+      "path": "CLAUDE.md",
+      "size": 669
+    },
+    {
+      "path": "README.md",
+      "size": 3670
+    },
+    {
+      "path": "index.html",
+      "size": 16545
+    },
+    {
+      "path": "js/audio.js",
+      "size": 16443
+    },
+    {
+      "path": "js/data.js",
+      "size": 19931
+    },
+    {
+      "path": "js/game.js",
+      "size": 21094
+    },
+    {
+      "path": "js/render3d.js",
+      "size": 76966
+    },
+    {
+      "path": "js/ui.js",
+      "size": 18015
+    },
+    {
+      "path": "js/updater.js",
+      "size": 8234
+    },
+    {
+      "path": "js/world.js",
+      "size": 7010
+    },
+    {
+      "path": "lib/THREE-LICENSE",
+      "size": 1081
+    },
+    {
+      "path": "lib/three.min.js",
+      "size": 608081
+    },
+    {
+      "path": "version.json",
+      "size": 1194
+    }
+  ]
+}
