@@ -1,8 +1,9 @@
 {
-  "version": "2.0.1",
+  "version": "2.0.2",
   "date": "2026-10-18",
   "notes": [
-    "A tabela da direita mostra quanto a mochila vai render em moedas antes de vender, e quantos itens vão para o depósito"
+    "Corrigido: o personagem parecia entrar dentro da montanha (o terreno distante aparecia por cima do terreno de perto)",
+    "Montanhas com encostas mais suaves (no máximo ~33°) e superfície lisa, dá para subir andando pelo caminho normal"
   ],
   "files": [
     {
@@ -35,7 +36,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 106129
+      "size": 106608
     },
     {
       "path": "js/ui.js",
@@ -47,7 +48,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 11517
+      "size": 11623
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -59,7 +60,7 @@
     },
     {
       "path": "version.json",
-      "size": 1406
+      "size": 1081
     }
   ]
 }

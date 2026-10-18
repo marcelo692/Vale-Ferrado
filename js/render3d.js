@@ -384,7 +384,15 @@ const Render = {
     const pos = geo.attributes.position, col = geo.attributes.color, c = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i) + ox, y = pos.getZ(i) + oy;
-      pos.setY(i, World.height(x, y) + dy);
+      let h = World.height(x, y);
+      // terreno distante (malha grossa): nas montanhas usa o ponto mais baixo em volta,
+      // para nunca ficar acima do terreno detalhado e "engolir" o jogador
+      if (dy < 0 && Math.hypot(x, y) < 4600) {
+        const st = 25 / 2;
+        for (const [ax, ay] of [[st, 0], [-st, 0], [0, st], [0, -st], [st, st], [-st, -st], [st, -st], [-st, st]]) h = Math.min(h, World.height(x + ax, y + ay));
+        h -= World.mountainH(x, y) > 0.5 ? 1.4 : 0.4;
+      }
+      pos.setY(i, h + dy);
       this.groundColor(x, y, c); col.setXYZ(i, c.r, c.g, c.b);
     }
     pos.needsUpdate = col.needsUpdate = true; geo.computeVertexNormals();

@@ -69,7 +69,8 @@ const World = {
     // [região, trecho (k), lado, altura, raio]
     const spec = [[0, 5, 1, 16, 42], [1, 2, -1, 30, 55], [1, 7, 1, 34, 58], [2, 3, 1, 38, 66], [2, 8, -1, 42, 70],
       [3, 2, -1, 48, 76], [3, 7, 1, 52, 80], [4, 3, 1, 60, 88], [4, 8, -1, 66, 92], [5, 2, -1, 78, 105], [5, 7, 1, 88, 115]];
-    for (const [rid, k, side, H, r] of spec) {
+    for (const [rid, k, side, H, r0] of spec) {
+      const r = Math.max(r0, H * 2.4); // encosta no máximo ~32° para dar para subir andando
       const R = REGIONS[rid], d = R.dMin + (R.dMax - R.dMin) * (k + 0.5) / 10, w = 40 + d * 0.12;
       const p = side * (w / 2 + r * 0.15);
       const m = { R, x: R.ux * d + R.vx * p, y: R.uy * d + R.vy * p, H, r, seed: rand() * 100, special: rid >= 1 ? SPECIALS[rid - 1] : null, seen: false };
@@ -93,7 +94,7 @@ const World = {
       if (d2 > m.r * m.r * 1.2) continue;
       const a = Math.atan2(dy, dx), wob = 1 + Math.sin(a * 3 + m.seed) * 0.12 + Math.sin(a * 7 + m.seed * 2) * 0.06;
       const t = Math.max(0, 1 - Math.sqrt(d2) / (m.r * wob));
-      h = Math.max(h, m.H * t * t * (3 - 2 * t) * (0.92 + Math.sin(dx * 0.15) * Math.cos(dy * 0.13) * 0.08));
+      h = Math.max(h, m.H * t * t * (3 - 2 * t) * (0.96 + Math.sin(dx * 0.045 + m.seed) * Math.cos(dy * 0.04) * 0.04));
     }
     return h;
   },
