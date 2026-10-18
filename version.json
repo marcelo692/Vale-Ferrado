@@ -1,9 +1,9 @@
 {
-  "version": "1.6.1",
+  "version": "1.6.2",
   "date": "2026-10-18",
   "notes": [
-    "Menu de pausa: aperte Esc para soltar o mouse e acessar Atualizações, Som e Ajuda",
-    "Os botões do canto da tela agora podem ser clicados com o jogo pausado"
+    "Corrigido: as janelas de Som e Atualizações ficavam em branco depois de alguns segundos",
+    "Ícone de moeda agora aparece em qualquer computador"
   ],
   "files": [
     {
@@ -16,7 +16,7 @@
     },
     {
       "path": "index.html",
-      "size": 17168
+      "size": 17614
     },
     {
       "path": "js/audio.js",
@@ -28,7 +28,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 21094
+      "size": 21096
     },
     {
       "path": "js/render3d.js",
@@ -36,7 +36,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 18224
+      "size": 18372
     },
     {
       "path": "js/updater.js",
@@ -56,7 +56,7 @@
     },
     {
       "path": "version.json",
-      "size": 1194
+      "size": 1060
     }
   ]
 }

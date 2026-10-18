@@ -24,7 +24,7 @@ const UI = {
   },
   costHtml(c) {
     const okM = Game.S.money >= c.money;
-    return `<ul class="cost"><li class="${okM ? 'ok' : 'no'}">🪙 Moedas: <b>${fmt(c.money)}</b></li>${c.mats.map(m => this.matLine(m)).join('')}</ul>`;
+    return `<ul class="cost"><li class="${okM ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(c.money)}</b></li>${c.mats.map(m => this.matLine(m)).join('')}</ul>`;
   },
 
   freeMouse() { if (document.pointerLockElement) document.exitPointerLock(); },
@@ -45,7 +45,7 @@ const UI = {
 
   renderPanel() {
     const S = Game.S, id = this.open;
-    if (!id) return;
+    if (!id || !NPCS.some(n => n.id === id)) return;
     const npc = NPCS.find(n => n.id === id);
     let h = `<div class="win"><div class="ph" style="--npc:${npc ? npc.color : '#888'}"><div class="avatar"></div><div><h2>${npc ? npc.name : ''}</h2><p>${npc ? npc.role : ''}</p></div><button class="x" onclick="UI.close()">✕</button></div><div class="pb">`;
 
@@ -86,21 +86,21 @@ const UI = {
         const ok = S.money >= price && Game.free() >= P.slots;
         h += `<div class="card">${this.pics('pw', pid)}<span class="lv" style="color:${P.color}">Tecla ${P.key} · na mochila: ${owned}</span><h3>${P.name} ${ROMAN[tier]}</h3>
           <p>+${Math.round(powerBonus(pid, tier) * 100)}% ${P.desc} por ${P.dur / 60} min</p><p>Ocupa <b>${P.slots} espaços</b> na mochila</p>
-          <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}">🪙 Moedas: <b>${fmt(price)}</b></li></ul>
+          <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(price)}</b></li></ul>
           <button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyPower('${pid}');UI.renderPanel()">Comprar</button></div>`;
       }
       h += `</div><p class="hint">Ative com as teclas 1, 2 e 3. Dá para ativar vários ao mesmo tempo: os efeitos se multiplicam. Ao ativar, o espaço volta a ficar livre.</p>`;
     }
 
     if (id === 'bazar') {
-      h += `<p class="free">Seu dinheiro: <b>🪙 ${fmt(S.money)}</b></p>`;
+      h += `<p class="free">Seu dinheiro: <b><i class="coin"></i>${fmt(S.money)}</b></p>`;
       for (const type in GADGETS) {
         const T = GADGETS[type], have = S.gear[type];
         h += `<h4>${T.title} <span class="kbd">${T.key}</span></h4><p class="hint" style="margin:0 0 8px">${T.desc}</p><div class="grid">`;
         for (let lv = 1; lv < T.levels.length; lv++) {
           const G = T.levels[lv], owned = have >= lv, ok = !owned && S.money >= G.price;
           h += `<div class="card ${have === lv ? 'eq' : ''}">${this.pics(type, lv)}<span class="lv">Nível ${lv}</span><h3>${G.n}</h3><p>${G.info}</p>
-            <ul class="cost"><li class="${S.money >= G.price || owned ? 'ok' : 'no'}">🪙 Moedas: <b>${fmt(G.price)}</b></li></ul>
+            <ul class="cost"><li class="${S.money >= G.price || owned ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(G.price)}</b></li></ul>
             ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você já tem melhor</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
         }
         h += `</div>`;
@@ -259,7 +259,8 @@ const UI = {
     const npc = G.npcNear();
     $('npchint').textContent = npc && !this.open ? `[E] Falar com ${npc.name}` : '';
     $('npchint').style.display = npc && !this.open ? 'block' : 'none';
-    if (this.open && this.open !== 'story' && this.open !== 'help' && this.open !== 'bazar' && Math.random() < 0.05) this.renderPanel();
+    // atualiza só as lojas dos NPCs (as outras janelas não são lojas)
+    if (['ferreiro', 'tropeira', 'botica', 'armazem'].includes(this.open) && Math.random() < 0.05) this.renderPanel();
     // relógio
     const c = S.clock, hh = Math.floor(c * 24), mm = Math.floor((c * 24 - hh) * 60);
     $('clock').textContent = `${G.isNight() ? '🌙' : '☀️'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;

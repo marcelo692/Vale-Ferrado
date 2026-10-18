@@ -177,7 +177,7 @@ const Game = {
     if (kept) msg += ` ${fmt(kept)} guardados no depósito para suas evoluções.`;
     UI.toast(msg, 'money');
     if (earned) Snd.coins(earned); else if (kept) Snd.pickup();
-    if (earned) this.floats.push({ x: this.P.x, y: this.P.y - 2, txt: '+' + fmt(earned) + ' 🪙', c: '#ffd34d', t: 1.6 });
+    if (earned) this.floats.push({ x: this.P.x, y: this.P.y - 2, txt: '+' + fmt(earned) + ' moedas', c: '#ffd34d', t: 1.6 });
     this.save();
   },
   canPay(c) {
