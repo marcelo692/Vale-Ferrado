@@ -21,7 +21,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | Mouse | Olhar em volta (clique na tela para prender o mouse) |
 | W A S D | Andar |
 | Shift | Correr (gasta fôlego; se zerar, você cansa) |
-| Espaço | Pular (passa por cima de troncos, muros e penhascos) |
+| Espaço | Pular: troncos, muros e penhascos são atalhos; com pulo alto o bastante você sobe neles e passa por cima |
 | Segurar o botão esquerdo | Minerar na velocidade normal, sem cansar |
 | Clicar várias vezes | Golpes quase 3x mais rápidos, mas cada clique gasta fôlego |
 | E perto de um NPC | Abrir a loja |

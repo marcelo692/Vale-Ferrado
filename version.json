@@ -1,9 +1,10 @@
 {
-  "version": "1.6.2",
+  "version": "1.6.3",
   "date": "2026-10-18",
   "notes": [
-    "Corrigido: as janelas de Som e Atualizações ficavam em branco depois de alguns segundos",
-    "Ícone de moeda agora aparece em qualquer computador"
+    "Corrigido: a argila tinha uma rachadura por onde dava para ver dentro dela",
+    "Troncos, muros e penhascos agora mostram a altura e se você consegue pular",
+    "Pular por cima dos obstáculos funciona de verdade: dá para subir neles e atravessar"
   ],
   "files": [
     {
@@ -12,7 +13,7 @@
     },
     {
       "path": "README.md",
-      "size": 3670
+      "size": 3724
     },
     {
       "path": "index.html",
@@ -28,11 +29,11 @@
     },
     {
       "path": "js/game.js",
-      "size": 21096
+      "size": 21924
     },
     {
       "path": "js/render3d.js",
-      "size": 76966
+      "size": 78980
     },
     {
       "path": "js/ui.js",
@@ -56,7 +57,7 @@
     },
     {
       "path": "version.json",
-      "size": 1060
+      "size": 1047
     }
   ]
 }

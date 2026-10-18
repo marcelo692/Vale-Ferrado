@@ -27,7 +27,7 @@ function labelSprite(text, sub, color = '#f5e6c8', scale = 1) {
 function jitterGeo(geo, amt, seed) {
   const r = rng(seed), pos = geo.attributes.position, map = new Map();
   for (let i = 0; i < pos.count; i++) {
-    const key = pos.getX(i).toFixed(3) + ',' + pos.getY(i).toFixed(3) + ',' + pos.getZ(i).toFixed(3);
+    const key = [pos.getX(i), pos.getY(i), pos.getZ(i)].map(v => String(Math.round(v * 1000) || 0)).join(',');
     if (!map.has(key)) map.set(key, [(r() - 0.5) * amt, (r() - 0.5) * amt, (r() - 0.5) * amt]);
     const j = map.get(key);
     pos.setXYZ(i, pos.getX(i) + j[0], pos.getY(i) + j[1], pos.getZ(i) + j[2]);
@@ -110,6 +110,35 @@ const Render = {
       const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), this.lampMat); bulb.position.set(x, 3.7, z); this.city.add(bulb);
     }
     this.cityLight = new THREE.PointLight('#ffcf8a', 0, 55, 1); this.cityLight.position.set(0, 7, 0); this.scene.add(this.cityLight);
+  },
+
+  // ---------- aviso de altura nos obstáculos (atalhos de pulo) ----------
+  updateObstacleHint() {
+    const P = Game.P;
+    let best = null, bd = 18;
+    for (const o of World.obstacles) {
+      const l = World.local(o.R, P.x, P.y);
+      const dd = Math.abs(l.d - o.dc) - o.t / 2, dp = Math.max(0, Math.abs(l.p) - o.len / 2);
+      const d = Math.hypot(Math.max(0, dd), dp);
+      if (d < bd) { bd = d; best = { o, p: Math.max(-o.len / 2 + 1, Math.min(o.len / 2 - 1, l.p)) }; }
+    }
+    if (!this.obsSprite) {
+      this.obsCanvas = document.createElement('canvas'); this.obsCanvas.width = 512; this.obsCanvas.height = 96;
+      this.obsTex = new THREE.CanvasTexture(this.obsCanvas);
+      this.obsSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.obsTex, depthTest: false, transparent: true }));
+      this.obsSprite.scale.set(3.2, 0.6, 1); this.obsSprite.renderOrder = 5; this.scene.add(this.obsSprite);
+    }
+    if (!best || UI.open) { this.obsSprite.visible = false; return; }
+    const o = best.o, ok = Game.canClear(o), txt = (ok ? '⤒ Dá para pular · ' : '✕ Pulo insuficiente · ') + o.h.toFixed(1).replace('.', ',') + ' m';
+    if (this.obsTxt !== txt) {
+      this.obsTxt = txt; const g = this.obsCanvas.getContext('2d');
+      g.clearRect(0, 0, 512, 96); g.fillStyle = 'rgba(20,14,8,0.78)'; g.beginPath(); g.roundRect(8, 8, 496, 80, 16); g.fill();
+      g.font = '700 38px system-ui, sans-serif'; g.textAlign = 'center'; g.fillStyle = ok ? '#9fe08a' : '#ff8a7a'; g.fillText(txt, 256, 62);
+      this.obsTex.needsUpdate = true;
+    }
+    const x = o.R.ux * o.dc + o.R.vx * best.p, z = o.R.uy * o.dc + o.R.vy * best.p;
+    this.obsSprite.position.set(x, World.height(x, z) + o.h + 0.9, z);
+    this.obsSprite.visible = true;
   },
 
   // ---------- dia e noite ----------
@@ -464,7 +493,8 @@ const Render = {
     } else if (kind === 'log') {
       const l = mesh(new THREE.CylinderGeometry(s * 0.45, s * 0.5, s * 2.2, 9), [mat(res.c), mat(res.c2), mat(res.c2)]); l.rotation.z = Math.PI / 2; l.rotation.y = r() * 3; l.position.y = s * 0.45; g.add(l);
     } else if (kind === 'clay') {
-      const c = mesh(jitterGeo(new THREE.SphereGeometry(s, 8, 6), s * 0.15, n.seed), mat(res.c, { shininess: 30 })); c.scale.y = 0.45; c.position.y = s * 0.2; g.add(c);
+      const c = mesh(jitterGeo(new THREE.IcosahedronGeometry(s, 1), s * 0.12, n.seed), mat(res.c, { shininess: 30 })); c.scale.y = 0.5; c.position.y = s * 0.22; g.add(c);
+      const c2 = mesh(jitterGeo(new THREE.IcosahedronGeometry(s * 0.45, 0), s * 0.08, n.seed + 3), mat(res.c2, { shininess: 30 })); c2.scale.y = 0.6; c2.position.set(s * 0.55, s * 0.12, s * 0.35); g.add(c2);
     } else {
       const base = kind === 'rock' ? res.c : kind === 'scrap' ? '#5a4a3e' : kind === 'meteor' ? res.c : '#6a655e';
       const main = rock(base, s, n.seed); main.position.y = s * 0.55; main.scale.y = 0.8; g.add(main);
@@ -958,6 +988,7 @@ const Render = {
     // efeitos de veio aflorado: recurso brilha
     this.water.position.y = 0.68 + Math.sin(this.t * 2) * 0.02;
     this.updatePlayerLights();
+    this.updateObstacleHint();
     this.stars.position.copy(this.cam.position);
 
     this.r.clear();

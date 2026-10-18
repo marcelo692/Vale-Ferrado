@@ -62,6 +62,7 @@ const Game = {
     }
     return m;
   },
+  canClear(o) { return this.jumpH() >= o.h * 0.9; },
   isNight() { const c = this.S.clock; return c < 0.23 || c > 0.77; },
   reach() { return 2.4 + Math.min(2.5, this.S.hammer * 0.04); },
 
@@ -105,13 +106,13 @@ const Game = {
   },
 
   jump() {
-    if (this.P.z <= 0.001) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()); this.P.z = 0.001; this.P.peak = 0; Snd.jump(); }
+    if (this.onGround()) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()) * 1.04; this.P.z += 0.001; this.P.peak = this.P.z; Snd.jump(); }
   },
 
   // golpe por clique: mais rápido, mas gasta fôlego
   clickStrike() {
     const P = this.P, n = this.target;
-    if (UI.open || !n || P.z > 0) return;
+    if (UI.open || !n || !this.onGround()) return;
     if (this.clickCD > 0) return;
     if (P.tired || P.stamina < CLICK_COST) {
       if (!this.noBreathT || this.S.time - this.noBreathT > 3) { this.noBreathT = this.S.time; UI.toast('Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar.', 'warn'); Snd.denied(); }
@@ -306,7 +307,7 @@ const Game = {
         P.face = Math.atan2(my, mx);
         P.walkT += dt * sp;
         // passos
-        if (P.z === 0 && (!ride || this.S.gear.ride === 1)) {
+        if (this.onGround() && (!ride || this.S.gear.ride === 1)) {
           this.stepAcc = (this.stepAcc || 0) + sp * dt;
           const stride = ride ? 2.4 : P.sprint ? 1.9 : 1.5;
           if (this.stepAcc >= stride) { this.stepAcc = 0; Snd.step(this.surface(), P.sprint); }
@@ -318,10 +319,12 @@ const Game = {
     } else { P.moving = false; P.sprint = false; }
 
     // pulo
-    if (P.z > 0) {
+    // pulo e queda: dá para subir em cima de troncos, muros e pedras e andar por cima deles
+    const support = this.supportAt(P.x, P.y);
+    if (P.z > support + 0.001 || P.vz > 0) {
       P.vz -= GRAV * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
-      if (P.z <= 0) { P.z = 0; P.vz = 0; this.pushOut(); this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(P.peak || 0); }
-    }
+      if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); }
+    } else { P.z = support; P.vz = 0; }
 
     // cidade e venda automática
     this.inCity = Math.hypot(P.x, P.y) < CITY_R;
@@ -336,7 +339,7 @@ const Game = {
     this.swingAnim = Math.max(0, (this.swingAnim || 0) - dt);
     if (this.mouse.down) this.mouse.holdT = (this.mouse.holdT || 0) + dt;
     const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear());
-    const mining = !UI.open && this.target && holding && P.z === 0;
+    const mining = !UI.open && this.target && holding && this.onGround();
     if (mining) {
       this.mineT += dt;
       const iv = this.interval();
@@ -408,13 +411,20 @@ const Game = {
   },
 
   // ---------- colisão com obstáculos ----------
+  inObstacle(o, x, y, m = 0.4) { const { d, p } = World.local(o.R, x, y); return Math.abs(d - o.dc) < o.t / 2 + m && Math.abs(p) < o.len / 2 + m; },
+  // altura do chão sob o jogador (topo de um obstáculo, se estiver em cima dele)
+  supportAt(x, y) {
+    let h = 0;
+    for (const o of World.obstacles) if (o.h > h && this.P.z >= o.h * 0.9 - 0.05 && this.inObstacle(o, x, y, 0.45)) h = o.h;
+    return h;
+  },
+  onGround() { return this.P.vz <= 0 && this.P.z <= this.supportAt(this.P.x, this.P.y) + 0.01; },
   moveBy(dx, dy) {
     const P = this.P;
     const nx = P.x + dx, ny = P.y + dy;
     for (const o of World.obstacles) {
-      if (P.z >= o.h) continue;
-      const { d, p } = World.local(o.R, nx, ny);
-      if (Math.abs(d - o.dc) < o.t / 2 + 0.4 && Math.abs(p) < o.len / 2 + 0.4) return; // bloqueado
+      if (P.z >= o.h * 0.9) continue; // está acima do obstáculo: pode passar (ou andar por cima)
+      if (this.inObstacle(o, nx, ny)) return; // bloqueado
     }
     P.x = nx; P.y = ny;
   },
