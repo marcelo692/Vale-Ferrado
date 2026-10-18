@@ -514,7 +514,7 @@ const Game = {
   },
 
   // ---------- colisão com obstáculos ----------
-  inObstacle(o, x, y, m = 0.4) { const { d, p } = World.local(o.R, x, y); return Math.abs(d - o.dc) < o.t / 2 + m && Math.abs(p) < o.len / 2 + m; },
+  inObstacle(o, x, y, m = 0.4) { const { d, p } = World.local(o.R, x, y); return Math.abs(d - o.dc) < o.t / 2 + m && Math.abs(p - o.pc) < o.len / 2 + m; },
   // altura do chão sob o jogador (topo de um obstáculo, se estiver em cima dele)
   supportAt(x, y) {
     let h = 0;
@@ -535,7 +535,7 @@ const Game = {
     const P = this.P;
     for (const o of World.obstacles) {
       const { d, p } = World.local(o.R, P.x, P.y);
-      if (Math.abs(d - o.dc) < o.t / 2 + 0.4 && Math.abs(p) < o.len / 2 + 0.4) {
+      if (Math.abs(d - o.dc) < o.t / 2 + 0.4 && Math.abs(p - o.pc) < o.len / 2 + 0.4) {
         const nd = d < o.dc ? o.dc - o.t / 2 - 0.5 : o.dc + o.t / 2 + 0.5;
         P.x = o.R.ux * nd + o.R.vx * p; P.y = o.R.uy * nd + o.R.vy * p;
       }

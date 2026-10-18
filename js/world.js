@@ -44,7 +44,7 @@ const World = {
           const idx = (k - 1) / 2; // 0..4
           const h = R.jMin + (R.jMax - R.jMin) * idx / 4;
           const thick = R.obstacle === 'penhasco' ? 4 : R.obstacle === 'bancada' ? 3 : 1.6;
-          this.obstacles.push({ R, dc: d1 - thick / 2 - 0.5, t: thick, len: w * 0.72, h, type: R.obstacle });
+          this.obstacles.push({ R, dc: d1 - thick / 2 - 0.5, t: thick, len: w * 0.72, pc: 0, h, type: R.obstacle });
         }
         const count = Math.max(8, Math.min(80, Math.round((d1 - d0) * w / 250)));
         sub.maxNodes = count;
@@ -57,8 +57,9 @@ const World = {
       }
     }
     this.buildMountains(rand);
+    this.fitObstacles();
     // remove pontos de spawn dentro de obstáculos e nas montanhas (montanha só tem recurso raro)
-    for (const s of this.subs) if (!s.mountain) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p) < o.len / 2 + 2) && this.mountainH(pt.x, pt.y) < 2);
+    for (const s of this.subs) if (!s.mountain) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p - o.pc) < o.len / 2 + 2) && this.mountainH(pt.x, pt.y) < 2);
     for (const s of this.subs) for (let i = 0; i < s.maxNodes; i++) this.spawn(s);
   },
 
@@ -85,6 +86,23 @@ const World = {
       }
       m.sub = sub; this.subs.push(sub);
     }
+  },
+  // obstáculos não entram nas montanhas: fica só o maior trecho reto fora delas
+  fitObstacles() {
+    this.obstacles = this.obstacles.filter(o => {
+      const half = o.len / 2, ok = [];
+      for (let p = -half; p <= half; p += 0.5) {
+        let free = true;
+        for (const dd of [-o.t / 2, 0, o.t / 2]) { const x = o.R.ux * (o.dc + dd) + o.R.vx * p, y = o.R.uy * (o.dc + dd) + o.R.vy * p; if (this.mountainH(x, y) > 1.2) { free = false; break; } }
+        ok.push(free);
+      }
+      let best = [0, -1], i = 0;
+      while (i < ok.length) { if (!ok[i]) { i++; continue; } let j = i; while (j + 1 < ok.length && ok[j + 1]) j++; if (j - i > best[1] - best[0]) best = [i, j]; i = j + 1; }
+      const a = -half + best[0] * 0.5, b = -half + best[1] * 0.5;
+      if (b - a < 6) return false; // sobrou pouco: remove
+      o.pc = (a + b) / 2; o.len = b - a;
+      return true;
+    });
   },
   // altura que a montanha soma ao terreno
   mountainH(x, y) {

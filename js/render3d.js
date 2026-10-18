@@ -118,9 +118,9 @@ const Render = {
     let best = null, bd = 18;
     for (const o of World.obstacles) {
       const l = World.local(o.R, P.x, P.y);
-      const dd = Math.abs(l.d - o.dc) - o.t / 2, dp = Math.max(0, Math.abs(l.p) - o.len / 2);
+      const dd = Math.abs(l.d - o.dc) - o.t / 2, dp = Math.max(0, Math.abs(l.p - o.pc) - o.len / 2);
       const d = Math.hypot(Math.max(0, dd), dp);
-      if (d < bd) { bd = d; best = { o, p: Math.max(-o.len / 2 + 1, Math.min(o.len / 2 - 1, l.p)) }; }
+      if (d < bd) { bd = d; best = { o, p: Math.max(o.pc - o.len / 2 + 1, Math.min(o.pc + o.len / 2 - 1, l.p)) }; }
     }
     if (!this.obsSprite) {
       this.obsCanvas = document.createElement('canvas'); this.obsCanvas.width = 512; this.obsCanvas.height = 96;
@@ -507,18 +507,24 @@ const Render = {
   buildObstacles() {
     const cols = { tronco: '#6b4a2e', pedra: '#7a786f', muro: '#9a6448', trilho: '#4a3a2c', bancada: '#9a9893', penhasco: '#3e3a4e' };
     for (const o of World.obstacles) {
-      const cx = o.R.ux * o.dc, cy = o.R.uy * o.dc, h0 = World.height(cx, cy);
-      const g = new THREE.Group(); g.position.set(cx, h0, cy); g.rotation.y = -Math.atan2(o.R.uy, o.R.ux);
-      if (o.type === 'tronco') {
-        const n = Math.ceil(o.len / 8);
-        for (let i = 0; i < n; i++) { const L = o.len / n; const t = mesh(new THREE.CylinderGeometry(o.h / 2, o.h / 2 * 1.05, L - 0.2, 9), mat(i % 2 ? '#6b4a2e' : '#5f4228')); t.rotation.x = Math.PI / 2; t.position.set(0, o.h / 2, -o.len / 2 + L * (i + 0.5)); g.add(t); }
-      } else {
-        const n = Math.ceil(o.len / 6);
-        for (let i = 0; i < n; i++) {
-          const L = o.len / n;
-          const geo = jitterGeo(new THREE.BoxGeometry(o.t, o.h + 0.6, L, 2, 2, 2), o.type === 'muro' ? 0.12 : 0.5, i * 7 + o.h * 100);
-          const b = mesh(geo, mat(cols[o.type])); b.position.set(0, (o.h + 0.6) / 2 - 0.4, -o.len / 2 + L * (i + 0.5)); g.add(b);
-          if (o.type === 'trilho') for (const s of [-0.3, 0.3]) { const rail = mesh(new THREE.BoxGeometry(0.08, 0.08, L), mat('#9aa0a6', { shininess: 60 })); rail.position.set(s, o.h + 0.25, -o.len / 2 + L * (i + 0.5)); g.add(rail); }
+      // cada pedaço do obstáculo acompanha o terreno embaixo dele
+      const g = new THREE.Group(); g.position.set(o.R.ux * o.dc, 0, o.R.uy * o.dc); g.rotation.y = -Math.atan2(o.R.uy, o.R.ux);
+      const H = (p, dd = 0) => World.height(o.R.ux * (o.dc + dd) + o.R.vx * p, o.R.uy * (o.dc + dd) + o.R.vy * p);
+      const segL = o.type === 'tronco' ? 3 : 2.4, n = Math.max(1, Math.ceil(o.len / segL)), L = o.len / n;
+      for (let i = 0; i < n; i++) {
+        const pc = o.pc - o.len / 2 + L * (i + 0.5);
+        // altura do chão: menor valor na largura do obstáculo (nunca fica flutuando)
+        const h0 = Math.min(H(pc), H(pc, -o.t / 2), H(pc, o.t / 2)), slope = (H(pc + L / 2) - H(pc - L / 2)) / L;
+        const seg = new THREE.Group(); seg.position.set(0, h0, pc); seg.rotation.x = -Math.atan(slope); g.add(seg);
+        const sink = 0.35 + Math.abs(slope) * L * 0.5; // parte enterrada para cobrir as ondulações
+        if (o.type === 'tronco') {
+          const t = mesh(new THREE.CylinderGeometry(o.h / 2, o.h / 2 * 1.05, L + 0.25, 9), mat(i % 2 ? '#6b4a2e' : '#5f4228')); t.rotation.x = Math.PI / 2; t.position.y = o.h / 2 - 0.05; seg.add(t);
+          if (i % 3 === 1) { const knot = mesh(new THREE.CylinderGeometry(o.h * 0.12, o.h * 0.15, o.h * 0.35, 6), mat('#4e3420')); knot.position.set(0, o.h * 0.95, 0); seg.add(knot); }
+        } else {
+          const tall = o.h + sink;
+          const geo = jitterGeo(new THREE.BoxGeometry(o.t, tall, L + 0.15, 2, 2, 2), o.type === 'muro' ? 0.1 : 0.35, i * 7 + o.h * 100);
+          const b = mesh(geo, mat(cols[o.type])); b.position.y = tall / 2 - sink; seg.add(b);
+          if (o.type === 'trilho') for (const sx of [-0.3, 0.3]) { const rail = mesh(new THREE.BoxGeometry(0.08, 0.08, L + 0.15), mat('#9aa0a6', { shininess: 60 })); rail.position.set(sx, o.h + 0.04, 0); seg.add(rail); }
         }
       }
       this.scene.add(g);
@@ -532,7 +538,7 @@ const Render = {
     const ok = (x, y) => {
       const d = Math.hypot(x, y); if (d < CITY_R + 6) return false;
       for (const R of REGIONS) { const l = World.local(R, x, y); if (l.d > 0 && l.d < R.dMin + 14 && Math.abs(l.p) < 6) return false; }
-      for (const o of World.obstacles) { const l = World.local(o.R, x, y); if (Math.abs(l.d - o.dc) < o.t + 3 && Math.abs(l.p) < o.len / 2 + 3) return false; }
+      for (const o of World.obstacles) { const l = World.local(o.R, x, y); if (Math.abs(l.d - o.dc) < o.t + 3 && Math.abs(l.p - o.pc) < o.len / 2 + 3) return false; }
       return true;
     };
     for (let i = 0; i < 26000; i++) {
