@@ -1,9 +1,8 @@
 {
-  "version": "2.0.4",
+  "version": "2.0.5",
   "date": "2026-10-18",
   "notes": [
-    "Obstáculos (troncos, pedras, muros, trilhos, bancadas e penhascos) refeitos em pedaços que acompanham o relevo, sem flutuar nem afundar",
-    "Obstáculos não entram mais nas montanhas: ficou só o trecho fora delas (os muito curtos foram removidos)"
+    "Obstáculos voltaram ao tamanho completo em todas as regiões (as montanhas foram para o lado do caminho e não cortam mais os obstáculos)"
   ],
   "files": [
     {
@@ -48,7 +47,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 12559
+      "size": 12644
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -60,7 +59,7 @@
     },
     {
       "path": "version.json",
-      "size": 1090
+      "size": 1214
     }
   ]
 }

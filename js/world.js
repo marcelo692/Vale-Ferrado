@@ -73,7 +73,7 @@ const World = {
     for (const [rid, k, side, H, r0] of spec) {
       const r = Math.max(r0, H * 2.4); // encosta no máximo ~32° para dar para subir andando
       const R = REGIONS[rid], d = R.dMin + (R.dMax - R.dMin) * (k + 0.5) / 10, w = 40 + d * 0.12;
-      const p = side * (w / 2 + r * 0.15);
+      const p = side * (w / 2 + r * 0.85); // fora do corredor: obstáculos ficam inteiros e a montanha fica ao lado do caminho
       const m = { R, x: R.ux * d + R.vx * p, y: R.uy * d + R.vy * p, H, r, seed: rand() * 100, special: rid >= 1 ? SPECIALS[rid - 1] : null, seen: false };
       this.mountains.push(m);
       if (!m.special) continue;
