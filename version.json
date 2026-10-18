@@ -1,11 +1,8 @@
 {
-  "version": "2.0.0",
+  "version": "2.0.1",
   "date": "2026-10-18",
   "notes": [
-    "Montanhas espalhadas pelo mapa (triângulos no minimapa): subir é lento e o Shift não funciona na subida",
-    "5 recursos raros que só existem perto do topo das montanhas: Pedra-do-Vento, Âmbar Antigo, Ferro Celeste, Obsidiana Real e Coração da Montanha",
-    "Martelos 20, 30, 40, 50 e 60, Detector de satélite, Esquadrilha de drones e Hoverboard agora pedem 5 unidades de recurso raro",
-    "Terreno com pequenos relevos e depressões"
+    "A tabela da direita mostra quanto a mochila vai render em moedas antes de vender, e quantos itens vão para o depósito"
   ],
   "files": [
     {
@@ -18,7 +15,7 @@
     },
     {
       "path": "index.html",
-      "size": 23621
+      "size": 23967
     },
     {
       "path": "js/audio.js",
@@ -34,7 +31,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 27699
+      "size": 28198
     },
     {
       "path": "js/render3d.js",
@@ -42,7 +39,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 24895
+      "size": 25144
     },
     {
       "path": "js/updater.js",
@@ -62,7 +59,7 @@
     },
     {
       "path": "version.json",
-      "size": 1264
+      "size": 1406
     }
   ]
 }

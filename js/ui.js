@@ -214,7 +214,9 @@ const UI = {
     if (S.hammer < MAX_LEVEL) ups.push({ ic: '⚒', name: 'Martelo', lv: S.hammer + 1, c: hammerCost(S.hammer + 1), npc: 'Seu Bento' });
     for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ ic: { mine: '✊', bag: '🎒', move: '👟', jump: '⤒' }[k], name: ATTRS[k].short, lv: S.attrs[k] + 1, c: attrCost(k, S.attrs[k] + 1), npc: 'Dona Cida' });
     for (const g of Game.gadgetUps()) ups.push({ ic: '🛒', name: g.label, lv: '', c: g.c });
-    let html = `<div class="ih">Próximas evoluções <kbd>I</kbd></div>`;
+    const bv = Game.bagValue();
+    let html = Object.keys(S.bag).length ? `<div class="bagv"><span>🎒 Mochila vale</span><b><i class="coin"></i>${fmt(bv.money)}</b>${bv.kept ? `<small>+ ${fmt(bv.kept)} vão pro depósito</small>` : ''}</div>` : '';
+    html += `<div class="ih">Próximas evoluções <kbd>I</kbd></div>`;
     for (const u of ups) {
       const okMoney = S.money >= u.c.money;
       let st = okMoney ? 2 : 0, mats = '';

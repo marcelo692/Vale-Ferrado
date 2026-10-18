@@ -198,6 +198,16 @@ const Game = {
     for (const g of this.gadgetUps()) add(g.label, g.c);
     return by;
   },
+  // prévia da venda: quanto o Seu Lauro pagaria pela mochila agora (mesma regra do unload)
+  bagValue() {
+    const need = this.needs(); let money = 0, all = 0, kept = 0;
+    for (const id in this.S.bag) {
+      const q = this.S.bag[id], want = Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
+      const k = Math.min(want, RES[id].special ? q : Math.floor(q * 0.6));
+      money += (q - k) * RES[id].value; all += q * RES[id].value; kept += k;
+    }
+    return { money, all, kept };
+  },
   unload() {
     const ids = Object.keys(this.S.bag);
     if (!ids.length) return;
