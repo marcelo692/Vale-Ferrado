@@ -59,7 +59,7 @@ const UI = {
       h += `<div class="cur"><span class="lv">Nível ${L}</span><h3>${HAMMERS[L].n}</h3><p>Força ${fmt(HAMMERS[L].f)}</p></div>`;
       if (L < MAX_LEVEL) {
         const c = hammerCost(L + 1);
-        h += `<div class="card big">${this.pics('hammer', L + 1)}<span class="lv">Próximo · nível ${L + 1}</span><h3>${HAMMERS[L + 1].n}</h3><p>Força ${fmt(HAMMERS[L].f)} → <b>${fmt(HAMMERS[L + 1].f)}</b></p>${this.costHtml(c)}
+        h += `<div class="card big">${this.pics('hammer', L + 1)}<span class="lv">Próximo · nível ${L + 1}</span><h3>${HAMMERS[L + 1].n}</h3><p>Força ${fmt(HAMMERS[L].f)} → <b>${fmt(HAMMERS[L + 1].f)}</b></p>${this.costHtml(c)}${SPECIAL_AT[L + 1] ? `<p class="rare">⛰ ${RES[SPECIAL_AT[L + 1]].name} só existe perto do topo das montanhas da região ${REGIONS[RES[SPECIAL_AT[L + 1]].region].name}</p>` : ''}
           <button class="buy" ${Game.canPay(c) ? '' : 'disabled'} onclick="Game.buyHammer();UI.renderPanel()">Forjar</button></div>`;
         h += `<h4>Pela frente</h4><ol class="road" start="${L + 2}">`;
         for (let i = L + 2; i <= Math.min(MAX_LEVEL, L + 6); i++) h += `<li>${HAMMERS[i].n} <i>força ${fmt(HAMMERS[i].f)}</i></li>`;
@@ -103,9 +103,9 @@ const UI = {
         const T = GADGETS[type], have = S.gear[type];
         h += `<h4>${T.title} <span class="kbd">${T.key}</span></h4><p class="hint" style="margin:0 0 8px">${T.desc}</p><div class="grid">`;
         for (let lv = 1; lv < T.levels.length; lv++) {
-          const G = T.levels[lv], owned = have >= lv, ok = !owned && S.money >= G.price;
+          const G = T.levels[lv], owned = have >= lv, ok = !owned && Game.canPay({ money: G.price, mats: G.mats || [] });
           h += `<div class="card ${have === lv ? 'eq' : ''}">${this.pics(type, lv)}<span class="lv">Nível ${lv}</span><h3>${G.n}</h3><p>${G.info}</p>
-            <ul class="cost"><li class="${S.money >= G.price || owned ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(G.price)}</b></li></ul>
+            ${owned ? `<ul class="cost"><li class="ok"><i class="coin"></i>Moedas: <b>${fmt(G.price)}</b></li></ul>` : this.costHtml({ money: G.price, mats: G.mats || [] })}${G.mats ? '<p class="rare">⛰ Precisa de recurso raro das montanhas</p>' : ''}
             ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você já tem melhor</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
         }
         h += `</div>`;
@@ -169,6 +169,7 @@ const UI = {
         <li><b>Mouse</b>: olhar em volta</li>
         <li><b>W A S D</b>: andar</li>
         <li><b>Shift</b>: correr (gasta fôlego; se zerar, você cansa e fica mais lento)</li>
+        <li><b>Montanhas</b> (triângulos no minimapa): subir é lento e o Shift não funciona na subida; perto do topo ficam os recursos raros</li>
         <li><b>Espaço</b>: pular (passe por cima de troncos, muros e penhascos para cortar caminho)</li>
         <li><b>Segurar o botão esquerdo</b> mirando uma pedra: minera na velocidade normal, sem cansar</li>
         <li><b>Clicar várias vezes</b>: golpes bem mais rápidos, mas cada clique gasta fôlego</li>
@@ -212,6 +213,7 @@ const UI = {
     const ups = [];
     if (S.hammer < MAX_LEVEL) ups.push({ ic: '⚒', name: 'Martelo', lv: S.hammer + 1, c: hammerCost(S.hammer + 1), npc: 'Seu Bento' });
     for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ ic: { mine: '✊', bag: '🎒', move: '👟', jump: '⤒' }[k], name: ATTRS[k].short, lv: S.attrs[k] + 1, c: attrCost(k, S.attrs[k] + 1), npc: 'Dona Cida' });
+    for (const g of Game.gadgetUps()) ups.push({ ic: '🛒', name: g.label, lv: '', c: g.c });
     let html = `<div class="ih">Próximas evoluções <kbd>I</kbd></div>`;
     for (const u of ups) {
       const okMoney = S.money >= u.c.money;
@@ -223,7 +225,7 @@ const UI = {
         mats += `<span class="m s${ms}"><i style="background:${RES[m.id].c2}"></i>${RES[m.id].name.split(' (')[0]} ${fmt(Math.min(have, m.qty))}/${fmt(m.qty)}${bag && ms < 2 ? ` <em>+${fmt(bag)}🎒</em>` : ''}</span>`;
       }
       const sign = ['✖', '●', '✔'][st], cls = 's' + st;
-      html += `<div class="up ${cls}"><b>${sign}</b><div><div class="un">${u.ic} ${u.name} <small>nv ${u.lv}</small></div>${mats}<span class="m ${okMoney ? 's2' : 's0'}"><i class="coin"></i>${fmt(u.c.money)}</span></div></div>`;
+      html += `<div class="up ${cls}"><b>${sign}</b><div><div class="un">${u.ic} ${u.name} ${u.lv ? `<small>nv ${u.lv}</small>` : ''}</div>${mats}<span class="m ${okMoney ? 's2' : 's0'}"><i class="coin"></i>${fmt(u.c.money)}</span></div></div>`;
     }
     // materiais guardados e na mochila
     const need = Game.needs();
@@ -336,5 +338,6 @@ const UI = {
     $('equip').innerHTML = eq.join('');
     this.updateDetectorHud();
     this.updateInvHud();
+    $('climb').style.display = Game.P.climbing && Game.P.moving && !this.open ? 'block' : 'none';
   },
 };

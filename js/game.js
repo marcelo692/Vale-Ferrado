@@ -171,11 +171,22 @@ const Game = {
   },
 
   // ---------- economia ----------
+  // próximos equipamentos do Bazar que pedem recurso raro (só quando a região dele já está ao seu alcance)
+  gadgetUps() {
+    const out = [];
+    for (const type in GADGETS) {
+      const lv = this.S.gear[type] + 1, G = GADGETS[type].levels[lv];
+      if (!G || !G.mats) continue;
+      if (G.mats.every(m => eraOf(this.S.hammer) >= REGIONS[RES[m.id].region].era)) out.push({ label: G.n, c: { money: G.price, mats: G.mats } });
+    }
+    return out;
+  },
   needs() {
     const need = {};
     const add = c => c.mats.forEach(m => { need[m.id] = (need[m.id] || 0) + m.qty; });
     if (this.S.hammer < MAX_LEVEL) add(hammerCost(this.S.hammer + 1));
     for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(attrCost(k, this.S.attrs[k] + 1));
+    for (const g of this.gadgetUps()) add(g.c);
     return need;
   },
   // quais evoluções usam cada material (para explicar ao jogador)
@@ -184,6 +195,7 @@ const Game = {
     const add = (label, c) => c.mats.forEach(m => { (by[m.id] = by[m.id] || []).push(label); });
     if (this.S.hammer < MAX_LEVEL) add('Martelo nv ' + (this.S.hammer + 1), hammerCost(this.S.hammer + 1));
     for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(ATTRS[k].short + ' nv ' + (this.S.attrs[k] + 1), attrCost(k, this.S.attrs[k] + 1));
+    for (const g of this.gadgetUps()) add(g.label, g.c);
     return by;
   },
   unload() {
@@ -195,7 +207,7 @@ const Game = {
     for (const id of ids) {
       const q = this.S.bag[id];
       const want = Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
-      const cap = Math.floor(q * 0.6);
+      const cap = RES[id].special ? q : Math.floor(q * 0.6); // recurso raro: guarda tudo que for preciso
       const k = Math.min(want, cap); // vende sempre pelo menos 40% de cada carga
       if (k > 0) { this.S.stock[id] = (this.S.stock[id] || 0) + k; kept += k; }
       const sq = q - k, money = sq * RES[id].value;
@@ -252,9 +264,9 @@ const Game = {
 
   // ---------- equipamentos ----------
   buyGadget(type, lvl) {
-    const G = GADGETS[type].levels[lvl];
-    if (this.S.gear[type] >= lvl || this.S.money < G.price) return;
-    this.S.money -= G.price; this.S.gear[type] = lvl; Snd.levelUp();
+    const G = GADGETS[type].levels[lvl], c = { money: G.price, mats: G.mats || [] };
+    if (this.S.gear[type] >= lvl || !this.canPay(c)) return;
+    this.pay(c); this.S.gear[type] = lvl; Snd.levelUp();
     if (type === 'ride') this.S.riding = true;
     if (type === 'light') this.S.lightOn = true;
     if (type === 'detector') { this.S.detOn = true; if (!this.S.detRes) this.S.detRes = this.defaultDetRes(); }
@@ -285,6 +297,7 @@ const Game = {
     const ups = [];
     if (S.hammer < MAX_LEVEL) ups.push(hammerCost(S.hammer + 1));
     for (const k of ['mine', 'bag', 'move', 'jump']) if (S.attrs[k] < MAX_LEVEL) ups.push(attrCost(k, S.attrs[k] + 1));
+    for (const g of this.gadgetUps()) ups.push(g.c);
     for (const c of ups) for (const m of c.mats) {
       if (seen.has(m.id)) continue; seen.add(m.id);
       const falta = need[m.id] - (S.stock[m.id] || 0) - (S.bag[m.id] || 0);
@@ -363,13 +376,23 @@ const Game = {
       P.moving = len > 0;
       // corrida com cansaço
       const ride = this.ride();
-      const wantSprint = this.keys['shift'] && P.moving && fw > 0 && !(ride && ride.free);
+      // montanha: subir é lento e o Shift não funciona na subida
+      let climb = 1; P.climbing = false;
+      const mtn = World.mountainAt(P.x, P.y);
+      if (len && mtn) {
+        const lx = mx / len, ly = my / len, h0 = World.height(P.x, P.y), h1 = World.height(P.x + lx * 0.6, P.y + ly * 0.6);
+        const slope = (h1 - h0) / 0.6;
+        if (slope > 0.08) { P.climbing = true; climb = Math.max(0.2, 1 - slope * 1.4); if (ride && ride.free) climb = Math.max(climb, 0.55); }
+        else if (slope < -0.25) climb = 1.1;
+      }
+      if (mtn && !mtn.seen) { mtn.seen = true; UI.toast(mtn.special ? `⛰ Montanha! Perto do topo tem ${mtn.special.name}, recurso raro que só existe aqui. Na subida o Shift não funciona e você anda devagar.` : '⛰ Morro: subir é devagar e o Shift não funciona na subida.', 'veio'); }
+      const wantSprint = this.keys['shift'] && P.moving && fw > 0 && !(ride && ride.free) && !P.climbing;
       P.sprint = wantSprint && !P.tired && P.stamina > 0;
       if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast('Você está cansado! Espere o fôlego voltar.', 'warn'); Snd.tired(); } }
       else if (this.S.time - (this.lastClickT || -9) > 1.2) { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
       if (len) {
         mx /= len; my /= len;
-        const sp = this.speed() * (ride ? ride.mult : 1) * (P.sprint ? 1.75 : 1) * (P.tired && !ride ? 0.8 : 1);
+        const sp = this.speed() * (ride ? ride.mult : 1) * (P.sprint ? 1.75 : 1) * (P.tired && !ride ? 0.8 : 1) * climb;
         // passos pequenos para não atravessar obstáculos em alta velocidade
         const steps = Math.max(1, Math.ceil(sp * dt / 0.4));
         for (let i = 0; i < steps; i++) { this.moveBy(mx * sp * dt / steps, 0); this.moveBy(0, my * sp * dt / steps); }

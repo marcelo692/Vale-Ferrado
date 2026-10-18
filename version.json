@@ -1,9 +1,11 @@
 {
-  "version": "1.9.3",
+  "version": "2.0.0",
   "date": "2026-10-18",
   "notes": [
-    "Etiqueta em cima dos recursos próximos com o nível (cor por região) e o valor de cada unidade; ★ verde quando você precisa dele para evoluir (B esconde)",
-    "Ao mirar num recurso: nível, quanto vale cada um, quanto rende a pedra inteira e quantas moedas por minuto ela dá com seu martelo atual"
+    "Montanhas espalhadas pelo mapa (triângulos no minimapa): subir é lento e o Shift não funciona na subida",
+    "5 recursos raros que só existem perto do topo das montanhas: Pedra-do-Vento, Âmbar Antigo, Ferro Celeste, Obsidiana Real e Coração da Montanha",
+    "Martelos 20, 30, 40, 50 e 60, Detector de satélite, Esquadrilha de drones e Hoverboard agora pedem 5 unidades de recurso raro",
+    "Terreno com pequenos relevos e depressões"
   ],
   "files": [
     {
@@ -12,11 +14,11 @@
     },
     {
       "path": "README.md",
-      "size": 4028
+      "size": 4386
     },
     {
       "path": "index.html",
-      "size": 23258
+      "size": 23621
     },
     {
       "path": "js/audio.js",
@@ -28,19 +30,19 @@
     },
     {
       "path": "js/data.js",
-      "size": 20012
+      "size": 21300
     },
     {
       "path": "js/game.js",
-      "size": 26134
+      "size": 27699
     },
     {
       "path": "js/render3d.js",
-      "size": 101985
+      "size": 106129
     },
     {
       "path": "js/ui.js",
-      "size": 24215
+      "size": 24895
     },
     {
       "path": "js/updater.js",
@@ -48,7 +50,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 8717
+      "size": 11517
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -60,7 +62,7 @@
     },
     {
       "path": "version.json",
-      "size": 1172
+      "size": 1264
     }
   ]
 }

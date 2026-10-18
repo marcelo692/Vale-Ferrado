@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '1.9.3';
+const GAME_VERSION = '2.0.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -54,8 +54,19 @@ const RESOURCES = [
   { id: 'meteoro',     name: 'Ferro meteórico',         region: 5, ideal: 59, hard: 8000000,  kind: 'meteor',  c: '#3a3436', c2: '#ff8a3d' },
   { id: 'nucleo',      name: 'Núcleo estelar',          region: 5, ideal: 60, hard: 10000000, kind: 'meteor',  c: '#2a1e3a', c2: '#7af0ff' },
 ];
+// recursos raros: só existem perto do topo das montanhas
+const SPECIALS = [
+  { id: 'pedravento',   name: 'Pedra-do-Vento',       region: 1, ideal: 19, hard: 900,      kind: 'special', c: '#6ac8e0', c2: '#d8f6ff', special: true },
+  { id: 'ambar',        name: 'Âmbar Antigo',         region: 2, ideal: 29, hard: 9000,     kind: 'special', c: '#d07a10', c2: '#ffc04a', special: true },
+  { id: 'ferroceleste', name: 'Ferro Celeste',        region: 3, ideal: 39, hard: 95000,    kind: 'special', c: '#3a5ad0', c2: '#9ab8ff', special: true },
+  { id: 'obsidiana',    name: 'Obsidiana Real',       region: 4, ideal: 49, hard: 1000000,  kind: 'special', c: '#18101e', c2: '#b04aff', special: true },
+  { id: 'coracao',      name: 'Coração da Montanha',  region: 5, ideal: 59, hard: 10000000, kind: 'special', c: '#c01830', c2: '#ffd34d', special: true },
+];
+RESOURCES.push(...SPECIALS);
 const RES = {};
-RESOURCES.forEach(r => { r.value = Math.max(1, Math.round(r.hard / 2)); RES[r.id] = r; });
+RESOURCES.forEach(r => { r.value = Math.max(1, Math.round(r.special ? r.hard * 2 : r.hard / 2)); RES[r.id] = r; });
+// martelos que exigem o recurso raro da montanha (5 unidades)
+const SPECIAL_AT = { 20: 'pedravento', 30: 'ambar', 40: 'ferroceleste', 50: 'obsidiana', 60: 'coracao' };
 
 // ---------- Os 60 martelos ----------
 // mat: materiais para forjar (ids). force: força do golpe.
@@ -183,11 +194,13 @@ function hammerCost(L) { // custo para chegar ao nível L
   const h = HAMMERS[L];
   const qty = 3 + Math.floor(L / 2);
   const money = Math.round(25 * Math.pow(1.31, L - 2));
-  return { money, mats: h.mat.map(id => ({ id, qty })) };
+  const mats = h.mat.map(id => ({ id, qty }));
+  if (SPECIAL_AT[L]) mats.push({ id: SPECIAL_AT[L], qty: 5 });
+  return { money, mats };
 }
 function resourceForLevel(lvl) {
   let best = RESOURCES[0];
-  for (const r of RESOURCES) if (r.ideal <= lvl) best = r;
+  for (const r of RESOURCES) if (!r.special && r.ideal <= lvl) best = r;
   return best;
 }
 function attrCost(key, lvl) { // custo para chegar ao nível lvl
@@ -247,7 +260,7 @@ const GADGETS = {
     levels: [null,
       { n: 'Detector de bolso',    price: 300,     range: 80,   err: 0.6,  info: 'Alcance 80 m · direção aproximada' },
       { n: 'Detector de campo',    price: 15000,   range: 600,  err: 0.35, info: 'Alcance 600 m · mais preciso' },
-      { n: 'Detector de satélite', price: 1500000, range: 4500, err: 0.15, info: 'Alcance de quase o mapa inteiro' },
+      { n: 'Detector de satélite', price: 1500000, range: 4500, err: 0.15, info: 'Alcance de quase o mapa inteiro', mats: [{ id: 'ferroceleste', qty: 5 }] },
     ],
   },
   ride: {
@@ -256,7 +269,7 @@ const GADGETS = {
       { n: 'Patins de rodinha',  price: 800,      mult: 1.5, info: '+50% de velocidade · correr ainda cansa' },
       { n: 'Patinete',           price: 20000,    mult: 2.2, info: '+120% de velocidade · correr ainda cansa' },
       { n: 'Monociclo elétrico', price: 600000,   mult: 3.2, info: '+220% de velocidade · correr ainda cansa' },
-      { n: 'Hoverboard',         price: 25000000, mult: 5.5, free: true, info: '+450% de velocidade · não gasta fôlego' },
+      { n: 'Hoverboard',         price: 25000000, mult: 5.5, free: true, info: '+450% de velocidade · não gasta fôlego', mats: [{ id: 'obsidiana', qty: 5 }] },
     ],
   },
   light: {
@@ -265,7 +278,7 @@ const GADGETS = {
       { n: 'Lanterna de mão',       price: 150,      info: 'Facho estreito de 28 m' },
       { n: 'Lanterna de cabeça',    price: 6000,     info: 'Facho largo de 40 m, mãos livres' },
       { n: 'Drone de luz',          price: 400000,   info: 'Lanterna de cabeça + drone que ilumina 45 m em volta' },
-      { n: 'Esquadrilha de drones', price: 12000000, info: 'Lanterna de cabeça + 3 drones iluminando 80 m' },
+      { n: 'Esquadrilha de drones', price: 12000000, info: 'Lanterna de cabeça + 3 drones iluminando 80 m', mats: [{ id: 'obsidiana', qty: 5 }] },
     ],
   },
 };

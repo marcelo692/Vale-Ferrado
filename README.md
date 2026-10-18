@@ -40,6 +40,9 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 
 - Os 60 martelos, do graveto seco ao Martelo do Vale
 - 34 recursos em 6 regiões, cada uma numa direção e mais longe que a anterior
+- 11 montanhas espalhadas (subida lenta, sem correr) com 5 recursos raros que só existem perto do topo: Pedra-do-Vento, Âmbar Antigo, Ferro Celeste, Obsidiana Real e Coração da Montanha
+- Martelos 20, 30, 40, 50 e 60, detector de satélite, esquadrilha de drones e hoverboard pedem 5 unidades de recurso raro
+- Terreno com pequenos relevos e depressões
 - 5 NPCs: Seu Bento (martelo), Dona Cida (mineração, mochila, movimento e pulo), Zé da Botica (power-ups), Seu Lauro (venda automática) e Tonho do Bazar (equipamentos)
 - Equipamentos: detector de minério (3 níveis), transporte (patins, patinete, monociclo, hoverboard) e iluminação (lanterna, headlamp, drone, esquadrilha de drones)
 - Música de fundo gerada pelo jogo (viola calma de dia, mais lenta e misteriosa à noite) e sons para tudo: passos por tipo de chão, golpes por material, quebra, moedas, forja, pulo, power-ups, vento, pássaros, grilos e riacho

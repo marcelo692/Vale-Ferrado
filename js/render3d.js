@@ -125,8 +125,8 @@ const Render = {
     if (!this.obsSprite) {
       this.obsCanvas = document.createElement('canvas'); this.obsCanvas.width = 512; this.obsCanvas.height = 96;
       this.obsTex = new THREE.CanvasTexture(this.obsCanvas);
-      this.obsSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.obsTex, depthTest: false, transparent: true }));
-      this.obsSprite.scale.set(3.2, 0.6, 1); this.obsSprite.renderOrder = 5; this.scene.add(this.obsSprite);
+      this.obsSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.obsTex, depthTest: false, transparent: true, sizeAttenuation: false }));
+      this.obsSprite.scale.set(0.3, 0.056, 1); this.obsSprite.renderOrder = 5; this.scene.add(this.obsSprite);
     }
     if (!best || UI.open) { this.obsSprite.visible = false; return; }
     const o = best.o, ok = Game.canClear(o), txt = (ok ? '⤒ Dá para pular · ' : '✕ Pulo insuficiente · ') + o.h.toFixed(1).replace('.', ',') + ' m';
@@ -356,6 +356,13 @@ const Render = {
       out.set(pal[Math.floor(hash2(Math.floor(x / 9), Math.floor(y / 9)) * 3)]);
       if (g.edge < 1) out.lerp(new THREE.Color(d < 400 ? '#5b6b3a' : '#6e6a48'), 0.5);
     } else out.set(d < 500 ? '#5d6e3b' : d < 1600 ? '#6c6b46' : '#77715a');
+    // montanhas: rocha nas encostas e neve no topo das altas
+    const mh = World.mountainH(x, y);
+    if (mh > 1.5) {
+      const m = World.mountainAt(x, y) || { H: 40 }, t = mh / m.H;
+      out.lerp(this._rock || (this._rock = new THREE.Color('#7a7268')), Math.min(1, (t - 0.08) * 1.8));
+      if (m.H > 45 && t > 0.72) out.lerp(this._snow || (this._snow = new THREE.Color('#f2f4f8')), Math.min(1, (t - 0.72) * 5));
+    }
     out.offsetHSL(0, 0, n);
     return out;
   },
@@ -363,7 +370,7 @@ const Render = {
     const mk = (size, seg) => { const g = new THREE.PlaneGeometry(size, size, seg, seg); g.rotateX(-Math.PI / 2); g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3), 3)); return g; };
     const gm = new THREE.MeshLambertMaterial({ vertexColors: true, map: this.grassTex });
     // terreno distante
-    const far = mk(9000, 225); this.fillGround(far, 0, 0, -0.7); this.grassTex.repeat.set(1, 1);
+    const far = mk(9000, 360); this.fillGround(far, 0, 0, -0.7); this.grassTex.repeat.set(1, 1);
     const farTex = this.grassTex.clone(); farTex.needsUpdate = true; farTex.wrapS = farTex.wrapT = THREE.RepeatWrapping; farTex.repeat.set(2250, 2250);
     const farMat = new THREE.MeshLambertMaterial({ vertexColors: true, map: farTex });
     this.farGround = new THREE.Mesh(far, farMat); this.farGround.receiveShadow = true; this.scene.add(this.farGround);
@@ -523,6 +530,7 @@ const Render = {
     for (let i = 0; i < 26000; i++) {
       const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 1800, x = Math.cos(a) * d, y = Math.sin(a) * d;
       if (!ok(x, y)) continue;
+      if (World.mountainH(x, y) > 4) { if (r() < 0.12) rocks.push([x, y, 0.6 + r() * 1.6, '#6a645c']); continue; }
       const g = World.groundAt(x, y);
       if (g && g.edge === 1) { if (g.R.id >= 1 && r() < 0.06) rocks.push([x, y, 0.6 + r() * 1.8, g.R.ground[2]]); continue; }
       const nearBosque = (g && g.R.id === 0) || d < 260;
@@ -563,7 +571,7 @@ const Render = {
       const cx = Math.floor((sx + gx) / 1.6), cy = Math.floor((sy + gy) / 1.6), h = hash2(cx, cy);
       if (h > 0.55) continue;
       const x = cx * 1.6 + hash2(cx * 3, cy) * 1.6, y = cy * 1.6 + hash2(cx, cy * 5) * 1.6;
-      if (Math.hypot(x, y) < CITY_R + 1) continue;
+      if (Math.hypot(x, y) < CITY_R + 1 || World.mountainH(x, y) > 6) continue;
       const gr = World.groundAt(x, y), id = gr ? gr.R.id : -1;
       if (id >= 2 && gr.edge === 1) continue;
       q.setFromAxisAngle(up, h * 20); s.set(0.5 + h * 0.6, 0.35 + h * 0.9, 0.5 + h * 0.6); p.set(x, World.height(x, y), y);
@@ -613,6 +621,15 @@ const Render = {
       rutilo(g, s, r, n) { const q = mesh(J(new THREE.IcosahedronGeometry(s, 1), s * 0.12, n.seed), mat('#e8d8c8', { transparent: true, opacity: 0.55, shininess: 120 })); q.scale.y = 0.8; q.position.y = s * 0.55; g.add(q);
         for (let i = 0; i < 14; i++) { const nd = mesh(new THREE.CylinderGeometry(s * 0.015, s * 0.015, s * (0.8 + r() * 0.7), 4), mat('#d08a3a', { emissive: '#a05010', emissiveIntensity: 0.5 })); nd.position.set((r() - 0.5) * s, s * 0.55 + (r() - 0.5) * s * 0.5, (r() - 0.5) * s); nd.rotation.set(r() * 3, r() * 3, r() * 3); g.add(nd); } },
       volframita(g, s, r, n) { hostRock(g, s * 0.8, '#b8b0a4', n.seed, 0.55); for (let i = 0; i < 6; i++) { const bl = mesh(new THREE.BoxGeometry(s * 0.08, s * (0.8 + r() * 0.5), s * 0.45), mat('#1a1c22', { shininess: 140, specular: '#aaaaaa' })); bl.position.set((r() - 0.5) * s * 0.8, s * 0.7, (r() - 0.5) * s * 0.8); bl.rotation.set((r() - 0.5) * 0.5, r() * 3, (r() - 0.5) * 0.5); g.add(bl); } },
+      // recursos raros das montanhas
+      pedravento(g, s, r, n) { hostRock(g, s * 0.7, '#8a9aa0', n.seed, 0.6); const orb = mesh(new THREE.IcosahedronGeometry(s * 0.45, 1), mat('#bff0ff', { emissive: '#4ab8e0', emissiveIntensity: 0.7, transparent: true, opacity: 0.85, shininess: 120 })); orb.position.y = s * 1.15; g.add(orb); g.userData.spin = orb;
+        for (let i = 0; i < 3; i++) { const ring = mesh(new THREE.TorusGeometry(s * (0.62 + i * 0.12), s * 0.025, 4, 24), mat('#e8fbff', { emissive: '#8ad8f0', emissiveIntensity: 0.8 })); ring.position.y = s * 1.15; ring.rotation.set(Math.PI / 2 + i * 0.5, i, 0); g.add(ring); } g.userData.glowCol = '#9fe8ff'; },
+      ambar(g, s, r, n) { hostRock(g, s * 0.8, '#5a4a3a', n.seed, 0.6); for (let i = 0; i < 6; i++) { const z = s * (0.25 + r() * 0.2); const b = mesh(J(new THREE.SphereGeometry(z, 10, 8), z * 0.15, i), mat('#ffb030', { emissive: '#c06a00', emissiveIntensity: 0.6, transparent: true, opacity: 0.85, shininess: 120 })); b.position.copy(onSurface(s * 0.8, r, 0.6)); g.add(b);
+          const bug = mesh(new THREE.SphereGeometry(z * 0.18, 5, 4), mat('#2a1a0a')); bug.position.copy(b.position); g.add(bug); } g.userData.glowCol = '#ffc860'; },
+      ferroceleste(g, s, r, n) { hostRock(g, s * 0.75, '#3a3e4a', n.seed, 0.6); for (let i = 0; i < 9; i++) { const h = s * (0.6 + r() * 0.6); const sp = mesh(new THREE.ConeGeometry(s * 0.1, h, 4), mat('#6a8aff', { emissive: '#2a40c0', emissiveIntensity: 0.6, shininess: 140, specular: '#ffffff' })); const p = onSurface(s * 0.75, r, 0.6); sp.position.copy(p); sp.lookAt(p.clone().multiplyScalar(2)); sp.rotateX(Math.PI / 2); g.add(sp); } g.userData.glowCol = '#8aa8ff'; },
+      obsidiana(g, s, r) { for (let i = 0; i < 6; i++) { const h = s * (0.9 + r() * 0.8); const sh = mesh(J(new THREE.OctahedronGeometry(h * 0.45, 0), h * 0.06, i), mat('#120a18', { emissive: '#5a1a90', emissiveIntensity: 0.35, shininess: 160, specular: '#d8a0ff' })); sh.scale.set(0.55, 1.5, 0.55); sh.position.set((r() - 0.5) * s, h * 0.55, (r() - 0.5) * s); sh.rotation.set((r() - 0.5) * 0.5, r() * 3, (r() - 0.5) * 0.5); g.add(sh); } g.userData.glowCol = '#b04aff'; },
+      coracao(g, s, r, n) { hostRock(g, s * 0.8, '#3a2a28', n.seed, 0.55); const core = mesh(new THREE.IcosahedronGeometry(s * 0.55, 1), mat('#ff3048', { emissive: '#c01020', emissiveIntensity: 0.9, shininess: 140 })); core.position.y = s * 1.0; g.add(core); g.userData.pulse = core;
+          for (let i = 0; i < 8; i++) { const c = mesh(new THREE.ConeGeometry(s * 0.09, s * 0.6, 5), mat('#ffd34d', { emissive: '#c08a00', emissiveIntensity: 0.7 })); const a = i / 8 * 6.28; c.position.set(Math.cos(a) * s * 0.5, s * 1.0, Math.sin(a) * s * 0.5); c.lookAt(c.position.clone().multiplyScalar(3).setY(s * 1.6)); c.rotateX(Math.PI / 2); g.add(c); } g.userData.glowCol = '#ff6070'; },
       // Serra dos Cristais
       quartzo(g, s, r) { for (let i = 0; i < 9; i++) { const h = s * (1 + r() * 1.3), w = s * 0.16; const c = mesh(new THREE.CylinderGeometry(0, w, h * 0.25, 6), mat('#f4f6fa', { transparent: true, opacity: 0.8, shininess: 120 })); const b = mesh(new THREE.CylinderGeometry(w, w, h * 0.75, 6), mat('#e4e8f0', { transparent: true, opacity: 0.75, shininess: 120 })); const gg = new THREE.Group(); b.position.y = h * 0.375; c.position.y = h * 0.875; gg.add(b, c); gg.position.set((r() - 0.5) * s * 0.9, 0, (r() - 0.5) * s * 0.9); gg.rotation.set((r() - 0.5) * 0.7, r() * 3, (r() - 0.5) * 0.7); g.add(gg); } },
       ametista(g, s, r, n) { // geodo aberto: casca de pedra com cristais roxos por dentro
@@ -651,10 +668,10 @@ const Render = {
       if (kind === 'crystal') for (let i = 0; i < 6; i++) { const h = s * (0.8 + r() * 1.1); const c = mesh(new THREE.CylinderGeometry(0, s * 0.18, h, 6), mat(res.c2, { emissive: res.c, emissiveIntensity: 0.5, shininess: 100, transparent: true, opacity: 0.9 })); c.position.set((r() - 0.5) * s, s * 0.7 + h / 2 - s * 0.2, (r() - 0.5) * s); c.rotation.set((r() - 0.5) * 0.7, 0, (r() - 0.5) * 0.7); g.add(c); }
       if (kind === 'meteor') for (let i = 0; i < 6; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(s * 0.5, 0.05, 0.05), new THREE.MeshBasicMaterial({ color: res.c2 })); c.position.set((r() - 0.5) * s * 1.2, s * (0.4 + r() * 0.6), (r() - 0.5) * s * 1.2); c.rotation.set(r() * 3, r() * 3, r() * 3); g.add(c); }
     }
-    if (n.rare > 1) {
+    if (n.rare > 1 || res.special) {
       if (!this.glowTex) this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); });
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: n.rare === 10 ? '#8ff0ff' : '#ffd860', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
-      sp.scale.setScalar(s * 4); sp.position.y = s * 0.7; g.add(sp); g.userData.glow = sp;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: res.special ? (g.userData.glowCol || '#ffffff') : n.rare === 10 ? '#8ff0ff' : '#ffd860', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
+      sp.scale.setScalar(s * (res.special ? 2.6 : 4)); sp.position.y = s * 0.8; if (res.special) sp.material.opacity = 0.4; g.add(sp); g.userData.glow = sp; g.userData.glowMax = res.special ? 0.4 : 0.85;
     }
     g.rotation.y = n.seed % 6.28;
     g.position.set(n.x, World.height(n.x, n.y) - 0.05, n.y);
@@ -700,7 +717,9 @@ const Render = {
       m.scale.setScalar(k);
       if (n.hitT > 0) m.position.set(m.userData.base.x + (Math.random() - 0.5) * 0.12, m.userData.base.y, m.userData.base.z + (Math.random() - 0.5) * 0.12);
       else m.position.copy(m.userData.base);
-      if (m.userData.glow) m.userData.glow.material.opacity = 0.55 + Math.sin(this.t * 4 + n.seed) * 0.3;
+      if (m.userData.glow) m.userData.glow.material.opacity = (m.userData.glowMax || 0.85) * (0.65 + Math.sin(this.t * 4 + n.seed) * 0.35);
+      if (m.userData.spin) m.userData.spin.rotation.y += 0.02;
+      if (m.userData.pulse) m.userData.pulse.scale.setScalar(1 + Math.sin(this.t * 3) * 0.08);
       // etiqueta com nível e valor para recursos por perto
       const d2 = dx * dx + dy * dy, near = d2 < 22 * 22 && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false;
       if (near) {
@@ -1226,6 +1245,7 @@ const Render = {
       const lab = map(R.ux * (R.dMin + R.dMax) / 2, R.uy * (R.dMin + R.dMax) / 2);
       c.fillStyle = '#fff'; c.font = '700 18px system-ui'; c.textAlign = 'center'; c.fillText(R.era, lab[0], lab[1] + 6);
     }
+    for (const m of World.mountains) { const p = map(m.x, m.y), s2 = 5 + m.H / 14; c.fillStyle = m.special ? m.special.c2 : '#a89a88'; c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(p[0], p[1] - s2); c.lineTo(p[0] + s2, p[1] + s2 * 0.7); c.lineTo(p[0] - s2, p[1] + s2 * 0.7); c.closePath(); c.fill(); c.stroke(); }
     if (World.veio) { const R = REGIONS[RES[World.veio.res].region]; const p = map(R.ux * (R.dMin + R.dMax) / 2, R.uy * (R.dMin + R.dMax) / 2); c.strokeStyle = '#ffd34d'; c.lineWidth = 4; c.beginPath(); c.arc(p[0], p[1], 16 + Math.sin(this.t * 5) * 4, 0, Math.PI * 2); c.stroke(); }
     c.fillStyle = '#d8c8a8'; c.beginPath(); c.arc(cx, cy, 7, 0, Math.PI * 2); c.fill();
     const pp = map(Game.P.x, Game.P.y), a = -Game.P.yaw - Math.PI / 2;

@@ -32,7 +32,7 @@ const World = {
       const a = R.ang * Math.PI / 180;
       R.ux = Math.cos(a); R.uy = Math.sin(a);       // direção
       R.vx = -R.uy; R.vy = R.ux;                    // perpendicular
-      R.res = RESOURCES.filter(r => r.region === R.id);
+      R.res = RESOURCES.filter(r => r.region === R.id && !r.special);
       for (let k = 0; k < 10; k++) {
         const d0 = R.dMin + (R.dMax - R.dMin) * k / 10;
         const d1 = R.dMin + (R.dMax - R.dMin) * (k + 1) / 10;
@@ -56,10 +56,48 @@ const World = {
         this.subs.push(sub);
       }
     }
-    // remove pontos de spawn dentro de obstáculos
-    for (const s of this.subs) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p) < o.len / 2 + 2));
+    this.buildMountains(rand);
+    // remove pontos de spawn dentro de obstáculos e nas montanhas (montanha só tem recurso raro)
+    for (const s of this.subs) if (!s.mountain) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p) < o.len / 2 + 2) && this.mountainH(pt.x, pt.y) < 2);
     for (const s of this.subs) for (let i = 0; i < s.maxNodes; i++) this.spawn(s);
   },
+
+  // ---------- montanhas ----------
+  mountains: [],
+  buildMountains(rand) {
+    this.mountains = [];
+    // [região, trecho (k), lado, altura, raio]
+    const spec = [[0, 5, 1, 16, 42], [1, 2, -1, 30, 55], [1, 7, 1, 34, 58], [2, 3, 1, 38, 66], [2, 8, -1, 42, 70],
+      [3, 2, -1, 48, 76], [3, 7, 1, 52, 80], [4, 3, 1, 60, 88], [4, 8, -1, 66, 92], [5, 2, -1, 78, 105], [5, 7, 1, 88, 115]];
+    for (const [rid, k, side, H, r] of spec) {
+      const R = REGIONS[rid], d = R.dMin + (R.dMax - R.dMin) * (k + 0.5) / 10, w = 40 + d * 0.12;
+      const p = side * (w / 2 + r * 0.15);
+      const m = { R, x: R.ux * d + R.vx * p, y: R.uy * d + R.vy * p, H, r, seed: rand() * 100, special: rid >= 1 ? SPECIALS[rid - 1] : null, seen: false };
+      this.mountains.push(m);
+      if (!m.special) continue;
+      // trecho especial da montanha: pontos de recurso perto do topo
+      const sub = { R, k: -1, d0: 0, d1: 0, w: 0, level: m.special.ideal, nodes: [], harvest: 0, spawnPts: [], mountain: m, maxNodes: 3 };
+      for (let i = 0; i < 14; i++) {
+        const a = rand() * Math.PI * 2, rr = r * (0.06 + rand() * 0.32);
+        const x = m.x + Math.cos(a) * rr, y = m.y + Math.sin(a) * rr, l = this.local(R, x, y);
+        sub.spawnPts.push({ x, y, d: l.d, p: l.p, used: false });
+      }
+      m.sub = sub; this.subs.push(sub);
+    }
+  },
+  // altura que a montanha soma ao terreno
+  mountainH(x, y) {
+    let h = 0;
+    for (const m of this.mountains) {
+      const dx = x - m.x, dy = y - m.y, d2 = dx * dx + dy * dy;
+      if (d2 > m.r * m.r * 1.2) continue;
+      const a = Math.atan2(dy, dx), wob = 1 + Math.sin(a * 3 + m.seed) * 0.12 + Math.sin(a * 7 + m.seed * 2) * 0.06;
+      const t = Math.max(0, 1 - Math.sqrt(d2) / (m.r * wob));
+      h = Math.max(h, m.H * t * t * (3 - 2 * t) * (0.92 + Math.sin(dx * 0.15) * Math.cos(dy * 0.13) * 0.08));
+    }
+    return h;
+  },
+  mountainAt(x, y) { for (const m of this.mountains) if (Math.hypot(x - m.x, y - m.y) < m.r * 0.95) return m; return null; },
 
   weights(sub) {
     return sub.R.res.map(r => {
@@ -73,7 +111,7 @@ const World = {
     const free = sub.spawnPts.filter(p => !p.used);
     if (!free.length) return false;
     const pt = free[Math.floor(Math.random() * free.length)];
-    let res = forceRes;
+    let res = forceRes || (sub.mountain && sub.mountain.special);
     if (!res) {
       const ws = this.weights(sub);
       let tot = ws.reduce((a, b) => a + b, 0), roll = Math.random() * tot; res = sub.R.res[0];
@@ -95,7 +133,7 @@ const World = {
   subFor(res) {
     let best = null, bd = Infinity;
     for (const s of this.subs) {
-      if (s.R.id !== res.region || !s.spawnPts.some(p => !p.used)) continue;
+      if (s.mountain || s.R.id !== res.region || !s.spawnPts.some(p => !p.used)) continue;
       const d = Math.abs(s.level - res.ideal); if (d < bd) { bd = d; best = s; }
     }
     return best;
@@ -108,9 +146,10 @@ const World = {
     this.nodes.splice(this.nodes.indexOf(node), 1);
     const sub = node.sub;
     sub.harvest += 1;
+    if (sub.mountain) { Game.timers.push({ t: 90 + Math.random() * 60, fn: () => this.spawn(sub) }); return; } // recurso raro: renasce devagar
     const deplete = 1 + Math.min(0.5, sub.harvest * 0.05);
     // recurso acabando: renasce bem mais rápido e do mesmo tipo
-    const left = this.countRes(node.res);
+    const left = node.res.special ? 1 : this.countRes(node.res);
     if (left === 0) { this.rescue[node.res.id] = true; Game.timers.push({ t: 3 + Math.random() * 3, fn: () => { delete this.rescue[node.res.id]; this.spawn(sub, node.res) || this.spawnRescue(node.res); } }); return; }
     if (left <= 2) { const force = Math.random() < 0.6 ? node.res : null; Game.timers.push({ t: (6 + Math.random() * 10), fn: () => this.spawn(sub, force) }); return; }
     const delay = (15 + Math.random() * 45) * deplete;
@@ -126,7 +165,7 @@ const World = {
     if (this.checkT <= 0) {
       this.checkT = 3;
       const count = {}; for (const x of this.nodes) count[x.res.id] = (count[x.res.id] || 0) + 1;
-      for (const r of RESOURCES) if (!count[r.id] && !this.rescue[r.id]) {
+      for (const r of RESOURCES) if (!r.special && !count[r.id] && !this.rescue[r.id]) {
         this.rescue[r.id] = true;
         Game.timers.push({ t: 2 + Math.random() * 3, fn: () => { delete this.rescue[r.id]; this.spawnRescue(r); } });
       }
@@ -139,7 +178,7 @@ const World = {
       this.veioTimer -= dt;
       if (this.veioTimer <= 0) {
         const maxEra = Math.min(6, eraOf(Game.S.hammer) + 1);
-        const cands = RESOURCES.filter(r => REGIONS[r.region].era <= maxEra);
+        const cands = RESOURCES.filter(r => !r.special && REGIONS[r.region].era <= maxEra);
         const res = cands[Math.floor(Math.random() * cands.length)];
         const R = REGIONS[res.region];
         this.veio = { res: res.id, t: 120 };
@@ -156,6 +195,7 @@ const World = {
 
   subAt(x, y) {
     for (const s of this.subs) {
+      if (s.mountain) continue;
       const { d, p } = this.local(s.R, x, y);
       if (d >= s.d0 && d < s.d1 && Math.abs(p) <= s.w / 2) return s;
     }
@@ -171,7 +211,11 @@ const World = {
     const h = Math.sin(x * 0.021 + 1.3) * Math.cos(y * 0.017 - 0.7) * 0.9
             + Math.sin(x * 0.0063 - y * 0.0051) * 1.4
             + Math.sin((x + y) * 0.047) * 0.25;
-    return h * amp * flat * flat;
+    // pequenos relevos e depressões
+    const bumps = Math.sin(x * 0.11 + Math.sin(y * 0.07) * 2) * Math.cos(y * 0.095 + Math.sin(x * 0.05)) * 0.55
+                + Math.sin(x * 0.23 - y * 0.19) * 0.18;
+    const dip = Math.max(0, Math.sin(x * 0.031 + 2.1) * Math.sin(y * 0.027 - 0.4) - 0.55) * -4.5; // buracos rasos espalhados
+    return (h * amp + bumps + dip) * flat * flat + this.mountainH(x, y);
   },
 
     // cor do chão (biome)
