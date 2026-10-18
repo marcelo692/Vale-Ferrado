@@ -1,10 +1,9 @@
 {
-  "version": "1.9.0",
+  "version": "1.9.1",
   "date": "2026-10-18",
   "notes": [
-    "Cópia de segurança do progresso: salva sozinho a cada 30 s e sempre que você sai da janela, troca de aba ou fecha o jogo",
-    "Salvamento em arquivo save/progresso.json dentro da pasta do jogo (Chrome/Edge), mantendo também a versão anterior",
-    "Botão Salvar agora no menu de pausa (ou tecla K) e recuperação automática se o navegador perder o progresso"
+    "Estrelas cadentes de vez em quando no céu noturno",
+    "Aurora boreal em algumas noites (verde e roxa, ondulando no céu ao norte)"
   ],
   "files": [
     {
@@ -37,7 +36,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 93042
+      "size": 98529
     },
     {
       "path": "js/ui.js",
@@ -61,7 +60,7 @@
     },
     {
       "path": "version.json",
-      "size": 1220
+      "size": 1326
     }
   ]
 }

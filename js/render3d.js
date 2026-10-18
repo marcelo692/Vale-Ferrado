@@ -194,6 +194,88 @@ const Render = {
   },
   rideH() { const r = Game.ride(); return r ? this.rideHFor(Game.S.gear.ride) + (Game.S.gear.ride === 4 ? Math.sin(this.t * 3) * 0.05 : 0) : 0; },
 
+  // ---------- estrelas cadentes e aurora boreal ----------
+  buildNightFx() {
+    this.nightFx = new THREE.Group(); this.scene.add(this.nightFx);
+    // estrelas cadentes: rastro afinando com brilho na ponta
+    this.meteors = [];
+    for (let i = 0; i < 3; i++) {
+      const g = new THREE.BufferGeometry(), N = 24, pos = new Float32Array(N * 2 * 3), col = new Float32Array(N * 2 * 4);
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 4));
+      const idx = []; for (let k = 0; k < N - 1; k++) { const a = k * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } g.setIndex(idx);
+      const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+      m.frustumCulled = false; m.renderOrder = -8; m.visible = false; this.nightFx.add(m);
+      this.meteors.push({ m, N, t: 0, dur: 1, active: false });
+    }
+    this.meteorT = 6;
+    // aurora: cortinas onduladas, verde embaixo e rosa/roxo em cima
+    const amat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+      uniforms: { t: { value: 0 }, a: { value: 0 } },
+      vertexShader: `uniform float t; varying vec2 vUv; void main(){ vUv = uv; vec3 p = position;
+        p.z += sin(p.x * 0.004 + t * 0.35) * 260.0 + sin(p.x * 0.011 - t * 0.6) * 90.0;
+        p.y += sin(p.x * 0.007 + t * 0.4) * 60.0 * uv.y;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }`,
+      fragmentShader: `uniform float t; uniform float a; varying vec2 vUv;
+        void main(){ float y = vUv.y;
+          float rays = 0.55 + 0.45 * sin(vUv.x * 160.0 + t * 1.3 + sin(vUv.x * 37.0 + t) * 2.0);
+          float edge = smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
+          float body = smoothstep(0.0, 0.12, y) * pow(1.0 - y, 1.6);
+          vec3 c = mix(vec3(0.15, 1.0, 0.45), vec3(0.75, 0.25, 0.95), smoothstep(0.35, 0.95, y));
+          float pulse = 0.75 + 0.25 * sin(t * 0.8 + vUv.x * 9.0);
+          gl_FragColor = vec4(c * rays * body * edge * pulse * a * 1.4, 1.0); }`,
+    });
+    this.auroraMat = amat; this.aurora = new THREE.Group();
+    const curtains = [[-3200, 900, 0.0, 5200], [-3500, 1150, 0.35, 4200], [-2900, 750, -0.4, 3600]];
+    for (const [z, y0, rot, w] of curtains) {
+      const c = new THREE.Mesh(new THREE.PlaneGeometry(w, 900, 80, 1), amat);
+      c.position.set(0, y0 + 450, z); c.rotation.y = rot; c.renderOrder = -8.5; c.frustumCulled = false; this.aurora.add(c);
+    }
+    this.aurora.visible = false; this.nightFx.add(this.aurora);
+    this.auroraNight = -1; this.auroraOn = false; this.auroraA = 0;
+  },
+  spawnMeteor() {
+    const me = this.meteors.find(m => !m.active); if (!me) return;
+    const a = Math.random() * Math.PI * 2, el = 0.35 + Math.random() * 0.45, R = 5200;
+    const start = new V3(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el)).multiplyScalar(R);
+    const dir = new V3(Math.random() - 0.5, -0.35 - Math.random() * 0.4, Math.random() - 0.5).normalize();
+    Object.assign(me, { active: true, t: 0, dur: 0.7 + Math.random() * 0.8, start, dir, len: 500 + Math.random() * 500, speed: 2600 + Math.random() * 1600, w: 9 + Math.random() * 7 });
+    me.m.visible = true;
+  },
+  updateNightFx(dt) {
+    const night = 1 - (this.day || 0);
+    this.nightFx.position.copy(this.cam.position);
+    // estrelas cadentes de vez em quando
+    this.meteorT -= dt;
+    if (this.meteorT <= 0) { this.meteorT = 7 + Math.random() * 20; if (night > 0.7 && !(UI && UI.open)) this.spawnMeteor(); }
+    const camDir = new V3(); this.cam.getWorldDirection(camDir);
+    for (const me of this.meteors) {
+      if (!me.active) continue;
+      me.t += dt; const k = me.t / me.dur;
+      if (k >= 1) { me.active = false; me.m.visible = false; continue; }
+      const head = me.start.clone().addScaledVector(me.dir, me.speed * me.t);
+      const fade = Math.sin(Math.PI * k);
+      const side = new V3().crossVectors(me.dir, head.clone().normalize()).normalize();
+      const pos = me.m.geometry.attributes.position, col = me.m.geometry.attributes.color;
+      for (let i = 0; i < me.N; i++) {
+        const f = i / (me.N - 1), p = head.clone().addScaledVector(me.dir, -me.len * f * Math.min(1, me.t * 3));
+        const w = me.w * (1 - f) * (i === 0 ? 1.6 : 1);
+        pos.setXYZ(i * 2, p.x + side.x * w, p.y + side.y * w, p.z + side.z * w);
+        pos.setXYZ(i * 2 + 1, p.x - side.x * w, p.y - side.y * w, p.z - side.z * w);
+        const br = Math.pow(1 - f, 1.5) * fade * night;
+        for (const j of [0, 1]) col.setXYZW(i * 2 + j, 1 * br, 0.95 * br, 0.85 * br, 1);
+      }
+      pos.needsUpdate = col.needsUpdate = true;
+    }
+    // aurora boreal em algumas noites (sorteado uma vez por noite)
+    const c = Game.S.clock, nightId = Math.floor((Game.S.time + (c < 0.5 ? -DAY_LEN : 0)) / DAY_LEN);
+    if (night > 0.8 && this.auroraNight !== nightId) { this.auroraNight = nightId; this.auroraOn = Math.random() < 0.35; this.auroraStart = c; }
+    const want = this.auroraOn && night > 0.85 ? 1 : 0;
+    this.auroraA += (want - this.auroraA) * Math.min(1, dt * 0.25);
+    this.aurora.visible = this.auroraA > 0.01;
+    this.auroraMat.uniforms.a.value = this.auroraA; this.auroraMat.uniforms.t.value += dt;
+  },
+
   toggleView() { this.view = this.view === 'fp' ? 'tp' : 'fp'; UI.toast(this.view === 'fp' ? 'Primeira pessoa' : 'Terceira pessoa: veja seu personagem (V para voltar)'); },
 
   // ---------- céu e horizonte infinito ----------
@@ -226,6 +308,7 @@ const Render = {
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
     this.stars = new THREE.Points(sg, new THREE.PointsMaterial({ color: '#ffffff', size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
     this.stars.renderOrder = -9.5; this.scene.add(this.stars);
+    this.buildNightFx();
     // anel de montanhas que acompanha o jogador (fundo infinito)
     this.ring = new THREE.Group();
     const rings = [[3000, '#7f97a8', 380, 1], [3800, '#9fb2bf', 520, 2], [4600, '#b8c7cf', 700, 3]];
@@ -1054,6 +1137,7 @@ const Render = {
     this.updatePlayerLights();
     this.updateObstacleHint();
     this.stars.position.copy(this.cam.position);
+    this.updateNightFx(dt);
 
     this.r.clear();
     this.r.render(this.scene, this.cam);
