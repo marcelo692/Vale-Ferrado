@@ -28,8 +28,12 @@ const UI = {
   },
 
   freeMouse() { if (document.pointerLockElement) document.exitPointerLock(); },
-  lockHint(show) { $('lockhint').style.display = show && started ? 'flex' : 'none'; },
-  resume() { Snd.start(); try { $('game').requestPointerLock(); } catch (e) {} },
+  lockHint(show) {
+    const el = $('lockhint'), want = show && started ? 'flex' : 'none';
+    if (el.style.display !== want && want === 'flex') { const v = Math.round((Game.S.sens || 1) * 100), sl = $('sens'); if (sl) { sl.value = v; sl.nextElementSibling.textContent = v + '%'; } }
+    el.style.display = want;
+  },
+  resume() { Snd.start(); Game.lock(); },
   pics(kind, a) {
     try {
       return `<div class="pics"><figure><img src="${Render.itemImg(kind, a)}" alt=""><figcaption>Item</figcaption></figure><figure><img src="${Render.charImg(kind, a)}" alt=""><figcaption>Em você</figcaption></figure></div>`;
@@ -41,7 +45,7 @@ const UI = {
     $('panel').classList.remove('hidden');
     this.renderPanel();
   },
-  close() { if (this.open) Snd.close(); this.open = null; $('panel').classList.add('hidden'); const cv = $('game'); try { cv.requestPointerLock(); } catch (e) {} },
+  close() { if (this.open) Snd.close(); this.open = null; $('panel').classList.add('hidden'); Game.lock(); },
 
   renderPanel() {
     const S = Game.S, id = this.open;

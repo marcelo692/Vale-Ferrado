@@ -1,9 +1,9 @@
 {
-  "version": "1.7.2",
+  "version": "1.7.3",
   "date": "2026-10-18",
   "notes": [
-    "Pausar (Esc) agora pausa a música, os sons do ambiente e o próprio jogo (relógio, power-ups e respawn param)",
-    "Na janela de Som a música continua tocando para você ajustar o volume"
+    "Corrigido: a câmera dava giros bruscos do nada (saltos falsos do mouse agora são ignorados e o mouse usa movimento sem aceleração)",
+    "Ajuste de sensibilidade do mouse no menu de pausa (Esc)"
   ],
   "files": [
     {
@@ -16,7 +16,7 @@
     },
     {
       "path": "index.html",
-      "size": 21641
+      "size": 21934
     },
     {
       "path": "js/audio.js",
@@ -28,7 +28,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 22968
+      "size": 23849
     },
     {
       "path": "js/render3d.js",
@@ -36,7 +36,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 22817
+      "size": 22953
     },
     {
       "path": "js/updater.js",
@@ -56,7 +56,7 @@
     },
     {
       "path": "version.json",
-      "size": 1078
+      "size": 1088
     }
   ]
 }

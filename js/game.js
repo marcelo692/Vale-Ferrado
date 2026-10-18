@@ -93,20 +93,35 @@ const Game = {
     addEventListener('blur', () => { this.keys = {}; this.mouse.down = false; });
     addEventListener('mousemove', e => {
       if (!this.locked()) return;
-      this.P.yaw -= e.movementX * 0.0022;
-      this.P.pitch = Math.max(-1.45, Math.min(1.45, this.P.pitch - e.movementY * 0.0022));
+      let dx = e.movementX || 0, dy = e.movementY || 0;
+      // o Chrome às vezes manda saltos gigantes no movimento do mouse (principalmente logo depois de prender o cursor)
+      if (this.lookSkip > 0) { this.lookSkip--; return; }
+      const mag = Math.hypot(dx, dy), avg = this.lookAvg || 8;
+      if (mag > 180 && mag > avg * 6) return;          // salto anormal: descarta
+      this.lookAvg = avg * 0.85 + Math.min(mag, 150) * 0.15;
+      const k = 0.0022 * (this.S.sens || 1);
+      this.P.yaw -= dx * k;
+      this.P.pitch = Math.max(-1.45, Math.min(1.45, this.P.pitch - dy * k));
     });
     cv.addEventListener('mousedown', e => {
       if (UI.open) return;
       Snd.start();
-      if (!this.locked()) { cv.requestPointerLock(); return; }
+      if (!this.locked()) { Game.lock(); return; }
       if (e.button === 0) { this.mouse.down = true; this.mouse.holdT = 0; this.clickStrike(); }
     });
     addEventListener('mouseup', e => { if (e.button === 0) this.mouse.down = false; });
-    document.addEventListener('pointerlockchange', () => { UI.lockHint(!this.locked() && !UI.open); if (!this.locked()) { this.mouse.down = false; this.keys = {}; } });
+    document.addEventListener('pointerlockchange', () => { this.lookSkip = 3; this.lookAvg = 8; UI.lockHint(!this.locked() && !UI.open); if (!this.locked()) { this.mouse.down = false; this.keys = {}; } });
     cv.addEventListener('contextmenu', e => e.preventDefault());
   },
 
+  // prende o mouse usando movimento "cru" (sem aceleração do sistema), que evita giros bruscos
+  lock() {
+    const cv = document.getElementById('game');
+    try {
+      const p = cv.requestPointerLock({ unadjustedMovement: true });
+      if (p && p.catch) p.catch(() => { try { cv.requestPointerLock(); } catch (e) {} });
+    } catch (e) { try { cv.requestPointerLock(); } catch (e2) {} }
+  },
   jump() {
     if (this.onGround()) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()) * 1.04; this.P.z += 0.001; this.P.peak = this.P.z; Snd.jump(); }
   },
