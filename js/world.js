@@ -5,12 +5,15 @@
 
 const CITY_R = 22; // raio da cidade em metros
 const NPCS = [
-  { id: 'ferreiro', name: 'Seu Bento, o Ferreiro', role: 'Evolui o martelo',              x: -9, y: -5, color: '#c0502a' },
-  { id: 'tropeira', name: 'Dona Cida, a Tropeira', role: 'Mineração, mochila, movimento e pulo', x: 9,  y: -5, color: '#3f7a4a' },
-  { id: 'botica',   name: 'Zé da Botica',          role: 'Vende power-ups',               x: -9, y: 8,  color: '#7a3fa0' },
-  { id: 'armazem',  name: 'Seu Lauro, do Armazém', role: 'Compra tudo automaticamente',   x: 9,  y: 8,  color: '#a07a2a' },
-  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte e lanternas', x: 15, y: 1.5, color: '#2a7a9a' },
+  { id: 'ferreiro', name: 'Seu Bento, o Ferreiro', role: 'Evolui o martelo',              shop: 'MARTELOS',  color: '#c0502a', ang: -112.5 },
+  { id: 'tropeira', name: 'Dona Cida, a Tropeira', role: 'Mineração, mochila, movimento e pulo', shop: 'MELHORIAS', color: '#3f7a4a', ang: -67.5 },
+  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte e lanternas', shop: 'ITENS',     color: '#2a7a9a', ang: -22.5 },
+  { id: 'armazem',  name: 'Seu Lauro, do Armazém', role: 'Compra tudo automaticamente',   shop: 'VENDAS',    color: '#a07a2a', ang: 45 },
+  { id: 'botica',   name: 'Zé da Botica',          role: 'Vende power-ups',               shop: 'POWER-UPS', color: '#7a3fa0', ang: 135 },
 ];
+// barracas em círculo em volta da fonte, entre as saídas das estradas
+const STALL_R = 12;
+NPCS.forEach(n => { const a = n.ang * Math.PI / 180; n.x = Math.cos(a) * STALL_R; n.y = Math.sin(a) * STALL_R; });
 
 function rng(seed) { // gerador determinístico
   let s = seed >>> 0;

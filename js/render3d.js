@@ -426,24 +426,48 @@ const Render = {
     const f1 = mesh(new THREE.CylinderGeometry(2.6, 2.8, 0.7, 12), mat('#8a8070')); f1.position.y = 0.35; this.city.add(f1);
     this.water = mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.1, 12), new THREE.MeshPhongMaterial({ color: '#3d7a95', shininess: 80 }), false); this.water.position.y = 0.68; this.city.add(this.water);
     const f2 = mesh(new THREE.CylinderGeometry(0.35, 0.5, 2.2, 8), mat('#9a9080')); f2.position.y = 1.1; this.city.add(f2);
-    // barracas dos NPCs
-    this.npcObjs = [];
+    // barracas dos NPCs (em círculo, de frente para a fonte)
+    this.npcObjs = []; this.shopIcons = [];
     for (const n of NPCS) {
-      const g = new THREE.Group(); g.position.set(n.x, 0, n.y - 1.6);
+      const a = n.ang * Math.PI / 180;
+      const g = new THREE.Group(); g.position.set(n.x + Math.cos(a) * 1.4, 0, n.y + Math.sin(a) * 1.4); g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a));
       for (const [px, pz] of [[-2.3, -1.2], [2.3, -1.2], [-2.3, 1.2], [2.3, 1.2]]) { const p = mesh(new THREE.CylinderGeometry(0.1, 0.12, 2.8, 6), mat('#5a3d24')); p.position.set(px, 1.4, pz); g.add(p); }
       const roof = mesh(new THREE.BoxGeometry(5.4, 0.18, 3.2), mat(n.color)); roof.position.set(0, 2.85, 0); roof.rotation.x = -0.18; g.add(roof);
       for (let i = 0; i < 5; i++) { const st = mesh(new THREE.BoxGeometry(1.08, 0.2, 3.22), mat(i % 2 ? '#e8dcc0' : n.color), false); st.position.set(-2.16 + i * 1.08, 2.86, 0); st.rotation.x = -0.18; g.add(st); }
       const counter = mesh(new THREE.BoxGeometry(4.2, 1, 0.8), mat('#7a5a3a')); counter.position.set(0, 0.5, 0.9); g.add(counter);
       const goods = { ferreiro: '#5f666e', tropeira: '#c49a6c', botica: '#7a3fa0', armazem: '#a07a2a', bazar: '#e0a020' }[n.id];
       for (let i = 0; i < 4; i++) { const it = mesh(n.id === 'botica' ? new THREE.CylinderGeometry(0.12, 0.12, 0.4, 6) : new THREE.BoxGeometry(0.4, 0.3, 0.3), mat(goods)); it.position.set(-1.4 + i * 0.9, 1.15, 0.9); g.add(it); }
-      if (n.id === 'ferreiro') { const anvil = mesh(new THREE.BoxGeometry(0.9, 0.5, 0.45), mat('#3a3d42', { shininess: 40 })); anvil.position.set(1.6, 0.25, 2.4); g.add(anvil); }
+      if (n.id === 'ferreiro') { const anvil = mesh(new THREE.BoxGeometry(0.9, 0.5, 0.45), mat('#3a3d42', { shininess: 40 })); anvil.position.set(1.6, 0.25, -0.9); g.add(anvil); }
       const person = this.makePerson({ shirt: n.color, skin: n.id === 'tropeira' ? '#a8754f' : '#c48c62', hair: n.id === 'ferreiro' ? '#d8d8d8' : '#3a2a1c' });
-      person.position.set(0, 0, -0.4); g.add(person);
-      const lab = labelSprite(n.name.split(',')[0], n.role.length > 30 ? 'Mineração · mochila · movimento · pulo' : n.role); lab.position.set(0, 3.9, 0.6); g.add(lab);
+      person.position.set(0, 0, -0.3); g.add(person);
+      // placa com o que a barraca vende
+      const signTex = canvasTex(512, 128, (c, w, h) => {
+        c.fillStyle = '#3a2614'; c.beginPath(); c.roundRect(4, 4, w - 8, h - 8, 14); c.fill();
+        c.strokeStyle = n.color; c.lineWidth = 8; c.stroke();
+        c.fillStyle = '#ffe9a8'; c.font = '900 72px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(n.shop, w / 2, h / 2 + 4);
+      });
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshBasicMaterial({ map: signTex, transparent: true }));
+      sign.position.set(0, 3.55, 1.25); sign.rotation.x = -0.12; g.add(sign);
+      const signBack = sign.clone(); signBack.rotation.y = Math.PI; signBack.position.z = 1.24; g.add(signBack);
+      const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? 'Mineração · mochila · movimento · pulo' : n.role, '#f5e6c8', 0.8); lab.position.set(0, 2.25, 1.6); g.add(lab);
+      // símbolo girando em cima da barraca
+      const icon = this.shopIcon(n.id); icon.position.set(0, 5.4, 0); g.add(icon);
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex || (this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); })), color: n.color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 }));
+      halo.scale.setScalar(2.6); halo.position.set(0, 5.4, 0); g.add(halo);
+      this.shopIcons.push(icon);
       g.userData = { npc: n, person };
       this.city.add(g); this.npcObjs.push(g);
     }
     this.houses = new THREE.Group(); this.city.add(this.houses); this.houseEra = -1;
+  },
+  shopIcon(id) {
+    const g = new THREE.Group();
+    if (id === 'ferreiro') { const h = this.makeHammer(30); h.scale.setScalar(2.2); h.rotation.z = 0.6; h.position.y = -1; g.add(h); }
+    else if (id === 'tropeira') { const b = mesh(new THREE.BoxGeometry(0.9, 1.1, 0.55), mat('#b07a40')); g.add(b); const f = mesh(new THREE.BoxGeometry(0.92, 0.4, 0.57), mat('#8a5a2a')); f.position.y = 0.4; g.add(f); for (const x of [-0.25, 0.25]) { const st = mesh(new THREE.BoxGeometry(0.1, 1.1, 0.05), mat('#4a3020')); st.position.set(x, 0, -0.3); g.add(st); } const pk = mesh(new THREE.BoxGeometry(0.6, 0.4, 0.1), mat('#9a6a34')); pk.position.set(0, -0.2, 0.32); g.add(pk); }
+    else if (id === 'botica') { const f = this.makeFlask('elixir', 5); g.add(f); }
+    else if (id === 'armazem') { const c = mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.16, 24), mat('#ffcf30', { emissive: '#a07000', emissiveIntensity: 0.4, shininess: 120 })); c.rotation.x = Math.PI / 2; g.add(c); const r = mesh(new THREE.TorusGeometry(0.6, 0.05, 6, 24), mat('#c08a00', { shininess: 120 })); r.position.z = 0.09; g.add(r); const r2 = r.clone(); r2.position.z = -0.09; g.add(r2); }
+    else { const box = mesh(new THREE.BoxGeometry(1, 1, 1), mat('#2a9ad0')); g.add(box); const rb1 = mesh(new THREE.BoxGeometry(1.03, 1.03, 0.2), mat('#ffd34d')); g.add(rb1); const rb2 = mesh(new THREE.BoxGeometry(0.2, 1.03, 1.03), mat('#ffd34d')); g.add(rb2); for (const s of [-1, 1]) { const bow = mesh(new THREE.TorusGeometry(0.2, 0.07, 6, 12), mat('#ffd34d')); bow.position.set(s * 0.18, 0.65, 0); bow.rotation.y = Math.PI / 2; bow.rotation.x = s * 0.6; g.add(bow); } }
+    return g;
   },
   makePerson(o) {
     const g = new THREE.Group();
@@ -1202,6 +1226,7 @@ const Render = {
     this.sun.target.position.set(P.x, gh, P.y);
     // efeitos de veio aflorado: recurso brilha
     this.water.position.y = 0.68 + Math.sin(this.t * 2) * 0.02;
+    if (this.shopIcons) this.shopIcons.forEach((ic, i) => { ic.rotation.y = this.t * 1.2 + i; ic.position.y = 5.4 + Math.sin(this.t * 2 + i) * 0.15; });
     this.updatePlayerLights();
     this.updateObstacleHint();
     this.stars.position.copy(this.cam.position);

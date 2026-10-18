@@ -1,8 +1,10 @@
 {
-  "version": "2.0.5",
+  "version": "2.1.0",
   "date": "2026-10-18",
   "notes": [
-    "Obstáculos voltaram ao tamanho completo em todas as regiões (as montanhas foram para o lado do caminho e não cortam mais os obstáculos)"
+    "Barracas reorganizadas em círculo em volta da fonte, entre as saídas das estradas, todas de frente para o centro",
+    "Placa grande com o que cada uma vende: MARTELOS, MELHORIAS, ITENS, VENDAS e POWER-UPS",
+    "Símbolo girando em cima de cada barraca: martelo, mochila, presente, moeda e frasco"
   ],
   "files": [
     {
@@ -35,7 +37,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 107331
+      "size": 110749
     },
     {
       "path": "js/ui.js",
@@ -47,7 +49,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 12644
+      "size": 12932
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -59,7 +61,7 @@
     },
     {
       "path": "version.json",
-      "size": 1214
+      "size": 1101
     }
   ]
 }
