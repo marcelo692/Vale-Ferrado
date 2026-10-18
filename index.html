@@ -187,7 +187,14 @@
   let started = false, last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (started) { Game.update(dt); UI.updateHud(dt); }
+    if (started) {
+      // pausado = mouse solto no menu de pausa (ou nas janelas Ajuda/Atualizações/Som abertas a partir dele)
+      const paused = !Game.locked() && (!UI.open || UI.open === 'help' || UI.open === 'update' || UI.open === 'sound');
+      if (!paused) Game.update(dt);
+      else if (UI.open === 'sound' && Game.sndState) Snd.update(dt, Object.assign({}, Game.sndState, { moving: false, speed: 0 }));
+      Snd.setPaused(paused && UI.open !== 'sound'); // na janela de Som a música continua para você ajustar o volume
+      UI.updateHud(dt);
+    }
     Render.draw(dt);
     requestAnimationFrame(frame);
   }

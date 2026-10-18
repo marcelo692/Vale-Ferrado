@@ -368,7 +368,8 @@ const Game = {
     } else { this.mineT = Math.min(this.mineT, this.interval() * 0.6); P.swing = Math.max(0, P.swing - dt * 4); }
 
     // som ambiente e música
-    Snd.update(dt, { dist: Math.hypot(P.x, P.y), night: this.isNight(), speed: P.moving ? this.speed() * ((this.ride() || {}).mult || 1) : 0, moving: P.moving, ride: this.ride() ? S.gear.ride : 0, river: this.riverNear() });
+    this.sndState = { dist: Math.hypot(P.x, P.y), night: this.isNight(), speed: P.moving ? this.speed() * ((this.ride() || {}).mult || 1) : 0, moving: P.moving, ride: this.ride() ? S.gear.ride : 0, river: this.riverNear() };
+    Snd.update(dt, this.sndState);
 
     // efeitos
     for (let i = this.fx.length - 1; i >= 0; i--) { const f = this.fx[i]; f.t -= dt; f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt; f.vz -= 18 * dt; if (f.z < 0) { f.z = 0; f.vz *= -0.3; f.vx *= 0.6; f.vy *= 0.6; } if (f.t <= 0) this.fx.splice(i, 1); }

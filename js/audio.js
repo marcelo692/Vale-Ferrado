@@ -39,9 +39,18 @@ const Snd = {
     if (!this.ready) return;
     const t = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(this.muted ? 0 : this.vol.master * 2.2, t, 0.05);
-    this.busMusic.gain.setTargetAtTime(this.vol.music * 1.1, t, 0.05);
+    this.busMusic.gain.setTargetAtTime(this.paused ? 0 : this.vol.music * 1.1, t, 0.05);
     this.busSfx.gain.setTargetAtTime(this.vol.sfx, t, 0.05);
-    this.busAmb.gain.setTargetAtTime(this.vol.amb * 0.8, t, 0.05);
+    this.busAmb.gain.setTargetAtTime(this.paused ? 0 : this.vol.amb * 0.8, t, 0.05);
+  },
+  // pausa: música e ambiente somem suavemente e voltam ao continuar
+  setPaused(p) {
+    if (!this.ready || this.paused === p) return;
+    this.paused = p;
+    const t = this.ctx.currentTime;
+    this.busMusic.gain.cancelScheduledValues(t); this.busAmb.gain.cancelScheduledValues(t);
+    if (p) { this.busMusic.gain.setTargetAtTime(0, t, 0.15); this.busAmb.gain.setTargetAtTime(0, t, 0.15); if (this.humG) this.humG.gain.setTargetAtTime(0, t, 0.05); if (this.roll) this.roll.g.gain.setTargetAtTime(0, t, 0.05); }
+    else this.apply();
   },
   set(k, v) { this.vol[k] = v; this.apply(); this.saveCfg(); },
   toggleMute() { this.muted = !this.muted; this.apply(); this.saveCfg(); return !this.muted; },
@@ -213,6 +222,7 @@ const Snd = {
     update(dt, st) {
       const A = this.A, c = A.ctx;
       const night = st.night, bpm = night ? 66 : 84, spb = 60 / bpm;
+      if (this.next < c.currentTime - 0.2) this.next = c.currentTime + 0.15; // voltando da pausa: não acumula notas
       while (this.next < c.currentTime + 0.3) {
         const t = this.next, b = this.beat % 8;
         const chords = night ? this.nightChords : this.dayChords, ch = chords[this.prog % 4];

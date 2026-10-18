@@ -1,9 +1,9 @@
 {
-  "version": "1.7.1",
+  "version": "1.7.2",
   "date": "2026-10-18",
   "notes": [
-    "Recibo do Seu Lauro ao entrar na cidade: mostra o que foi guardado, para qual evolução, o que foi vendido e por quanto",
-    "Armazém mostra a regra de venda e a última entrega"
+    "Pausar (Esc) agora pausa a música, os sons do ambiente e o próprio jogo (relógio, power-ups e respawn param)",
+    "Na janela de Som a música continua tocando para você ajustar o volume"
   ],
   "files": [
     {
@@ -16,11 +16,11 @@
     },
     {
       "path": "index.html",
-      "size": 21129
+      "size": 21641
     },
     {
       "path": "js/audio.js",
-      "size": 16443
+      "size": 17140
     },
     {
       "path": "js/data.js",
@@ -28,7 +28,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 22933
+      "size": 22968
     },
     {
       "path": "js/render3d.js",
@@ -56,7 +56,7 @@
     },
     {
       "path": "version.json",
-      "size": 1020
+      "size": 1078
     }
   ]
 }
