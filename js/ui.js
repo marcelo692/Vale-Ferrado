@@ -30,6 +30,7 @@ const UI = {
   freeMouse() { if (document.pointerLockElement) document.exitPointerLock(); },
   lockHint(show) {
     const el = $('lockhint'), want = show && started ? 'flex' : 'none';
+    if (want === 'flex') { const st = $('savest'); if (st) st.textContent = Backup.statusText(); }
     if (el.style.display !== want && want === 'flex') { const v = Math.round((Game.S.sens || 1) * 100), sl = $('sens'); if (sl) { sl.value = v; sl.nextElementSibling.textContent = v + '%'; } }
     el.style.display = want;
   },
@@ -181,7 +182,8 @@ const UI = {
       <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra tudo sozinho. Use o dinheiro no Ferreiro (martelo), na Tropeira (atributos) e na Botica (power-ups).</p>
       <p>Qualquer martelo quebra qualquer pedra, mas a informação embaixo da mira mostra quanto tempo vai levar: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
       <p>O jogo salva sozinho no seu computador.</p>
-      <h4>Seu progresso</h4><p class="hint" style="margin-top:0">Guarde uma cópia do seu progresso ou leve para outro computador/navegador.</p>
+      <h4>Seu progresso</h4><p class="hint" style="margin-top:0">O jogo salva sozinho a cada 30 segundos e sempre que você sai da janela, troca de aba ou fecha o jogo: no navegador e no arquivo <b>save/progresso.json</b> dentro da pasta do jogo (Chrome/Edge, depois de liberar a pasta em <b>💾 Salvar agora</b>). ${Backup.statusText()}</p>
+      <div class="row"><button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button><button class="buy alt" onclick="Backup.restoreFromFile()">📂 Carregar do arquivo da pasta</button></div>
       <div class="row"><button class="buy alt" onclick="UI.exportSave()">Salvar cópia do progresso</button><button class="buy alt" onclick="document.getElementById('impfile').click()">Carregar progresso</button><input type="file" id="impfile" accept=".json" style="display:none" onchange="UI.importSave(this.files[0])"></div>
       <div class="row" style="margin-top:12px"><button class="buy" onclick="UI.close()">Voltar ao jogo</button><button class="buy alt" onclick="if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()">Recomeçar do zero</button></div><p class="hint" style="text-align:center">Vale Ferrado v${GAME_VERSION}</p></div>`;
   },

@@ -1,10 +1,10 @@
 {
-  "version": "1.8.1",
+  "version": "1.9.0",
   "date": "2026-10-18",
   "notes": [
-    "Detector automático: procura sozinho o material que falta para suas evoluções e passa para o próximo quando você já tem o suficiente",
-    "Se o material da vez estiver fora do alcance, o detector aponta para o próximo da lista que estiver por perto",
-    "T escolhe o minério na mão; Shift+T volta ao automático"
+    "Cópia de segurança do progresso: salva sozinho a cada 30 s e sempre que você sai da janela, troca de aba ou fecha o jogo",
+    "Salvamento em arquivo save/progresso.json dentro da pasta do jogo (Chrome/Edge), mantendo também a versão anterior",
+    "Botão Salvar agora no menu de pausa (ou tecla K) e recuperação automática se o navegador perder o progresso"
   ],
   "files": [
     {
@@ -13,15 +13,19 @@
     },
     {
       "path": "README.md",
-      "size": 3847
+      "size": 3951
     },
     {
       "path": "index.html",
-      "size": 22180
+      "size": 22856
     },
     {
       "path": "js/audio.js",
       "size": 17140
+    },
+    {
+      "path": "js/backup.js",
+      "size": 6529
     },
     {
       "path": "js/data.js",
@@ -29,7 +33,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 25870
+      "size": 25935
     },
     {
       "path": "js/render3d.js",
@@ -37,7 +41,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 23711
+      "size": 24215
     },
     {
       "path": "js/updater.js",
@@ -57,7 +61,7 @@
     },
     {
       "path": "version.json",
-      "size": 1125
+      "size": 1220
     }
   ]
 }

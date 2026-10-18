@@ -40,6 +40,9 @@
   .pausebox { background: #2a2016; border: 2px solid var(--edge); border-radius: 14px; padding: 22px 28px; width: min(380px, 92vw); text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
   .pausebox h2 { font: 700 26px Georgia, serif; color: var(--gold); margin: 0 0 14px; }
   .pausebox .buy { display: block; width: 100%; margin: 8px 0; }
+  .savest { font-size: 11px; opacity: .75; margin: -2px 0 8px; line-height: 1.4; }
+  #saved { position: fixed; left: 50%; bottom: 182px; transform: translateX(-50%); font-size: 12px; background: rgba(20,14,8,.7); padding: 3px 10px; border-radius: 6px; opacity: 0; transition: opacity .4s; pointer-events: none; }
+  #saved.on { opacity: .9; }
   .vol.sens { grid-template-columns: 1fr 120px 44px; font-size: 12.5px; margin: 12px 0 0; }
   .pausebox small { display: block; font-size: 12px; opacity: .7; margin-top: 12px; line-height: 1.5; }
   #tr { z-index: 7; }
@@ -157,12 +160,15 @@
 <div id="det"></div>
 <div id="equip"></div>
 <div id="inv"></div>
+<div id="saved"></div>
 <div id="receipt" onclick="this.classList.remove('on')"></div>
 <div id="tinfo"></div>
 <div id="floats"></div>
 <div id="stamwrap"><div id="stam"></div></div>
 <div id="lockhint" onclick="if(event.target===this)UI.resume()"><div class="pausebox"><h2>Pausado</h2>
   <button class="buy" onclick="UI.resume()">▶ Continuar jogando</button>
+  <button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button>
+  <p class="savest" id="savest"></p>
   <button class="buy alt" onclick="Updater.open();Updater.check(true)">⬆ Atualizações</button>
   <button class="buy alt" onclick="UI.soundPanel()">🔊 Som</button>
   <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>
@@ -174,6 +180,7 @@
   <h1>Vale Ferrado</h1>
   <p>Do graveto ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.</p>
   <button class="buy" id="play">Jogar</button>
+  <button class="buy alt" id="restoreFile" style="display:none" onclick="Backup.restoreFromFile()">📂 Carregar progresso do arquivo</button>
   <p style="font-size:12px;opacity:.6;margin-top:18px">Mouse olha · WASD anda · Shift corre · Espaço pula · Segure o clique para minerar · E fala com NPCs · V muda a câmera</p>
 </div>
 
@@ -185,6 +192,7 @@
 <script src="lib/three.min.js"></script>
 <script src="js/render3d.js"></script>
 <script src="js/updater.js"></script>
+<script src="js/backup.js"></script>
 <script>
   'use strict';
   let started = false, last = performance.now();
@@ -201,7 +209,7 @@
     Render.draw(dt);
     requestAnimationFrame(frame);
   }
-  Game.init(); Render.init(); Updater.init();
+  Game.init(); Render.init(); Updater.init(); Backup.init();
   document.getElementById('play').textContent = Game.S.time > 1 ? 'Continuar' : 'Jogar';
   document.getElementById('play').onclick = () => {
     Snd.start();

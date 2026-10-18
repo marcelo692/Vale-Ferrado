@@ -84,6 +84,7 @@ const Game = {
       if (k === 'l') this.toggleLight();
       if (k === 'g') this.toggleDetector();
       if (k === 't') this.cycleDetector(e.shiftKey ? -1 : 1);
+      if (k === 'k' && e.ctrlKey === false) { Backup.manual(); }
       if (k === 'm') { const on = Snd.toggleMute(); UI.toast(on ? 'Som ligado' : 'Som desligado'); }
       if (k === '1') this.activate('tonico');
       if (k === '2') this.activate('cafe');
