@@ -20,7 +20,7 @@ function newState() {
     seen: {},         // marcos de história vistos
     time: 0, x: 0, y: 3,
     gear: { detector: 0, ride: 0, light: 0 }, // equipamentos comprados no Bazar
-    riding: false, lightOn: true, detOn: true, detRes: null, sound: true,
+    riding: false, lightOn: true, detOn: true, detRes: null, detAuto: true, sound: true,
     clock: 0.3,       // hora do dia (0 = meia-noite, 0.5 = meio-dia)
     showInv: true,    // tabela lateral de evoluções e materiais
   };
@@ -277,26 +277,60 @@ const Game = {
     const L = Math.min(MAX_LEVEL, this.S.hammer + 1);
     return HAMMERS[L].mat[0] || resourceForLevel(this.S.hammer).id;
   },
+  // materiais que ainda faltam (descontando depósito e mochila), na ordem: martelo, mineração, mochila, movimento, pulo
+  missingList() {
+    const S = this.S, need = this.needs(), seen = new Set(), list = [];
+    const ups = [];
+    if (S.hammer < MAX_LEVEL) ups.push(hammerCost(S.hammer + 1));
+    for (const k of ['mine', 'bag', 'move', 'jump']) if (S.attrs[k] < MAX_LEVEL) ups.push(attrCost(k, S.attrs[k] + 1));
+    for (const c of ups) for (const m of c.mats) {
+      if (seen.has(m.id)) continue; seen.add(m.id);
+      const falta = need[m.id] - (S.stock[m.id] || 0) - (S.bag[m.id] || 0);
+      if (falta > 0) list.push({ id: m.id, falta });
+    }
+    return list;
+  },
   cycleDetector(dir) {
     if (!this.S.gear.detector) return;
-    const i = RESOURCES.findIndex(r => r.id === (this.S.detRes || this.defaultDetRes()));
-    this.S.detRes = RESOURCES[(i + dir + RESOURCES.length) % RESOURCES.length].id;
-    UI.toast('Detector procurando: ' + RES[this.S.detRes].name);
+    if (dir < 0) { this.S.detAuto = true; this.detT = 0; UI.toast('Detector no automático: procura o que falta para suas evoluções'); return; }
+    const cur = this.S.detRes || this.defaultDetRes();
+    const i = RESOURCES.findIndex(r => r.id === cur);
+    this.S.detRes = this.S.detAuto ? cur : RESOURCES[(i + 1) % RESOURCES.length].id;
+    this.S.detAuto = false; this.detT = 0;
+    UI.toast('Detector manual: ' + RES[this.S.detRes].name + ' (T troca · Shift+T volta ao automático)');
+  },
+  nearestOf(id) {
+    const P = this.P; let best = null, bd = Infinity;
+    for (const n of World.nodes) { if (n.res.id !== id) continue; const d = Math.hypot(n.x - P.x, n.y - P.y); if (d < bd) { bd = d; best = n; } }
+    return { best, bd };
   },
   updateDetector(dt) {
     this.detT = (this.detT || 0) - dt;
     if (this.detT > 0) return; this.detT = 0.25;
     const S = this.S, lv = S.gear.detector;
     if (!lv || !S.detOn) { this.det = null; return; }
-    if (!S.detRes) S.detRes = this.defaultDetRes();
-    const G = GADGETS.detector.levels[lv], P = this.P;
-    let best = null, bd = Infinity;
-    for (const n of World.nodes) { if (n.res.id !== S.detRes) continue; const d = Math.hypot(n.x - P.x, n.y - P.y); if (d < bd) { bd = d; best = n; } }
-    if (!best || bd > G.range) { this.det = { res: S.detRes, none: true }; return; }
+    const G = GADGETS.detector.levels[lv];
+    let target = null, missing = null, pos = 0;
+    if (S.detAuto) {
+      missing = this.missingList();
+      if (!missing.length) { this.det = { auto: true, done: true }; return; }
+      // o primeiro que falta; se ele não estiver no alcance, pula para o próximo que estiver
+      for (let i = 0; i < missing.length; i++) { const f = this.nearestOf(missing[i].id); if (f.best && f.bd <= G.range) { target = { id: missing[i].id, falta: missing[i].falta, ...f }; pos = i; break; } }
+      if (!target) { this.det = { auto: true, res: missing[0].id, falta: missing[0].falta, none: true, count: missing.length }; return; }
+      if (S.detRes !== target.id && this.lastDet && this.lastDet !== target.id) Snd.toggle(true);
+      S.detRes = target.id;
+    } else {
+      if (!S.detRes) S.detRes = this.defaultDetRes();
+      const f = this.nearestOf(S.detRes);
+      if (!f.best || f.bd > G.range) { this.det = { res: S.detRes, none: true }; return; }
+      target = { id: S.detRes, ...f };
+    }
+    this.lastDet = target.id;
+    const best = target.best, bd = target.bd;
     // direção aproximada: o erro diminui quando você chega perto
     const err = G.err * Math.min(1, bd / G.range + 0.15) * Math.sin(S.time * 0.7 + best.seed);
-    const bearing = Math.atan2(best.y - P.y, best.x - P.x) + err;
-    this.det = { res: S.detRes, dist: bd, bearing, strength: 1 - bd / G.range, lv };
+    const bearing = Math.atan2(best.y - this.P.y, best.x - this.P.x) + err;
+    this.det = { res: target.id, dist: bd, bearing, strength: 1 - bd / G.range, lv, auto: S.detAuto, falta: target.falta, count: missing ? missing.length : 0, pos };
   },
 
   // ---------- loop ----------

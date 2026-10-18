@@ -109,7 +109,7 @@ const UI = {
         }
         h += `</div>`;
         if (type === 'detector' && have) {
-          h += `<p class="free" style="margin-top:10px">Minério procurado: <select onchange="Game.S.detRes=this.value;Game.save()">${RESOURCES.map(r => `<option value="${r.id}" ${r.id === (S.detRes || Game.defaultDetRes()) ? 'selected' : ''}>${r.name} (região ${REGIONS[r.region].era})</option>`).join('')}</select></p>`;
+          h += `<p class="free" style="margin-top:10px">Minério procurado: <select onchange="if(this.value==='auto'){Game.S.detAuto=true}else{Game.S.detAuto=false;Game.S.detRes=this.value}Game.detT=0;Game.save()"><option value="auto" ${S.detAuto ? 'selected' : ''}>Automático: o que falta para as evoluções</option>${RESOURCES.map(r => `<option value="${r.id}" ${!S.detAuto && r.id === (S.detRes || Game.defaultDetRes()) ? 'selected' : ''}>${r.name} (região ${REGIONS[r.region].era})</option>`).join('')}</select></p>`;
         }
       }
     }
@@ -174,7 +174,7 @@ const UI = {
         <li><b>E</b> perto de um NPC: abrir a loja</li>
         <li><b>1, 2, 3</b>: ativar power-ups da mochila</li>
         <li><b>V</b>: alternar primeira e terceira pessoa</li>
-        <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: trocar o minério do detector</li>
+        <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: escolher o minério do detector na mão · <b>Shift+T</b>: voltar ao automático</li>
         <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
         <li><b>Esc</b>: soltar o mouse</li>
       </ul>
@@ -258,14 +258,17 @@ const UI = {
     const el = $('det'), d = Game.det;
     if (!d) { el.style.display = 'none'; return; }
     el.style.display = 'flex';
-    const R = RES[d.res];
-    if (d.none) { el.innerHTML = `<div class="dial off"><i></i></div><div><b>${R.name}</b><span>Sem sinal · <kbd>T</kbd> troca</span></div>`; return; }
+    if (d.done) { el.innerHTML = `<div class="dial off"><i></i></div><div><b>AUTO · tudo pronto</b><span>Nada faltando para as próximas evoluções</span></div>`; return; }
+    const R = RES[d.res], tag = d.auto ? `<em class="auto">AUTO</em>` : `<em class="man">MANUAL</em>`;
+    const falta = d.auto && d.falta ? ` · faltam ${fmt(d.falta)}` : '';
+    if (d.none) { el.innerHTML = `<div class="dial off"><i></i></div><div><b>${tag}${R.name.split(' (')[0]}</b><span>Sem sinal${falta}${d.auto ? ' · fora do alcance' : ' · <kbd>T</kbd> troca'}</span></div>`; return; }
     const P = Game.P, fx = -Math.sin(P.yaw), fy = -Math.cos(P.yaw), rx = Math.cos(P.yaw), ry = -Math.sin(P.yaw);
     const dx = Math.cos(d.bearing), dy = Math.sin(d.bearing);
     const ang = Math.atan2(dx * rx + dy * ry, dx * fx + dy * fy) * 180 / Math.PI;
     const bars = Math.max(1, Math.ceil(d.strength * 5));
     const dist = d.dist < 15 ? 'aqui perto!' : d.lv === 1 ? (d.dist < 40 ? 'perto' : 'um pouco longe') : '~' + fmt(Math.round(d.dist / (d.lv === 2 ? 25 : 50)) * (d.lv === 2 ? 25 : 50)) + ' m';
-    el.innerHTML = `<div class="dial" style="--s:${d.strength}"><i style="transform:rotate(${ang}deg)"></i></div><div><b>${R.name}</b><span>${dist} · ${'▮'.repeat(bars)}${'▯'.repeat(5 - bars)}</span></div>`;
+    const more = d.auto && d.count > 1 ? ` · +${d.count - 1} na lista` : '';
+    el.innerHTML = `<div class="dial" style="--s:${d.strength}"><i style="transform:rotate(${ang}deg)"></i></div><div><b>${tag}${R.name.split(' (')[0]}</b><span>${dist} · ${'▮'.repeat(bars)}${'▯'.repeat(5 - bars)}${falta}${more}</span></div>`;
     // bipe que acelera conforme você se aproxima
     this.beepT = (this.beepT || 0) - 0.1;
     if (this.beepT <= 0 && started && !this.open) { Snd.beep(500 + d.strength * 700); this.beepT = 0.25 + (1 - d.strength) * 1.6; }

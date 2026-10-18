@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '1.8.0';
+const GAME_VERSION = '1.8.1';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -243,7 +243,7 @@ function fmtTime(s) {
 // ---------- Equipamentos (Tonho do Bazar) ----------
 const GADGETS = {
   detector: {
-    title: 'Detector de minério', key: 'G', desc: 'Aponta a direção do minério escolhido (T troca o minério).',
+    title: 'Detector de minério', key: 'G', desc: 'No automático, aponta para o que falta para suas evoluções e passa para o próximo sozinho. T escolhe na mão, Shift+T volta ao automático.',
     levels: [null,
       { n: 'Detector de bolso',    price: 300,     range: 80,   err: 0.6,  info: 'Alcance 80 m · direção aproximada' },
       { n: 'Detector de campo',    price: 15000,   range: 600,  err: 0.35, info: 'Alcance 600 m · mais preciso' },

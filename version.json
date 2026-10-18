@@ -1,8 +1,10 @@
 {
-  "version": "1.8.0",
+  "version": "1.8.1",
   "date": "2026-10-18",
   "notes": [
-    "Todos os recursos agora têm forma própria: cascalho é um monte de pedrinhas, pedra-sabão é lisa e esverdeada, arenito em camadas, basalto em colunas, sílex em lascas, minérios com cristais e cores diferentes e muito mais"
+    "Detector automático: procura sozinho o material que falta para suas evoluções e passa para o próximo quando você já tem o suficiente",
+    "Se o material da vez estiver fora do alcance, o detector aponta para o próximo da lista que estiver por perto",
+    "T escolhe o minério na mão; Shift+T volta ao automático"
   ],
   "files": [
     {
@@ -11,11 +13,11 @@
     },
     {
       "path": "README.md",
-      "size": 3785
+      "size": 3847
     },
     {
       "path": "index.html",
-      "size": 21934
+      "size": 22180
     },
     {
       "path": "js/audio.js",
@@ -23,11 +25,11 @@
     },
     {
       "path": "js/data.js",
-      "size": 19931
+      "size": 20012
     },
     {
       "path": "js/game.js",
-      "size": 23849
+      "size": 25870
     },
     {
       "path": "js/render3d.js",
@@ -35,7 +37,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 22953
+      "size": 23711
     },
     {
       "path": "js/updater.js",
@@ -55,7 +57,7 @@
     },
     {
       "path": "version.json",
-      "size": 1060
+      "size": 1125
     }
   ]
 }

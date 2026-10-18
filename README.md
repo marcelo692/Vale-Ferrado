@@ -30,7 +30,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | I | Mostrar/esconder a tabela de evoluções e materiais |
 | R | Subir/descer do transporte |
 | L | Ligar/desligar a luz |
-| G | Ligar/desligar o detector · T troca o minério procurado |
+| G | Ligar/desligar o detector (no automático ele procura o que falta) · T escolhe na mão · Shift+T volta ao automático |
 | M | Som on/off (volumes no botão 🔊 Som) |
 | Esc | Soltar o mouse |
 
