@@ -69,13 +69,16 @@ const World = {
     });
   },
 
-  spawn(sub) {
+  spawn(sub, forceRes) {
     const free = sub.spawnPts.filter(p => !p.used);
-    if (!free.length) return;
+    if (!free.length) return false;
     const pt = free[Math.floor(Math.random() * free.length)];
-    const ws = this.weights(sub);
-    let tot = ws.reduce((a, b) => a + b, 0), roll = Math.random() * tot, res = sub.R.res[0];
-    for (let i = 0; i < ws.length; i++) { roll -= ws[i]; if (roll <= 0) { res = sub.R.res[i]; break; } }
+    let res = forceRes;
+    if (!res) {
+      const ws = this.weights(sub);
+      let tot = ws.reduce((a, b) => a + b, 0), roll = Math.random() * tot; res = sub.R.res[0];
+      for (let i = 0; i < ws.length; i++) { roll -= ws[i]; if (roll <= 0) { res = sub.R.res[i]; break; } }
+    }
     const sr = Math.random();
     const size = sr < 0.3 ? 0.5 : sr < 0.85 ? 1 : 2;
     const rr = Math.random();
@@ -84,6 +87,18 @@ const World = {
     pt.used = true;
     const node = { x: pt.x, y: pt.y, pt, sub, res, size, rare, hp, maxHp: hp, r: 0.9 + size * 0.7, seed: Math.random() * 1000, hitT: 0 };
     sub.nodes.push(node); this.nodes.push(node);
+    return true;
+  },
+  // quantos nós de um recurso existem na região dele
+  countRes(res) { let n = 0; for (const x of this.nodes) if (x.res === res) n++; return n; },
+  // trecho da região com espaço livre e nível mais perto do ideal do recurso
+  subFor(res) {
+    let best = null, bd = Infinity;
+    for (const s of this.subs) {
+      if (s.R.id !== res.region || !s.spawnPts.some(p => !p.used)) continue;
+      const d = Math.abs(s.level - res.ideal); if (d < bd) { bd = d; best = s; }
+    }
+    return best;
   },
 
   breakNode(node) {
@@ -94,12 +109,28 @@ const World = {
     const sub = node.sub;
     sub.harvest += 1;
     const deplete = 1 + Math.min(0.5, sub.harvest * 0.05);
+    // recurso acabando: renasce bem mais rápido e do mesmo tipo
+    const left = this.countRes(node.res);
+    if (left === 0) { this.rescue[node.res.id] = true; Game.timers.push({ t: 3 + Math.random() * 3, fn: () => { delete this.rescue[node.res.id]; this.spawn(sub, node.res) || this.spawnRescue(node.res); } }); return; }
+    if (left <= 2) { const force = Math.random() < 0.6 ? node.res : null; Game.timers.push({ t: (6 + Math.random() * 10), fn: () => this.spawn(sub, force) }); return; }
     const delay = (15 + Math.random() * 45) * deplete;
     Game.timers.push({ t: delay, fn: () => this.spawn(sub) });
   },
 
+  rescue: {},
+  spawnRescue(res) { const s = this.subFor(res); return s ? this.spawn(s, res) : false; },
   update(dt) {
     for (const s of this.subs) s.harvest = Math.max(0, s.harvest - dt / 20);
+    // a cada 3 s: se algum recurso sumiu do mapa, agenda um renascimento rápido dele
+    this.checkT = (this.checkT || 0) - dt;
+    if (this.checkT <= 0) {
+      this.checkT = 3;
+      const count = {}; for (const x of this.nodes) count[x.res.id] = (count[x.res.id] || 0) + 1;
+      for (const r of RESOURCES) if (!count[r.id] && !this.rescue[r.id]) {
+        this.rescue[r.id] = true;
+        Game.timers.push({ t: 2 + Math.random() * 3, fn: () => { delete this.rescue[r.id]; this.spawnRescue(r); } });
+      }
+    }
     // veio aflorado
     if (this.veio) {
       this.veio.t -= dt;

@@ -1,9 +1,9 @@
 {
-  "version": "1.9.1",
+  "version": "1.9.2",
   "date": "2026-10-18",
   "notes": [
-    "Estrelas cadentes de vez em quando no céu noturno",
-    "Aurora boreal em algumas noites (verde e roxa, ondulando no céu ao norte)"
+    "Recursos que acabam renascem bem mais rápido: se um tipo some do mapa, volta em 2 a 6 segundos",
+    "Quando restam poucos de um recurso, os próximos renascem mais rápido e com mais chance de ser do mesmo tipo"
   ],
   "files": [
     {
@@ -48,7 +48,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 7010
+      "size": 8717
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -60,7 +60,7 @@
     },
     {
       "path": "version.json",
-      "size": 1326
+      "size": 1092
     }
   ]
 }
