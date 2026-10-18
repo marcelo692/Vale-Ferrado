@@ -1,9 +1,9 @@
 {
-  "version": "1.9.2",
+  "version": "1.9.3",
   "date": "2026-10-18",
   "notes": [
-    "Recursos que acabam renascem bem mais rápido: se um tipo some do mapa, volta em 2 a 6 segundos",
-    "Quando restam poucos de um recurso, os próximos renascem mais rápido e com mais chance de ser do mesmo tipo"
+    "Etiqueta em cima dos recursos próximos com o nível (cor por região) e o valor de cada unidade; ★ verde quando você precisa dele para evoluir (B esconde)",
+    "Ao mirar num recurso: nível, quanto vale cada um, quanto rende a pedra inteira e quantas moedas por minuto ela dá com seu martelo atual"
   ],
   "files": [
     {
@@ -12,11 +12,11 @@
     },
     {
       "path": "README.md",
-      "size": 3951
+      "size": 4028
     },
     {
       "path": "index.html",
-      "size": 22856
+      "size": 23258
     },
     {
       "path": "js/audio.js",
@@ -32,11 +32,11 @@
     },
     {
       "path": "js/game.js",
-      "size": 25935
+      "size": 26134
     },
     {
       "path": "js/render3d.js",
-      "size": 98529
+      "size": 101985
     },
     {
       "path": "js/ui.js",
@@ -60,7 +60,7 @@
     },
     {
       "path": "version.json",
-      "size": 1092
+      "size": 1172
     }
   ]
 }

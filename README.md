@@ -28,6 +28,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | 1, 2, 3 | Ativar power-ups |
 | V | Alternar primeira e terceira pessoa |
 | I | Mostrar/esconder a tabela de evoluções e materiais |
+| B | Mostrar/esconder as etiquetas de nível e valor em cima dos recursos |
 | R | Subir/descer do transporte |
 | L | Ligar/desligar a luz |
 | G | Ligar/desligar o detector (no automático ele procura o que falta) · T escolhe na mão · Shift+T volta ao automático |

@@ -14,6 +14,8 @@
   #cross::before { left: 10px; top: 3px; width: 2px; height: 16px; } #cross::after { top: 10px; left: 3px; height: 2px; width: 16px; }
   #cross.on::before, #cross.on::after { background: #ffd34d; }
   #tinfo { position: fixed; left: 50%; top: calc(50% + 26px); transform: translateX(-50%); text-align: center; font-size: 13px; background: rgba(20,14,8,.7); padding: 6px 12px; border-radius: 8px; display: none; pointer-events: none; min-width: 170px; }
+  #tinfo .tl { display: flex; align-items: center; justify-content: center; gap: 6px; } #tinfo .tl em { font: 800 11px system-ui; font-style: normal; border: 1.5px solid; border-radius: 5px; padding: 0 5px; }
+  #tinfo .val { font-size: 11.5px; margin-top: 3px; opacity: .95; } #tinfo .val b { color: var(--gold); } #tinfo .need { font-size: 11.5px; color: #8fe07a; font-weight: 700; margin-top: 2px; }
   #tinfo .hp { height: 6px; background: #333; border-radius: 3px; margin: 4px 0; overflow: hidden; } #tinfo .hp i { display: block; height: 100%; }
   #floats { position: fixed; inset: 0; pointer-events: none; }
   #floats div { position: absolute; transform: translate(-50%,-50%); font: 700 16px system-ui, sans-serif; text-shadow: 0 2px 3px #000, 0 0 2px #000; white-space: nowrap; }

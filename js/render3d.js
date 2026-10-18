@@ -661,22 +661,57 @@ const Render = {
     g.userData.res = res.id; g.userData.base = g.position.clone();
     return g;
   },
+  // informações de valor de um recurso para o jogador atual
+  resInfo(n) {
+    const res = n.res, units = Math.max(1, Math.round(2 * n.size)) * n.rare;
+    const hits = Math.ceil(n.hp / Game.force()), time = Math.max(0.3, hits * Game.interval());
+    const need = (Game.missCache || []).find(m => m.id === res.id);
+    return { lvl: res.ideal, value: res.value, units, total: units * res.value, perMin: units * res.value / time * 60, hits, time, need };
+  },
+  tierColor(lvl) { // cor do nível: cinza → verde → azul → roxo → laranja → dourado
+    return ['#b8b0a0', '#7fd36a', '#5aa8f0', '#b07af0', '#ff9a3d', '#ffd34d'][Math.min(5, Math.floor((lvl - 1) / 10))];
+  },
+  badgeTex(res, need) {
+    const key = res.id + (need ? '*' : '');
+    this.badgeCache = this.badgeCache || {};
+    if (this.badgeCache[key]) return this.badgeCache[key];
+    const c = document.createElement('canvas'); c.width = 256; c.height = 72; /* etiqueta */ const g = c.getContext('2d');
+    const col = this.tierColor(res.ideal);
+    g.fillStyle = 'rgba(20,14,8,0.78)'; g.beginPath(); g.roundRect(4, 4, 248, 64, 14); g.fill();
+    g.strokeStyle = col; g.lineWidth = 4; g.stroke();
+    g.font = '800 34px system-ui, sans-serif'; g.fillStyle = col; g.textAlign = 'left'; g.fillText('Nv ' + res.ideal, 16, 48);
+    g.font = '700 26px system-ui, sans-serif'; g.fillStyle = '#ffd34d'; g.textAlign = 'right'; g.fillText(fmt(res.value), 206, 47);
+    const cg = g.createRadialGradient(221, 33, 2, 226, 38, 13); cg.addColorStop(0, '#fff2a8'); cg.addColorStop(0.6, '#e0a820'); cg.addColorStop(1, '#8a5a10');
+    g.fillStyle = cg; g.beginPath(); g.arc(226, 38, 12, 0, Math.PI * 2); g.fill();
+    if (need) { g.fillStyle = '#8fe07a'; g.font = '800 30px system-ui'; g.textAlign = 'center'; g.fillText('★', 132, 46); }
+    const t = new THREE.CanvasTexture(c); this.badgeCache[key] = t; return t;
+  },
   syncNodes() {
+    this.missT = (this.missT || 0) - 1; if (this.missT <= 0) { this.missT = 20; Game.missCache = Game.missingList(); }
     const P = Game.P, seen = new Set();
     for (const n of World.nodes) {
       const dx = n.x - P.x, dy = n.y - P.y;
       if (dx * dx + dy * dy > 170 * 170) continue;
       seen.add(n);
       let m = this.nodeMeshes.get(n);
-      if (m && m.userData.res !== n.res.id) { this.scene.remove(m); m = null; }
+      if (m && m.userData.res !== n.res.id) { this.scene.remove(m); if (m.userData.badge) this.scene.remove(m.userData.badge); m = null; }
       if (!m) { m = this.nodeMesh(n); this.scene.add(m); this.nodeMeshes.set(n, m); }
       const k = 0.75 + 0.25 * Math.max(0, n.hp / n.maxHp);
       m.scale.setScalar(k);
       if (n.hitT > 0) m.position.set(m.userData.base.x + (Math.random() - 0.5) * 0.12, m.userData.base.y, m.userData.base.z + (Math.random() - 0.5) * 0.12);
       else m.position.copy(m.userData.base);
       if (m.userData.glow) m.userData.glow.material.opacity = 0.55 + Math.sin(this.t * 4 + n.seed) * 0.3;
+      // etiqueta com nível e valor para recursos por perto
+      const d2 = dx * dx + dy * dy, near = d2 < 22 * 22 && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false;
+      if (near) {
+        const need = (Game.missCache || []).some(x => x.id === n.res.id);
+        if (!m.userData.badge) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: true, transparent: true, fog: false, sizeAttenuation: false })); sp.scale.set(0.2, 0.056, 1); sp.renderOrder = 4; m.userData.badge = sp; this.scene.add(sp); }
+        const sp = m.userData.badge, tex = this.badgeTex(n.res, need);
+        if (sp.material.map !== tex) { sp.material.map = tex; sp.material.needsUpdate = true; }
+        sp.position.set(m.userData.base.x, m.userData.base.y + n.r * 1.25 + 0.6, m.userData.base.z); sp.visible = true;
+      } else if (m.userData.badge) m.userData.badge.visible = false;
     }
-    for (const [n, m] of this.nodeMeshes) if (!seen.has(n) || n.dead) { this.scene.remove(m); this.nodeMeshes.delete(n); }
+    for (const [n, m] of this.nodeMeshes) if (!seen.has(n) || n.dead) { this.scene.remove(m); if (m.userData.badge) { this.scene.remove(m.userData.badge); m.userData.badge.material.dispose(); } this.nodeMeshes.delete(n); }
   },
   pickTarget(reach) {
     const P = Game.P, o = this.cam.position, dir = new V3(); this.cam.getWorldDirection(dir);
@@ -1169,9 +1204,12 @@ const Render = {
     const col = time <= 10 ? '#7fd36a' : time <= 60 ? '#ffd34d' : '#ff6a5a';
     cross.className = 'on';
     el.style.display = 'block';
-    el.innerHTML = `<b>${n.res.name}${n.size === 2 ? ' · grande' : n.size === 0.5 ? ' · pequena' : ''}${n.rare === 10 ? ' · 💎 cristalizada' : n.rare === 3 ? ' · ✨ veio rico' : ''}</b>
+    const I = this.resInfo(n), tc = this.tierColor(I.lvl);
+    el.innerHTML = `<div class="tl"><em style="border-color:${tc};color:${tc}">Nv ${I.lvl}</em><b>${n.res.name}${n.size === 2 ? ' · grande' : n.size === 0.5 ? ' · pequena' : ''}${n.rare === 10 ? ' · 💎 cristalizada' : n.rare === 3 ? ' · ✨ veio rico' : ''}</b></div>
       <div class="hp"><i style="width:${Math.max(0, n.hp / n.maxHp * 100)}%;background:${col}"></i></div>
-      <span style="color:${col}">${fmt(hits)} golpes · ${fmtTime(time)}</span>`;
+      <span style="color:${col}">${fmt(hits)} golpes · ${fmtTime(time)}</span>
+      <div class="val"><i class="coin"></i>${fmt(I.value)} cada · rende ${I.units} = <b>${fmt(I.total)}</b> · ≈ ${fmt(Math.round(I.perMin))}/min</div>
+      ${I.need ? `<div class="need">⭐ Precisa para evolução · faltam ${fmt(I.need.falta)}</div>` : ''}`;
   },
 
   drawMinimap() {

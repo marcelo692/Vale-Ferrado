@@ -79,6 +79,7 @@ const Game = {
       if (k === ' ') this.jump();
       if (k === 'e') this.interact();
       if (k === 'v') Render.toggleView();
+      if (k === 'b') { this.S.showBadges = this.S.showBadges === false; UI.toast(this.S.showBadges === false ? 'Etiquetas dos recursos escondidas (B mostra)' : 'Etiquetas dos recursos visíveis'); }
       if (k === 'i') { this.S.showInv = !this.S.showInv; Snd.toggle(this.S.showInv); }
       if (k === 'r') this.toggleRide();
       if (k === 'l') this.toggleLight();
