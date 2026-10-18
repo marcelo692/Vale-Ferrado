@@ -22,6 +22,7 @@ function newState() {
     gear: { detector: 0, ride: 0, light: 0 }, // equipamentos comprados no Bazar
     riding: false, lightOn: true, detOn: true, detRes: null, sound: true,
     clock: 0.3,       // hora do dia (0 = meia-noite, 0.5 = meio-dia)
+    showInv: true,    // tabela lateral de evoluções e materiais
   };
 }
 
@@ -78,6 +79,7 @@ const Game = {
       if (k === ' ') this.jump();
       if (k === 'e') this.interact();
       if (k === 'v') Render.toggleView();
+      if (k === 'i') { this.S.showInv = !this.S.showInv; Snd.toggle(this.S.showInv); }
       if (k === 'r') this.toggleRide();
       if (k === 'l') this.toggleLight();
       if (k === 'g') this.toggleDetector();

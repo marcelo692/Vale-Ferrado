@@ -195,6 +195,43 @@ const UI = {
     }).catch(() => this.toast('Arquivo de progresso inválido.', 'warn'));
   },
 
+  // ---------- tabela lateral: próximas evoluções e materiais guardados ----------
+  updateInvHud() {
+    const el = $('inv'), S = Game.S;
+    if (!S.showInv) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    const rows = [];
+    const ups = [];
+    if (S.hammer < MAX_LEVEL) ups.push({ ic: '⚒', name: 'Martelo', lv: S.hammer + 1, c: hammerCost(S.hammer + 1), npc: 'Seu Bento' });
+    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ ic: { mine: '✊', bag: '🎒', move: '👟', jump: '⤒' }[k], name: ATTRS[k].short, lv: S.attrs[k] + 1, c: attrCost(k, S.attrs[k] + 1), npc: 'Dona Cida' });
+    let html = `<div class="ih">Próximas evoluções <kbd>I</kbd></div>`;
+    for (const u of ups) {
+      const okMoney = S.money >= u.c.money;
+      let st = okMoney ? 2 : 0, mats = '';
+      for (const m of u.c.mats) {
+        const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0;
+        const ms = have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0;
+        st = Math.min(st, ms);
+        mats += `<span class="m s${ms}"><i style="background:${RES[m.id].c2}"></i>${RES[m.id].name.split(' (')[0]} ${fmt(Math.min(have, m.qty))}/${fmt(m.qty)}${bag && ms < 2 ? ` <em>+${fmt(bag)}🎒</em>` : ''}</span>`;
+      }
+      const sign = ['✖', '●', '✔'][st], cls = 's' + st;
+      html += `<div class="up ${cls}"><b>${sign}</b><div><div class="un">${u.ic} ${u.name} <small>nv ${u.lv}</small></div>${mats}<span class="m ${okMoney ? 's2' : 's0'}"><i class="coin"></i>${fmt(u.c.money)}</span></div></div>`;
+    }
+    // materiais guardados e na mochila
+    const need = Game.needs();
+    const ids = new Set([...Object.keys(S.stock).filter(k => S.stock[k] > 0), ...Object.keys(S.bag), ...Object.keys(need)]);
+    if (ids.size) {
+      html += `<div class="ih">Materiais <small>🏠 guardado · 🎒 mochila · precisa</small></div><table>`;
+      [...ids].sort((a, b) => RESOURCES.indexOf(RES[a]) - RESOURCES.indexOf(RES[b])).forEach(id => {
+        const have = S.stock[id] || 0, bag = S.bag[id] || 0, n = need[id] || 0;
+        const ms = !n ? 3 : have >= n ? 2 : have + bag >= n ? 1 : 0;
+        html += `<tr class="s${ms}"><td><i style="background:${RES[id].c2}"></i>${RES[id].name.split(' (')[0]}</td><td>${fmt(have)}</td><td>${bag ? fmt(bag) : ''}</td><td>${n ? fmt(n) + ' ' + ['✖', '●', '✔'][ms] : '—'}</td></tr>`;
+      });
+      html += `</table>`;
+    }
+    html += `<div class="leg"><span class="s2">✔ pronto</span> <span class="s1">● está na mochila, volte à cidade</span> <span class="s0">✖ falta</span></div>`;
+    if (html !== this.invHtml) { el.innerHTML = html; this.invHtml = html; }
+  },
   updateDetectorHud() {
     const el = $('det'), d = Game.det;
     if (!d) { el.style.display = 'none'; return; }
@@ -271,5 +308,6 @@ const UI = {
     if (S.gear.detector) eq.push(`<span class="${S.detOn ? 'on' : ''}"><kbd>G</kbd>${GADGETS.detector.levels[S.gear.detector].n}</span>`);
     $('equip').innerHTML = eq.join('');
     this.updateDetectorHud();
+    this.updateInvHud();
   },
 };

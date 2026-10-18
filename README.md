@@ -27,6 +27,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | E perto de um NPC | Abrir a loja |
 | 1, 2, 3 | Ativar power-ups |
 | V | Alternar primeira e terceira pessoa |
+| I | Mostrar/esconder a tabela de evoluções e materiais |
 | R | Subir/descer do transporte |
 | L | Ligar/desligar a luz |
 | G | Ligar/desligar o detector · T troca o minério procurado |

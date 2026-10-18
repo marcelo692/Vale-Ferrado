@@ -1,10 +1,8 @@
 {
-  "version": "1.6.3",
+  "version": "1.7.0",
   "date": "2026-10-18",
   "notes": [
-    "Corrigido: a argila tinha uma rachadura por onde dava para ver dentro dela",
-    "Troncos, muros e penhascos agora mostram a altura e se você consegue pular",
-    "Pular por cima dos obstáculos funciona de verdade: dá para subir neles e atravessar"
+    "Tabela no canto da tela com as próximas evoluções e os materiais guardados, na mochila e necessários (tecla I esconde)"
   ],
   "files": [
     {
@@ -13,11 +11,11 @@
     },
     {
       "path": "README.md",
-      "size": 3724
+      "size": 3785
     },
     {
       "path": "index.html",
-      "size": 17614
+      "size": 19492
     },
     {
       "path": "js/audio.js",
@@ -29,7 +27,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 21924
+      "size": 22078
     },
     {
       "path": "js/render3d.js",
@@ -37,7 +35,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 18372
+      "size": 21056
     },
     {
       "path": "js/updater.js",
@@ -57,7 +55,7 @@
     },
     {
       "path": "version.json",
-      "size": 1047
+      "size": 1148
     }
   ]
 }
