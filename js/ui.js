@@ -29,6 +29,7 @@ const UI = {
 
   freeMouse() { if (document.pointerLockElement) document.exitPointerLock(); },
   lockHint(show) { $('lockhint').style.display = show && started ? 'flex' : 'none'; },
+  resume() { Snd.start(); try { $('game').requestPointerLock(); } catch (e) {} },
   pics(kind, a) {
     try {
       return `<div class="pics"><figure><img src="${Render.itemImg(kind, a)}" alt=""><figcaption>Item</figcaption></figure><figure><img src="${Render.charImg(kind, a)}" alt=""><figcaption>Em você</figcaption></figure></div>`;
@@ -219,6 +220,8 @@ const UI = {
     } catch (e) {}
   },
   updateHud(dt) {
+    // menu de pausa sempre que o mouse estiver solto e nenhuma janela aberta
+    this.lockHint(!Game.locked() && !this.open);
     this.hudT -= dt; if (this.hudT > 0) return; this.hudT = 0.1;
     const S = Game.S, G = Game;
     $('money').textContent = fmt(S.money);

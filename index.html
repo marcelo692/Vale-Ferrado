@@ -35,8 +35,12 @@
   .card.big .pics { grid-template-columns: 200px 200px; justify-content: start; }
   .card.eq { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,211,77,.25); }
   select { background: #1f1810; color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 4px 6px; font-size: 13px; }
-  #lockhint { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(10,6,2,.45); z-index: 5; font: 700 22px Georgia, serif; color: var(--gold); cursor: pointer; text-align: center; }
-  #lockhint small { font: 13px system-ui; color: var(--ink); opacity: .8; margin-top: 8px; }
+  #lockhint { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(10,6,2,.55); z-index: 5; cursor: default; }
+  .pausebox { background: #2a2016; border: 2px solid var(--edge); border-radius: 14px; padding: 22px 28px; width: min(380px, 92vw); text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .pausebox h2 { font: 700 26px Georgia, serif; color: var(--gold); margin: 0 0 14px; }
+  .pausebox .buy { display: block; width: 100%; margin: 8px 0; }
+  .pausebox small { display: block; font-size: 12px; opacity: .7; margin-top: 12px; line-height: 1.5; }
+  #tr { z-index: 7; }
   .box { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
   #tl { position: fixed; top: 14px; left: 14px; padding: 12px 16px; min-width: 240px; }
   #tl .money { font: 700 26px Georgia, serif; color: var(--gold); }
@@ -133,7 +137,12 @@
 <div id="tinfo"></div>
 <div id="floats"></div>
 <div id="stamwrap"><div id="stam"></div></div>
-<div id="lockhint" onclick="document.getElementById('game').requestPointerLock()">Clique para jogar<small>Mouse olha · WASD anda · Shift corre · Espaço pula · Clique minera · E fala · V muda a câmera · Esc solta o mouse</small></div>
+<div id="lockhint" onclick="if(event.target===this)UI.resume()"><div class="pausebox"><h2>Pausado</h2>
+  <button class="buy" onclick="UI.resume()">▶ Continuar jogando</button>
+  <button class="buy alt" onclick="Updater.open();Updater.check(true)">⬆ Atualizações</button>
+  <button class="buy alt" onclick="UI.soundPanel()">🔊 Som</button>
+  <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>
+  <small>O mouse fica preso no jogo para você olhar em volta. Aperte <b>Esc</b> a qualquer momento para soltar o mouse e ver este menu.</small></div></div>
 <div id="panel" class="hidden"></div>
 
 <div id="title">

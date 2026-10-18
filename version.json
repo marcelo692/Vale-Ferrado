@@ -1,11 +1,9 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "date": "2026-10-18",
   "notes": [
-    "Atualizador automático: o jogo avisa quando sai versão nova e atualiza a pasta com um clique",
-    "Sons e música de fundo, com controle de volume",
-    "Mineração por clique (rápida, gasta fôlego) ou segurando (normal, sem cansar)",
-    "Salvar e carregar cópia do progresso (menu Ajuda)"
+    "Menu de pausa: aperte Esc para soltar o mouse e acessar Atualizações, Som e Ajuda",
+    "Os botões do canto da tela agora podem ser clicados com o jogo pausado"
   ],
   "files": [
     {
@@ -18,7 +16,7 @@
     },
     {
       "path": "index.html",
-      "size": 16545
+      "size": 17168
     },
     {
       "path": "js/audio.js",
@@ -38,7 +36,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 18015
+      "size": 18224
     },
     {
       "path": "js/updater.js",
