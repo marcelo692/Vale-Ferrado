@@ -145,9 +145,9 @@ const UI = {
   },
 
   sellStock() { // vende o que não é mais necessário
-    const need = Game.needs(); let earned = 0;
+    const need = Game.needs(), sneed = Game.specialNeed(); let earned = 0;
     for (const k in Game.S.stock) {
-      const extra = Game.S.stock[k] - (need[k] || 0);
+      const extra = Game.S.stock[k] - (RES[k].special ? Math.max(need[k] || 0, sneed[k] || 0) : (need[k] || 0));
       if (extra > 0) { earned += extra * RES[k].value; Game.S.stock[k] -= extra; }
     }
     Game.S.money += earned; Game.S.earned += earned;

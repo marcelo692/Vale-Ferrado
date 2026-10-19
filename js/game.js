@@ -40,6 +40,7 @@ const Game = {
     this.S = this.load() || newState();
     this.P.x = this.S.x; this.P.y = this.S.y;
     World.build();
+    this.fixSoldSpecials();
     this.inCity = this.wasInCity = Math.hypot(this.P.x, this.P.y) < CITY_R;
     this.bindInput();
   },
@@ -197,6 +198,18 @@ const Game = {
     for (const g of this.gadgetUps()) add(g.c);
     return need;
   },
+  // recursos raros: quanto ainda vai ser usado em TODAS as evoluções futuras (martelos e equipamentos de qualquer nível)
+  specialNeed() {
+    const out = {};
+    for (let L = this.S.hammer + 1; L <= MAX_LEVEL; L++) if (SPECIAL_AT[L]) out[SPECIAL_AT[L]] = (out[SPECIAL_AT[L]] || 0) + 5;
+    for (const type in GADGETS) GADGETS[type].levels.forEach((G, lv) => { if (G && G.mats && lv > this.S.gear[type]) G.mats.forEach(m => { out[m.id] = (out[m.id] || 0) + m.qty; }); });
+    return out;
+  },
+  // quanto guardar de cada material: comum = o que falta para a próxima evolução; raro = tudo que ainda vai ser usado
+  keepWant(id, need, sneed) {
+    if (RES[id].special) return Math.max(0, (sneed[id] || 0) - (this.S.stock[id] || 0));
+    return Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
+  },
   // quais evoluções usam cada material (para explicar ao jogador)
   needsBy() {
     const by = {};
@@ -208,9 +221,9 @@ const Game = {
   },
   // prévia da venda: quanto o Seu Lauro pagaria pela mochila agora (mesma regra do unload)
   bagValue() {
-    const need = this.needs(); let money = 0, all = 0, kept = 0;
+    const need = this.needs(), sneed = this.specialNeed(); let money = 0, all = 0, kept = 0;
     for (const id in this.S.bag) {
-      const q = this.S.bag[id], want = Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
+      const q = this.S.bag[id], want = this.keepWant(id, need, sneed);
       const k = Math.min(want, RES[id].special ? q : Math.floor(q * 0.6));
       money += (q - k) * RES[id].value; all += q * RES[id].value; kept += k;
     }
@@ -219,19 +232,20 @@ const Game = {
   unload() {
     const ids = Object.keys(this.S.bag);
     if (!ids.length) return;
-    const need = this.needs(), by = this.needsBy();
+    const need = this.needs(), by = this.needsBy(), sneed = this.specialNeed();
     let earned = 0, kept = 0, sold = 0;
     const lines = [];
     for (const id of ids) {
       const q = this.S.bag[id];
-      const want = Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
+      const want = this.keepWant(id, need, sneed);
       const cap = RES[id].special ? q : Math.floor(q * 0.6); // recurso raro: guarda tudo que for preciso
       const k = Math.min(want, cap); // vende sempre pelo menos 40% de cada carga
       if (k > 0) { this.S.stock[id] = (this.S.stock[id] || 0) + k; kept += k; }
       const sq = q - k, money = sq * RES[id].value;
       if (sq > 0) { earned += money; sold += sq; }
       let why;
-      if (!need[id]) why = 'nenhuma evolução próxima usa';
+      if (RES[id].special && sneed[id] && k > 0) why = 'recurso raro: guardei para martelos e equipamentos futuros';
+      else if (!need[id] && !(RES[id].special && sneed[id])) why = 'nenhuma evolução próxima usa';
       else if (want === 0) why = 'o depósito já tem o suficiente';
       else if (k < want) why = `guardei 60% da carga; faltam ${fmt(want - k)}`;
       else why = 'guardei tudo que faltava';
@@ -599,6 +613,19 @@ const Game = {
   load() {
     try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) { const n = Object.assign(newState(), s); n.gear = Object.assign({ detector: 0, ride: 0, light: 0 }, s.gear || {}); return n; } } catch (e) {}
     return null;
+  },
+  // correção (v2.5): versões antigas vendiam recurso raro quando a próxima evolução ainda não pedia; devolve o que foi vendido nas últimas entregas
+  fixSoldSpecials() {
+    const S = this.S; if (S.fixSpecial1) return; S.fixSpecial1 = true;
+    const sneed = this.specialNeed(), back = {};
+    for (const r of S.receipts || []) for (const l of r.lines || []) if (RES[l.id] && RES[l.id].special && l.sq > 0) back[l.id] = (back[l.id] || 0) + l.sq;
+    const got = [];
+    for (const id in back) {
+      const q = Math.min(back[id], Math.max(0, (sneed[id] || 0) - (S.stock[id] || 0))); if (!q) continue;
+      S.stock[id] = (S.stock[id] || 0) + q; S.money = Math.max(0, S.money - q * RES[id].value); got.push(`${q} ${RES[id].name}`);
+    }
+    if (got.length) setTimeout(() => UI.toast(`Seu Lauro devolveu ao depósito o recurso raro que tinha vendido por engano: ${got.join(', ')}.`, 'level'), 2500);
+    this.save();
   },
   reset() { localStorage.removeItem(SAVE_KEY); location.reload(); },
 };

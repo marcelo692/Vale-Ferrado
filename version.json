@@ -1,8 +1,9 @@
 {
-  "version": "2.4.0",
+  "version": "2.5.0",
   "date": "2026-10-19",
   "notes": [
-    "Clique rápido mais forte: cada clique vale por vários golpes, +1 a cada 5 níveis do martelo (×2 no 5, ×3 no 10… até ×13 no 60)"
+    "Correção: recursos raros (Obsidiana Real, Ferro Celeste…) não são mais vendidos quando a próxima evolução ainda não pede; ficam guardados para todos os martelos e equipamentos futuros, como o Hoverboard",
+    "Quem teve recurso raro vendido por engano nas últimas entregas recebe de volta no depósito"
   ],
   "files": [
     {
@@ -31,7 +32,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 31409
+      "size": 33342
     },
     {
       "path": "js/render3d.js",
@@ -43,7 +44,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 28278
+      "size": 28365
     },
     {
       "path": "js/updater.js",
@@ -63,7 +64,7 @@
     },
     {
       "path": "version.json",
-      "size": 1167
+      "size": 1159
     }
   ]
 }
