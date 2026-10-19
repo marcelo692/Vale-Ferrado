@@ -1,10 +1,9 @@
 {
-  "version": "2.1.0",
-  "date": "2026-10-18",
+  "version": "2.2.0",
+  "date": "2026-10-19",
   "notes": [
-    "Barracas reorganizadas em círculo em volta da fonte, entre as saídas das estradas, todas de frente para o centro",
-    "Placa grande com o que cada uma vende: MARTELOS, MELHORIAS, ITENS, VENDAS e POWER-UPS",
-    "Símbolo girando em cima de cada barraca: martelo, mochila, presente, moeda e frasco"
+    "Robôs auto-mineradores no Tonho do Bazar (até 10): bonequinhos com hélice que buscam sozinhos o que falta para suas evoluções e entregam no depósito",
+    "Robôs aparecem no minimapa e na tabela lateral"
   ],
   "files": [
     {
@@ -13,11 +12,11 @@
     },
     {
       "path": "README.md",
-      "size": 4386
+      "size": 4630
     },
     {
       "path": "index.html",
-      "size": 23967
+      "size": 24004
     },
     {
       "path": "js/audio.js",
@@ -33,15 +32,19 @@
     },
     {
       "path": "js/game.js",
-      "size": 28212
+      "size": 28294
     },
     {
       "path": "js/render3d.js",
-      "size": 110749
+      "size": 116805
+    },
+    {
+      "path": "js/robots.js",
+      "size": 7976
     },
     {
       "path": "js/ui.js",
-      "size": 25161
+      "size": 27399
     },
     {
       "path": "js/updater.js",
@@ -49,7 +52,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 12932
+      "size": 12940
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -61,7 +64,7 @@
     },
     {
       "path": "version.json",
-      "size": 1101
+      "size": 1261
     }
   ]
 }

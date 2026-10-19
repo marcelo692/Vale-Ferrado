@@ -7,7 +7,7 @@ const CITY_R = 22; // raio da cidade em metros
 const NPCS = [
   { id: 'ferreiro', name: 'Seu Bento, o Ferreiro', role: 'Evolui o martelo',              shop: 'MARTELOS',  color: '#c0502a', ang: -112.5 },
   { id: 'tropeira', name: 'Dona Cida, a Tropeira', role: 'Mineração, mochila, movimento e pulo', shop: 'MELHORIAS', color: '#3f7a4a', ang: -67.5 },
-  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte e lanternas', shop: 'ITENS',     color: '#2a7a9a', ang: -22.5 },
+  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte, lanternas e robôs', shop: 'ITENS',     color: '#2a7a9a', ang: -22.5 },
   { id: 'armazem',  name: 'Seu Lauro, do Armazém', role: 'Compra tudo automaticamente',   shop: 'VENDAS',    color: '#a07a2a', ang: 45 },
   { id: 'botica',   name: 'Zé da Botica',          role: 'Vende power-ups',               shop: 'POWER-UPS', color: '#7a3fa0', ang: 135 },
 ];

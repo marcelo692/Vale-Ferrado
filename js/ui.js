@@ -113,6 +113,20 @@ const UI = {
           h += `<p class="free" style="margin-top:10px">Minério procurado: <select onchange="if(this.value==='auto'){Game.S.detAuto=true}else{Game.S.detAuto=false;Game.S.detRes=this.value}Game.detT=0;Game.save()"><option value="auto" ${S.detAuto ? 'selected' : ''}>Automático: o que falta para as evoluções</option>${RESOURCES.map(r => `<option value="${r.id}" ${!S.detAuto && r.id === (S.detRes || Game.defaultDetRes()) ? 'selected' : ''}>${r.name} (região ${REGIONS[r.region].era})</option>`).join('')}</select></p>`;
         }
       }
+      // robôs auto-mineradores
+      const nR = S.robots || 0;
+      h += `<h4>🤖 Robôs auto-mineradores</h4><p class="hint" style="margin:0 0 8px">Bonequinhos com hélice na cabeça. Cada um sai da cidade sozinho, vai até o recurso que falta para as suas evoluções, minera devagar e volta para entregar no depósito (o que sobrar o Seu Lauro vende). Ficam mais fortes, rápidos e carregam mais conforme seu martelo evolui. Com a hélice, passam voando por cima dos obstáculos.</p><div class="grid">`;
+      let pr = '';
+      try { pr = `<div class="pics"><figure><img src="${Render.robotImg(1)}" alt=""><figcaption>Robô</figcaption></figure><figure><img src="${Render.robotImg(Math.min(ROBOT_MAX, nR + 1))}" alt=""><figcaption>Sua equipe</figcaption></figure></div>`; } catch (e) {}
+      if (nR < ROBOT_MAX) {
+        const price = robotPrice(nR), ok = S.money >= price;
+        h += `<div class="card">${pr}<span class="lv">Robô ${nR + 1} de ${ROBOT_MAX}</span><h3>${ROBOT_NAMES[nR]}</h3><p>Força ${fmt(Robots.force())} por golpe · ${fmt(Robots.speed())} m/s · carrega ${fmt(Robots.cap())}</p>${this.costHtml({ money: price, mats: [] })}<button class="buy" ${ok ? '' : 'disabled'} onclick="Robots.buy();UI.renderPanel()">Comprar</button></div>`;
+      } else h += `<div class="card eq">${pr}<span class="lv">Equipe completa</span><h3>${ROBOT_MAX} robôs</h3><p>Você tem todos os robôs.</p></div>`;
+      h += `</div>`;
+      if (nR) {
+        Robots.sync();
+        h += `<p class="free" style="margin-top:10px">Sua equipe (${nR}) · já trouxeram ${fmt(S.robotTotal || 0)} recursos</p><ul class="cost">${Robots.list.map(r => `<li>🤖 <b>${r.name}</b>: ${Robots.statusOf(r)}</li>`).join('')}</ul>`;
+      }
     }
 
     if (id === 'armazem') {
@@ -216,6 +230,11 @@ const UI = {
     for (const g of Game.gadgetUps()) ups.push({ ic: '🛒', name: g.label, lv: '', c: g.c });
     const bv = Game.bagValue();
     let html = Object.keys(S.bag).length ? `<div class="bagv"><span>🎒 Mochila vale</span><b><i class="coin"></i>${fmt(bv.money)}</b>${bv.kept ? `<small>+ ${fmt(bv.kept)} vão pro depósito</small>` : ''}</div>` : '';
+    if (Robots.list.length) {
+      const cnt = {}; for (const r of Robots.list) { const k = r.st === 'go' ? 'indo' : r.st === 'mine' ? 'minerando' : r.st === 'home' ? 'voltando' : 'procurando'; cnt[k] = (cnt[k] || 0) + 1; }
+      const carrying = Robots.list.reduce((a, r) => a + r.n, 0);
+      html += `<div class="bagv"><span>🤖 Robôs (${Robots.list.length})</span><small>${Object.keys(cnt).map(k => cnt[k] + ' ' + k).join(' · ')}${carrying ? ` · trazendo ${fmt(carrying)}` : ''}</small></div>`;
+    }
     html += `<div class="ih">Próximas evoluções <kbd>I</kbd></div>`;
     for (const u of ups) {
       const okMoney = S.money >= u.c.money;

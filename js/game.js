@@ -23,6 +23,7 @@ function newState() {
     riding: false, lightOn: true, detOn: true, detRes: null, detAuto: true, sound: true,
     clock: 0.3,       // hora do dia (0 = meia-noite, 0.5 = meio-dia)
     showInv: true,    // tabela lateral de evoluções e materiais
+    robots: 0,        // robôs auto-mineradores comprados
   };
 }
 
@@ -365,6 +366,7 @@ const Game = {
     // timers
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= dt; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
     World.update(dt);
+    Robots.update(dt);
     const wasNight = this.isNight();
     S.clock = (S.clock + dt / DAY_LEN) % 1;
     if (!wasNight && this.isNight()) UI.toast(S.gear.light ? 'Anoiteceu. Aperte L para ligar sua luz.' : 'Anoiteceu! O Tonho do Bazar vende lanternas.', 'veio');

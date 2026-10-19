@@ -944,6 +944,84 @@ const Render = {
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' })); lamp.position.y = -0.1; d.add(lamp);
     return d;
   },
+  // ---------- robô auto-minerador: bonequinho com hélice na cabeça ----------
+  makeRobot(i = 0) {
+    const cols = ['#e8a33a', '#4aa3df', '#e2574c', '#6cc070', '#b07ad8', '#f0d04a', '#ef8bb2', '#45c4b0', '#d9824a', '#9aa7b8'];
+    const acc = cols[i % cols.length], metal = mat('#c9ccd1', { shininess: 70, specular: '#aaa' }), dark = mat('#2b2f36', { shininess: 30 });
+    const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+    const legs = [];
+    for (const sx of [-0.11, 0.11]) {
+      const L = new THREE.Group(); L.position.set(sx, 0.32, 0);
+      const leg = mesh(new THREE.BoxGeometry(0.11, 0.26, 0.11), dark); leg.position.y = -0.13; L.add(leg);
+      const foot = mesh(new THREE.BoxGeometry(0.15, 0.07, 0.2), mat(acc)); foot.position.set(0, -0.28, 0.03); L.add(foot);
+      body.add(L); legs.push(L);
+    }
+    const torso = mesh(new THREE.BoxGeometry(0.44, 0.38, 0.32), mat(acc, { shininess: 50, specular: '#666' })); torso.position.y = 0.52; body.add(torso);
+    const belly = mesh(new THREE.BoxGeometry(0.26, 0.2, 0.02), metal, false); belly.position.set(0, 0.52, 0.17); body.add(belly);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshBasicMaterial({ color: '#7dff9a' })); led.position.set(0.08, 0.57, 0.185); body.add(led);
+    const neck = mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.06, 8), dark); neck.position.y = 0.74; body.add(neck);
+    const head = new THREE.Group(); head.position.y = 0.9; body.add(head);
+    head.add(mesh(new THREE.BoxGeometry(0.4, 0.28, 0.34), metal));
+    const visor = mesh(new THREE.BoxGeometry(0.32, 0.13, 0.02), mat('#14181e', { shininess: 90 }), false); visor.position.set(0, 0.01, 0.175); head.add(visor);
+    const eyeM = new THREE.MeshBasicMaterial({ color: '#6ff3ff' });
+    for (const ex of [-0.075, 0.075]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.034, 8, 6), eyeM); e.position.set(ex, 0.01, 0.188); head.add(e); }
+    for (const ex of [-0.21, 0.21]) { const ear = mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 10).rotateZ(Math.PI / 2), mat(acc)); ear.position.x = ex; head.add(ear); }
+    // hélice
+    const mast = mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.14, 6), dark); mast.position.y = 0.21; head.add(mast);
+    const rotor = new THREE.Group(); rotor.position.y = 0.29; head.add(rotor);
+    rotor.add(mesh(new THREE.SphereGeometry(0.045, 8, 6), mat('#f0d04a', { shininess: 60 })));
+    for (const [c, a] of [['#e2574c', 0], ['#4aa3df', Math.PI]]) { const b = mesh(new THREE.BoxGeometry(0.36, 0.018, 0.08), mat(c), false); b.position.x = Math.cos(a) * 0.2; b.rotation.x = a ? -0.25 : 0.25; rotor.add(b); }
+    // braços: o direito segura uma picareta
+    const arms = [];
+    for (const sx of [-0.27, 0.27]) {
+      const A = new THREE.Group(); A.position.set(sx, 0.66, 0);
+      const arm = mesh(new THREE.BoxGeometry(0.09, 0.28, 0.09), dark); arm.position.y = -0.13; A.add(arm);
+      const hand = mesh(new THREE.SphereGeometry(0.06, 8, 6), metal); hand.position.y = -0.29; A.add(hand);
+      body.add(A); arms.push(A);
+    }
+    const pick = new THREE.Group(); pick.position.set(0, -0.29, 0.02); arms[1].add(pick);
+    const hnd = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.36, 6), mat('#7a5a3a')); hnd.rotation.x = Math.PI / 2; hnd.position.z = 0.14; pick.add(hnd);
+    const headP = mesh(new THREE.BoxGeometry(0.06, 0.26, 0.05), metal); headP.position.z = 0.3; pick.add(headP);
+    // cestinho nas costas com a carga
+    const basket = mesh(new THREE.BoxGeometry(0.32, 0.2, 0.14), mat('#8a6a40')); basket.position.set(0, 0.56, -0.24); body.add(basket);
+    const load = mesh(new THREE.IcosahedronGeometry(0.12, 0), mat('#999')); load.position.set(0, 0.7, -0.24); load.visible = false; body.add(load);
+    g.userData = { body, legs, arms, rotor, load, acc };
+    return g;
+  },
+  robotImg(n) {
+    const key = 'r|' + n;
+    if (this.thumbCache[key]) return this.thumbCache[key];
+    const grp = new THREE.Group();
+    for (let i = 0; i < n; i++) {
+      const r = this.makeRobot(i), row = Math.floor(i / 4), col = i % 4, inRow = Math.min(4, n - row * 4);
+      r.position.set((col - (inRow - 1) / 2) * 0.62, 0, -row * 0.7); r.rotation.y = (Math.random() - 0.5) * 0.5;
+      r.userData.rotor.rotation.y = i; grp.add(r);
+    }
+    return (this.thumbCache[key] = this.snap(grp, new V3(0.5, 0.45, 1)));
+  },
+  updateRobots(dt) {
+    const L = Robots.list;
+    this.robotMeshes = this.robotMeshes || [];
+    while (this.robotMeshes.length < L.length) { const m = this.makeRobot(this.robotMeshes.length); this.scene.add(m); this.robotMeshes.push(m); }
+    while (this.robotMeshes.length > L.length) this.scene.remove(this.robotMeshes.pop());
+    L.forEach((r, i) => {
+      const m = this.robotMeshes[i], u = m.userData;
+      const hover = r.z > 0.05;
+      m.position.set(r.x, World.height(r.x, r.y) + r.z + (hover ? Math.sin(this.t * 6 + i) * 0.05 : 0), r.y);
+      let dy = r.yaw - m.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); m.rotation.y += dy * Math.min(1, dt * 10);
+      const w = r.moving && !hover ? Math.sin(r.walkT * 2.2) * 0.7 : 0;
+      u.legs[0].rotation.x = w; u.legs[1].rotation.x = -w;
+      u.arms[0].rotation.x = -w * 0.8;
+      const sw = r.swing, raise = sw > 0.6 ? (1 - sw) / 0.4 : sw / 0.6; // levanta e desce a picareta
+      u.arms[1].rotation.x = r.st === 'mine' ? -raise * 2.2 : w * 0.8;
+      u.body.position.y = r.moving && !hover ? Math.abs(Math.sin(r.walkT * 2.2)) * 0.04 : 0;
+      u.rotor.rotation.y += dt * (hover ? 30 : r.moving ? 14 : 6);
+      const carry = Object.keys(r.carry)[0];
+      u.load.visible = !!carry;
+      if (carry && u.loadId !== carry) { u.load.material = mat(RES[carry].c); u.loadId = carry; }
+      if (carry) u.load.scale.setScalar(0.6 + Math.min(1, r.n / Robots.cap()) * 0.8);
+    });
+  },
   makeLightItem(lv) {
     if (lv === 1) return this.makeTorch();
     if (lv === 2) return this.makeHeadlamp(true);
@@ -1228,6 +1306,7 @@ const Render = {
     this.water.position.y = 0.68 + Math.sin(this.t * 2) * 0.02;
     if (this.shopIcons) this.shopIcons.forEach((ic, i) => { ic.rotation.y = this.t * 1.2 + i; ic.position.y = 5.4 + Math.sin(this.t * 2 + i) * 0.15; });
     this.updatePlayerLights();
+    this.updateRobots(dt);
     this.updateObstacleHint();
     this.stars.position.copy(this.cam.position);
     this.updateNightFx(dt);
@@ -1287,6 +1366,7 @@ const Render = {
     for (const m of World.mountains) { const p = map(m.x, m.y), s2 = 5 + m.H / 14; c.fillStyle = m.special ? m.special.c2 : '#a89a88'; c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(p[0], p[1] - s2); c.lineTo(p[0] + s2, p[1] + s2 * 0.7); c.lineTo(p[0] - s2, p[1] + s2 * 0.7); c.closePath(); c.fill(); c.stroke(); }
     if (World.veio) { const R = REGIONS[RES[World.veio.res].region]; const p = map(R.ux * (R.dMin + R.dMax) / 2, R.uy * (R.dMin + R.dMax) / 2); c.strokeStyle = '#ffd34d'; c.lineWidth = 4; c.beginPath(); c.arc(p[0], p[1], 16 + Math.sin(this.t * 5) * 4, 0, Math.PI * 2); c.stroke(); }
     c.fillStyle = '#d8c8a8'; c.beginPath(); c.arc(cx, cy, 7, 0, Math.PI * 2); c.fill();
+    for (const r of Robots.list) { const p = map(r.x, r.y); c.fillStyle = '#6ff3ff'; c.strokeStyle = 'rgba(0,0,0,.7)'; c.lineWidth = 1.5; c.beginPath(); c.arc(p[0], p[1], 4, 0, Math.PI * 2); c.fill(); c.stroke(); }
     const pp = map(Game.P.x, Game.P.y), a = -Game.P.yaw - Math.PI / 2;
     c.save(); c.translate(pp[0], pp[1]); c.rotate(a);
     c.fillStyle = '#ff5a3a'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.moveTo(12, 0); c.lineTo(-8, 8); c.lineTo(-4, 0); c.lineTo(-8, -8); c.closePath(); c.fill(); c.stroke();

@@ -45,6 +45,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 - Terreno com pequenos relevos e depressões
 - 5 NPCs: Seu Bento (martelo), Dona Cida (mineração, mochila, movimento e pulo), Zé da Botica (power-ups), Seu Lauro (venda automática) e Tonho do Bazar (equipamentos)
 - Equipamentos: detector de minério (3 níveis), transporte (patins, patinete, monociclo, hoverboard) e iluminação (lanterna, headlamp, drone, esquadrilha de drones)
+- Robôs auto-mineradores (até 10, no Tonho do Bazar): bonequinhos com hélice na cabeça que buscam sozinhos o que falta para suas evoluções e entregam no depósito
 - Música de fundo gerada pelo jogo (viola calma de dia, mais lenta e misteriosa à noite) e sons para tudo: passos por tipo de chão, golpes por material, quebra, moedas, forja, pulo, power-ups, vento, pássaros, grilos e riacho
 - Ciclo de dia e noite (um dia dura 16 minutos), com estrelas, lua e luzes na cidade
 - Power-ups que ocupam espaço na mochila e podem ser ativados juntos
@@ -61,6 +62,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | `js/data.js` | Tabelas do jogo: martelos, recursos, regiões, custos, power-ups, história |
 | `js/world.js` | Mundo: trechos, obstáculos, nós de recurso e respawn |
 | `js/game.js` | Regras: movimento, pulo, mineração, mochila, economia, salvamento |
+| `js/robots.js` | Robôs auto-mineradores: busca, mineração e entrega |
 | `js/ui.js` | Interface: HUD, lojas dos NPCs, avisos |
 | `js/audio.js` | Música e efeitos sonoros, todos sintetizados (sem arquivos de áudio) |
 | `js/render3d.js` | Mundo 3D: céu, terreno, cidade, pedras, personagem e martelo na mão |
