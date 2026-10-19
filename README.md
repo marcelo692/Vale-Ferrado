@@ -32,6 +32,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | R | Subir/descer do transporte |
 | L | Ligar/desligar a luz |
 | G | Ligar/desligar o detector (no automático ele procura o que falta) · T escolhe na mão · Shift+T volta ao automático |
+| H | Voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20; também tem botão na tela) |
 | M | Som on/off (volumes no botão 🔊 Som) |
 | K | Salvar agora (navegador + arquivo save/progresso.json na pasta do jogo) |
 | Esc | Soltar o mouse e abrir o menu de pausa |

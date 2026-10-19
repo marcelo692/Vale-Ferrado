@@ -191,6 +191,7 @@ const UI = {
         <li><b>1, 2, 3</b>: ativar power-ups da mochila</li>
         <li><b>V</b>: alternar primeira e terceira pessoa</li>
         <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: escolher o minério do detector na mão · <b>Shift+T</b>: voltar ao automático</li>
+        <li><b>H</b>: voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20)</li>
         <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
         <li><b>Esc</b>: soltar o mouse</li>
       </ul>
@@ -359,6 +360,11 @@ const UI = {
     $('equip').innerHTML = eq.join('');
     this.updateDetectorHud();
     this.updateInvHud();
+    { const rb = $('recall'), ok = S.hammer >= RECALL_LVL && !G.inCity && !G.travel && !this.open;
+      rb.style.display = ok ? 'inline-flex' : 'none';
+      if (ok) { const c = G.recallCost(); $('recallc').innerHTML = `<i class="coin"></i>${fmt(c)}`; rb.classList.toggle('off', S.money < c); }
+      $('travelbar').style.display = G.travel ? 'block' : 'none';
+      if (G.travel) $('travelp').style.width = Math.min(100, G.travel.t / G.travel.dur * 100) + '%'; }
     $('climb').style.display = Game.P.climbing && Game.P.moving && !this.open ? 'block' : 'none';
   },
 };

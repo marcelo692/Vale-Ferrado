@@ -8,6 +8,7 @@ const GRAV = 20; // m/s²
 const CLICK_COST = 0.08;  // fôlego gasto por golpe de clique
 const CLICK_CD = 0.35;    // clique pode golpear a cada 35% do intervalo normal (quase 3x mais rápido)
 const SWING_ANIM = 0.16;  // duração da animação do golpe rápido
+const RECALL_LVL = 20;    // nível do martelo que libera o Voltar à cidade
 
 function newState() {
   return {
@@ -77,6 +78,8 @@ const Game = {
       if (UI.open) { if (k === 'escape' || k === 'e') UI.close(); return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
       this.keys[k] = true;
+      if (k === 'h') this.recall();
+      if (this.travel) return; // voltando à cidade: controles travados
       if (k === ' ') this.jump();
       if (k === 'e') this.interact();
       if (k === 'v') Render.toggleView();
@@ -95,7 +98,7 @@ const Game = {
     addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
     addEventListener('blur', () => { this.keys = {}; this.mouse.down = false; });
     addEventListener('mousemove', e => {
-      if (!this.locked()) return;
+      if (!this.locked() || this.travel) return;
       let dx = e.movementX || 0, dy = e.movementY || 0;
       // o Chrome às vezes manda saltos gigantes no movimento do mouse (principalmente logo depois de prender o cursor)
       if (this.lookSkip > 0) { this.lookSkip--; return; }
@@ -132,7 +135,7 @@ const Game = {
   // golpe por clique: mais rápido, mas gasta fôlego
   clickStrike() {
     const P = this.P, n = this.target;
-    if (UI.open || !n || !this.onGround()) return;
+    if (UI.open || !n || !this.onGround() || this.travel) return;
     if (this.clickCD > 0) return;
     if (P.tired || P.stamina < CLICK_COST) {
       if (!this.noBreathT || this.S.time - this.noBreathT > 3) { this.noBreathT = this.S.time; UI.toast('Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar.', 'warn'); Snd.denied(); }
@@ -253,6 +256,7 @@ const Game = {
     this.pay(c); this.S.hammer = L; Snd.forge();
     UI.toast(`Seu Bento forjou: ${HAMMERS[L].n}! Força ${fmt(HAMMERS[L].f)}.`, 'level');
     this.fxBurst(this.P.x, this.P.y, '#ffb347', 30);
+    if (L === RECALL_LVL) setTimeout(() => UI.toast(`🏠 Novo: botão Voltar à cidade (tecla H). Te leva de volta voando rapidinho, por uma taxa pequena.`, 'level'), 1500);
     if (STORY[L] && !this.S.seen[L]) setTimeout(() => UI.story(L), 400);
     this.save();
   },
@@ -271,6 +275,46 @@ const Game = {
     this.S.money -= price; Snd.buy();
     this.S.pw.push({ id, tier: eraOf(this.S.hammer) });
     this.save();
+  },
+
+  // ---------- voltar à cidade (a partir do martelo 20) ----------
+  recallCost() { return Math.max(20, Math.round(hammerCost(Math.min(MAX_LEVEL, this.S.hammer)).money * 0.03)); },
+  recall() {
+    const P = this.P, S = this.S;
+    if (this.travel || UI.open) return;
+    if (S.hammer < RECALL_LVL) { UI.toast(`Voltar à cidade libera no martelo nível ${RECALL_LVL}.`); return; }
+    const d = Math.hypot(P.x, P.y);
+    if (d < CITY_R + 2) { UI.toast('Você já está na cidade.'); return; }
+    const cost = this.recallCost();
+    if (S.money < cost) { UI.toast(`Falta dinheiro para voltar: a taxa é ${fmt(cost)} moedas.`, 'warn'); Snd.denied(); return; }
+    S.money -= cost;
+    const ux = P.x / d, uy = P.y / d, ex = ux * 6, ey = uy * 6;
+    this.travel = { sx: P.x, sy: P.y, ex, ey, t: 0, dur: Math.min(7, Math.max(2.2, d / 140)), yaw0: P.yaw, pitch0: P.pitch, yaw1: Math.atan2(ux, uy), dustT: 0 };
+    this.mouse.down = false; this.target = null; P.vz = 0;
+    Snd.recall(this.travel.dur);
+    this.travel.cost = cost;
+  },
+  updateTravel(dt) {
+    const T = this.travel, P = this.P;
+    T.t += dt;
+    const u = Math.min(1, T.t / T.dur), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; // acelera e freia
+    const px = P.x, py = P.y;
+    P.x = T.sx + (T.ex - T.sx) * e; P.y = T.sy + (T.ey - T.sy) * e;
+    // câmera presa olhando para a cidade
+    const k = Math.min(1, T.t / 0.35);
+    let dy = T.yaw1 - T.yaw0; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    P.yaw = T.yaw0 + dy * k; P.pitch = T.pitch0 + (-0.06 - T.pitch0) * k;
+    // passa por cima dos obstáculos num arco baixo
+    let top = 0; for (const o of World.obstacles) if (o.h > top && this.inObstacle(o, P.x, P.y, 1.2)) top = o.h;
+    const want = top + Math.sin(u * Math.PI) * 1.4;
+    P.z += (want - P.z) * Math.min(1, dt * 12); P.vz = 0;
+    const v = Math.hypot(P.x - px, P.y - py) / Math.max(dt, 1e-4);
+    P.moving = v > 0.5; P.sprint = v > 0.5; P.walkT += dt * Math.min(30, v * 0.3); P.speedNow = v;
+    T.dustT -= dt; if (T.dustT <= 0 && v > 5) { T.dustT = 0.05; this.fxBurst(P.x, P.y, '#cdbb98', 3, 0.7); }
+    if (u >= 1) {
+      this.travel = null; P.z = 0; P.sprint = false; P.speedNow = 0;
+      Snd.land(1.5); UI.toast('Chegou na cidade!');
+    }
   },
 
   // ---------- equipamentos ----------
@@ -375,7 +419,8 @@ const Game = {
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(`${POWERUPS[S.active[i].id].name} acabou.`); S.active.splice(i, 1); } }
 
 
-    if (!UI.open) {
+    if (this.travel) { this.updateTravel(dt); }
+    else if (!UI.open) {
       // movimento relativo à câmera (W A S D)
       let fw = 0, st = 0;
       if (this.keys['w'] || this.keys['arrowup']) fw += 1;
@@ -425,7 +470,8 @@ const Game = {
     // pulo
     // pulo e queda: dá para subir em cima de troncos, muros e pedras e andar por cima deles
     const support = this.supportAt(P.x, P.y);
-    if (P.z > support + 0.001 || P.vz > 0) {
+    if (this.travel) { /* voando de volta */ }
+    else if (P.z > support + 0.001 || P.vz > 0) {
       P.vz -= GRAV * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
       if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); }
     } else { P.z = support; P.vz = 0; }
@@ -437,13 +483,13 @@ const Game = {
     this.wasInCity = this.inCity;
 
     // mineração
-    this.target = UI.open ? null : Render.pickTarget(this.reach());
+    this.target = UI.open || this.travel ? null : Render.pickTarget(this.reach());
     // segurar = velocidade normal sem gastar fôlego; clicar = golpes rápidos que gastam fôlego (clickStrike)
     this.clickCD = Math.max(0, (this.clickCD || 0) - dt);
     this.swingAnim = Math.max(0, (this.swingAnim || 0) - dt);
     if (this.mouse.down) this.mouse.holdT = (this.mouse.holdT || 0) + dt;
     const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear());
-    const mining = !UI.open && this.target && holding && this.onGround();
+    const mining = !UI.open && !this.travel && this.target && holding && this.onGround();
     if (mining) {
       this.mineT += dt;
       const iv = this.interval();

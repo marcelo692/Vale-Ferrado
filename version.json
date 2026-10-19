@@ -1,9 +1,8 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "date": "2026-10-19",
   "notes": [
-    "Robôs auto-mineradores no Tonho do Bazar (até 10): bonequinhos com hélice que buscam sozinhos o que falta para suas evoluções e entregam no depósito",
-    "Robôs aparecem no minimapa e na tabela lateral"
+    "Voltar à cidade (tecla H ou botão na tela), a partir do martelo nível 20: você volta voando bem rápido até a cidade, por uma taxa pequena"
   ],
   "files": [
     {
@@ -12,15 +11,15 @@
     },
     {
       "path": "README.md",
-      "size": 4630
+      "size": 4752
     },
     {
       "path": "index.html",
-      "size": 24004
+      "size": 25247
     },
     {
       "path": "js/audio.js",
-      "size": 17336
+      "size": 17560
     },
     {
       "path": "js/backup.js",
@@ -32,11 +31,11 @@
     },
     {
       "path": "js/game.js",
-      "size": 28294
+      "size": 31079
     },
     {
       "path": "js/render3d.js",
-      "size": 116805
+      "size": 116865
     },
     {
       "path": "js/robots.js",
@@ -44,7 +43,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 27399
+      "size": 27977
     },
     {
       "path": "js/updater.js",
@@ -64,7 +63,7 @@
     },
     {
       "path": "version.json",
-      "size": 1261
+      "size": 1233
     }
   ]
 }

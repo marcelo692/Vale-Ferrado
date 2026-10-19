@@ -137,6 +137,7 @@ const Snd = {
   beep(freq) { this.tone(freq, 0.09, { vol: 0.07 }); },
   story() { [392, 494, 587, 784].forEach((f, i) => this.tone(f, 1.2, { vol: 0.08, type: 'triangle', at: i * 0.25, bus: this.busMusic })); },
   veio() { [659, 784, 988].forEach((f, i) => this.tone(f, 0.3, { vol: 0.1, type: 'triangle', at: i * 0.1 })); },
+  recall(dur) { this.tone(330, 0.5, { vol: 0.1, type: 'triangle', slide: 3 }); this.noise(dur, { vol: 0.16, f: 500, fEnd: 2500, q: 0.8, attack: 0.4 }); this.tone(988, 0.3, { vol: 0.06, type: 'triangle', at: dur - 0.2 }); },
   toggle(on) { this.tone(on ? 900 : 600, 0.06, { vol: 0.07, type: 'triangle' }); },
 
   // ---------- sons contínuos (ambiente, transporte) ----------

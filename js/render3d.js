@@ -1292,7 +1292,7 @@ const Render = {
       const cx = P.x + fx * back + Math.cos(P.yaw) * 0.7, cz = P.y + fz * back - Math.sin(P.yaw) * 0.7; // câmera sobre o ombro
       this.cam.position.set(cx, Math.max(World.height(cx, cz) + 0.5, gh + P.z + 1.7 + bs * 0.9 - Math.sin(P.pitch) * back), cz);
     }
-    const rr = Game.ride(); const wantFov = (P.sprint ? 82 : 72) + (rr && P.moving ? Math.min(14, rr.mult * 2.5) : 0); this.cam.fov += (wantFov - this.cam.fov) * Math.min(1, dt * 6); this.cam.updateProjectionMatrix();
+    const rr = Game.ride(); const wantFov = Game.travel ? 72 + Math.min(34, (P.speedNow || 0) * 0.12) : (P.sprint ? 82 : 72) + (rr && P.moving ? Math.min(14, rr.mult * 2.5) : 0); this.cam.fov += (wantFov - this.cam.fov) * Math.min(1, dt * 6); this.cam.updateProjectionMatrix();
     // céu, montanhas e nuvens acompanham o jogador (horizonte infinito)
     this.sky.position.copy(this.cam.position);
     this.ring.position.set(this.cam.position.x, 0, this.cam.position.z);
