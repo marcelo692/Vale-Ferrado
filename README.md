@@ -23,7 +23,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | Shift | Correr (gasta fôlego; se zerar, você cansa) |
 | Espaço | Pular: troncos, muros e penhascos são atalhos; com pulo alto o bastante você sobe neles e passa por cima |
 | Segurar o botão esquerdo | Minerar na velocidade normal, sem cansar |
-| Clicar várias vezes | Golpes quase 3x mais rápidos, mas cada clique gasta fôlego |
+| Clicar várias vezes | Golpes quase 3x mais rápidos, mas cada clique gasta fôlego; cada clique vale por vários golpes (×2 no martelo 5, ×3 no 10… até ×13 no 60) |
 | E perto de um NPC | Abrir a loja |
 | 1, 2, 3 | Ativar power-ups |
 | V | Alternar primeira e terceira pessoa |

@@ -1,8 +1,8 @@
 {
-  "version": "2.3.0",
+  "version": "2.4.0",
   "date": "2026-10-19",
   "notes": [
-    "Voltar à cidade (tecla H ou botão na tela), a partir do martelo nível 20: você volta voando bem rápido até a cidade, por uma taxa pequena"
+    "Clique rápido mais forte: cada clique vale por vários golpes, +1 a cada 5 níveis do martelo (×2 no 5, ×3 no 10… até ×13 no 60)"
   ],
   "files": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "path": "README.md",
-      "size": 4752
+      "size": 4838
     },
     {
       "path": "index.html",
@@ -31,7 +31,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 31079
+      "size": 31409
     },
     {
       "path": "js/render3d.js",
@@ -43,7 +43,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 27977
+      "size": 28278
     },
     {
       "path": "js/updater.js",
@@ -63,7 +63,7 @@
     },
     {
       "path": "version.json",
-      "size": 1233
+      "size": 1167
     }
   ]
 }

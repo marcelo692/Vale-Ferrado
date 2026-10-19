@@ -67,6 +67,8 @@ const Game = {
   },
   canClear(o) { return this.jumpH() >= o.h * 0.9; },
   isNight() { const c = this.S.clock; return c < 0.23 || c > 0.77; },
+  // cada clique rápido vale por vários golpes: sobe +1 a cada 5 níveis do martelo
+  clickMult() { return 1 + Math.floor(this.S.hammer / 5); },
   reach() { return 2.4 + Math.min(2.5, this.S.hammer * 0.04); },
 
   // ---------- entrada ----------
@@ -147,7 +149,9 @@ const Game = {
     this.swingAnim = SWING_ANIM;
     this.mineT = 0;
     Snd.swing(true);
-    this.hit(n);
+    const m = this.clickMult();
+    if (m > 1 && !n.dead) this.floats.push({ x: n.x + (Math.random() - 0.5), y: n.y - 0.5, txt: '×' + m, c: '#ffb347', t: 0.6 });
+    this.hit(n, m);
   },
 
   npcNear() {
@@ -528,12 +532,12 @@ const Game = {
     return Math.max(0, 1 - Math.abs(p - rp) / 28);
   },
 
-  hit(n) {
+  hit(n, mult = 1) {
     if (this.free() <= 0) {
       if (this.fullWarnT <= 0) { UI.toast('Mochila cheia! Volte à cidade para vender.', 'warn'); this.fullWarnT = 4; Snd.warn(); }
       this.mineT = 0; return;
     }
-    const dmg = this.force();
+    const dmg = this.force() * mult;
     n.hp -= dmg; n.hitT = 0.15;
     Snd.hit(n.res.kind, this.S.hammer, n.rare > 1);
     this.shake = Math.min(1, this.shake + 0.15 + Math.min(0.4, this.S.hammer / 120));

@@ -186,7 +186,7 @@ const UI = {
         <li><b>Montanhas</b> (triângulos no minimapa): subir é lento e o Shift não funciona na subida; perto do topo ficam os recursos raros</li>
         <li><b>Espaço</b>: pular (passe por cima de troncos, muros e penhascos para cortar caminho)</li>
         <li><b>Segurar o botão esquerdo</b> mirando uma pedra: minera na velocidade normal, sem cansar</li>
-        <li><b>Clicar várias vezes</b>: golpes bem mais rápidos, mas cada clique gasta fôlego</li>
+        <li><b>Clicar várias vezes</b>: golpes bem mais rápidos, mas cada clique gasta fôlego. Cada clique vale por vários golpes, e isso aumenta a cada 5 níveis do martelo (×2 no 5, ×3 no 10… até ×13 no 60)</li>
         <li><b>E</b> perto de um NPC: abrir a loja</li>
         <li><b>1, 2, 3</b>: ativar power-ups da mochila</li>
         <li><b>V</b>: alternar primeira e terceira pessoa</li>
@@ -331,7 +331,7 @@ const UI = {
     if (World.veio) loc += `<br><span class="veio">⛏ Veio de ${RES[World.veio.res].name} aflorado: ${Math.ceil(World.veio.t)} s</span>`;
     $('loc').innerHTML = loc;
     // atributos
-    $('attrs').innerHTML = Object.keys(ATTRS).map(k => `<div><span>${ATTRS[k].short}</span><b>${S.attrs[k]}</b><i>${k === 'bag' ? '' : attrLabel(k, S.attrs[k])}</i></div>`).join('');
+    $('attrs').innerHTML = Object.keys(ATTRS).map(k => `<div><span>${ATTRS[k].short}</span><b>${S.attrs[k]}</b><i>${k === 'bag' ? '' : attrLabel(k, S.attrs[k])}</i></div>`).join('') + `<div><span>Clique rápido</span><b>×${G.clickMult()}</b><i>${S.hammer < 60 ? `×${G.clickMult() + 1} no martelo ${(Math.floor(S.hammer / 5) + 1) * 5}` : 'máximo'}</i></div>`;
     // power-ups
     let pw = '';
     for (const id in POWERUPS) {
