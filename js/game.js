@@ -152,7 +152,9 @@ const Game = {
     Snd.swing(true);
     const m = this.clickMult();
     if (m > 1 && !n.dead) this.floats.push({ x: n.x + (Math.random() - 0.5), y: n.y - 0.5, txt: '×' + m, c: '#ffb347', t: 0.6 });
-    this.hit(n, m);
+    // o golpe acerta quando o martelo desce (animação rápida de ~0,07 s)
+    Render.clickSwing();
+    this.timers.push({ t: 0.07, fn: () => { if (!n.dead) this.hit(n, m, true); } });
   },
 
   npcNear() {
@@ -546,13 +548,14 @@ const Game = {
     return Math.max(0, 1 - Math.abs(p - rp) / 28);
   },
 
-  hit(n, mult = 1) {
+  hit(n, mult = 1, click = false) {
     if (this.free() <= 0) {
       if (this.fullWarnT <= 0) { UI.toast('Mochila cheia! Volte à cidade para vender.', 'warn'); this.fullWarnT = 4; Snd.warn(); }
       this.mineT = 0; return;
     }
     const dmg = this.force() * mult;
     n.hp -= dmg; n.hitT = 0.15;
+    Render.hitFx(n, { dmg, click, broke: n.hp <= 0 });
     Snd.hit(n.res.kind, this.S.hammer, n.rare > 1);
     this.shake = Math.min(1, this.shake + 0.15 + Math.min(0.4, this.S.hammer / 120));
     this.fxBurst(n.x, n.y, n.res.c2, 4 + Math.min(10, Math.floor(this.S.hammer / 6)), 0.8);

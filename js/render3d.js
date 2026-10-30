@@ -5,6 +5,7 @@
 
 const V3 = THREE.Vector3;
 const EYE = 1.65;
+const FP_FWD = 0.3, FP_DROP = 0.24; // na primeira pessoa a câmera fica um pouco à frente do peito, para ver o corpo ao olhar para baixo
 
 function canvasTex(w, h, draw, repeat) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -83,6 +84,7 @@ const Render = {
     this.buildDecor();
     this.buildGrass();
     this.buildFx();
+    this.buildHitFx();
     this.buildViewModel();
     this.player = new THREE.Group(); this.scene.add(this.player);
     this.buildPlayerLights();
@@ -821,7 +823,14 @@ const Render = {
     else if (look.type === 'meteor') { head = mesh(jitterGeo(new THREE.IcosahedronGeometry(hl * 0.55, 1), hl * 0.12, L), mat('#3a3436', { emissive: look.head, emissiveIntensity: 0.45 }), false); head.scale.set(1.4, 0.9, 0.9); head.position.y = len; }
     else if (look.type === 'machine') { head = new THREE.Group(); const b = mesh(new THREE.BoxGeometry(hl * 1.1, hw * 2.2, hw * 2.2), mat(look.head, { shininess: 50 }), false); head.add(b); const bit = mesh(new THREE.CylinderGeometry(hw * 0.35, hw * 0.1, hl * 0.9, 6), mat('#30333a', { shininess: 80 }), false); bit.rotation.z = Math.PI / 2; bit.position.x = hl; head.add(bit); head.position.y = len; }
     else { head = mesh(new THREE.BoxGeometry(hl * (look.type === 'sledge' ? 1.1 : 1), hw * 2, hw * 2), mat(look.head, Object.assign({ shininess: 60, specular: '#666' }, emi)), false); head.position.y = len; if (L >= 35 && L <= 37) { const claw = mesh(new THREE.BoxGeometry(hl * 0.5, hw * 0.6, hw * 1.4), mat(look.head), false); claw.position.set(-hl * 0.6, len + hw * 0.4, 0); claw.rotation.z = 0.5; g.add(claw); } }
-    g.add(head); g.userData.headY = len;
+    g.add(head); g.userData.headY = len; g.userData.head = head;
+    if (L === 60) { // Martelo do Vale: anel de energia e cristais orbitando
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(hl * 0.75, 0.018, 6, 28), new THREE.MeshBasicMaterial({ color: '#bff8ff', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+      ring.position.y = len; ring.rotation.x = Math.PI / 2; g.add(ring);
+      const orbit = new THREE.Group(); orbit.position.y = len; g.add(orbit);
+      ['#7af0ff', '#c06af0', '#ffffff'].forEach((c, i) => { const sh = mesh(new THREE.OctahedronGeometry(0.06, 0), mat(c, { emissive: c, emissiveIntensity: 0.9 }), false); const a = i / 3 * Math.PI * 2; sh.position.set(Math.cos(a) * hl * 1.05, 0, Math.sin(a) * hl * 1.05); orbit.add(sh); });
+      g.userData.orbit = orbit; g.userData.ring = ring;
+    }
     return g;
   },
 
@@ -832,6 +841,9 @@ const Render = {
     this.vmScene.add(new THREE.HemisphereLight('#ffffff', '#6a5a40', 0.6));
     const d = new THREE.DirectionalLight('#fff1d6', 0.55); d.position.set(1, 2, 1); this.vmScene.add(d);
     this.vm = new THREE.Group(); this.vmScene.add(this.vm);
+    this.vmGlow = new THREE.PointLight('#7af0ff', 0, 2.5, 2); this.vmGlow.position.set(0.3, -0.2, -0.7); this.vmScene.add(this.vmGlow);
+    this.vmFlash = new THREE.PointLight('#ffd27a', 0, 3, 2); this.vmFlash.position.set(0.05, -0.35, -0.9); this.vmScene.add(this.vmFlash);
+    this.anim = { t: 0, combo: 0, follow: 0, stop: 0, click: 0, pose: null };
   },
   rebuildViewModel() {
     const gear = this.gear(), L = Game.S.hammer;
@@ -847,8 +859,15 @@ const Render = {
     const ham = this.makeHammer(L);
     ham.scale.setScalar(0.42 - L * 0.0035);
     ham.position.set(0, -0.06, 0); ham.rotation.set(-0.45, 0, 0.32);
-    arm.add(ham);
-    this.vmArm = arm; this.vm.add(arm);
+    // braço e luva um pouco menores para não tampar a pedra
+    for (const c of arm.children) { c.scale.multiplyScalar(0.62); c.position.multiplyScalar(0.62); }
+    arm.add(ham); this.vmHam = ham;
+    this.vmRig = new THREE.Group(); this.vmRig.add(arm);
+    this.vmArm = arm; this.vm.add(this.vmRig);
+    // ajusta o braço para a batida cair um pouco abaixo da mira
+    const hp = new V3(); this.vmCam.updateMatrixWorld(true);
+    this.applyVmPose(this.vmPoseAt(0, 0.58));
+    for (let it = 0; it < 8; it++) { this.vmRig.updateMatrixWorld(true); ham.userData.head.getWorldPosition(hp); hp.project(this.vmCam); this.vmRig.position.y += (-0.28 - hp.y) * 0.25; this.vmRig.position.x += (0.1 - hp.x) * 0.3; }
     this.vmTorch = null;
     if (Game.S.gear.light === 1) {
       const t = new THREE.Group();
@@ -858,14 +877,132 @@ const Render = {
       this.vm.add(t); this.vmTorch = t;
     }
   },
+  // ---------- animação "Combo de três": direita, esquerda e golpe final por cima ----------
+  vmPoseAt(combo, t) {
+    const R = { x: 0.34, y: -0.4, z: -0.62, rx: 0, ry: -0.12, rz: 0 }, P = o => Object.assign({}, R, o);
+    const sm = u => u * u * (3 - 2 * u), ein = u => u * u * u, eout = u => 1 - Math.pow(1 - u, 3);
+    const K = this._combo || (this._combo = [
+      [[0, P({})], [0.42, P({ x: 0.45, y: -0.33, rx: 0.6, rz: -0.5 }), sm], [0.58, P({ x: 0.16, y: -0.46, rx: -0.85, rz: 0.4, z: -0.68 }), ein], [0.7, P({ x: 0.18, y: -0.44, rx: -0.65, rz: 0.3 }), eout], [1, P({ x: 0.2 }), sm]],
+      [[0, P({ x: 0.2 })], [0.42, P({ x: -0.02, y: -0.33, rx: 0.6, ry: 0.4, rz: 0.6 }), sm], [0.58, P({ x: 0.3, y: -0.46, rx: -0.85, ry: -0.3, rz: -0.45, z: -0.68 }), ein], [0.7, P({ x: 0.28, y: -0.44, rx: -0.65, rz: -0.3 }), eout], [1, P({}), sm]],
+      [[0, P({})], [0.4, P({ x: 0.22, y: -0.12, z: -0.5, rx: 1.45 }), sm], [0.58, P({ x: 0.2, y: -0.5, z: -0.7, rx: -1.05 }), ein], [0.7, P({ x: 0.22, y: -0.47, rx: -0.85 }), eout], [1, P({}), sm]],
+    ]);
+    const keys = K[combo % 3];
+    let i = 0; while (i < keys.length - 2 && t > keys[i + 1][0]) i++;
+    const [t0, a] = keys[i], [t1, b, ease] = keys[i + 1], u = Math.max(0, Math.min(1, (t - t0) / (t1 - t0))), e = ease(u), o = {};
+    for (const k in a) o[k] = a[k] + (b[k] - a[k]) * e;
+    return o;
+  },
+  applyVmPose(p, bob = 0) {
+    this.vmArm.position.set(p.x + bob * 0.012, p.y + Math.abs(bob) * 0.015, p.z);
+    this.vmArm.rotation.set(p.rx, p.ry, p.rz + bob * 0.03);
+  },
+  clickSwing() { const A = this.anim; if (!A) return; A.click = 0.07; A.follow = 0; if (A.t < 0.36 || A.t > 0.58) A.t = 0.36; },
   updateViewModel(dt) {
     this.rebuildViewModel();
-    const P = Game.P, s = P.swing;
+    const P = Game.P, A = this.anim;
     const bob = P.moving ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2)) : 0;
-    const rx = s < 0.7 ? (s / 0.7) * 0.5 : 0.5 - ((s - 0.7) / 0.3) * 1.3;
-    this.vmArm.position.set(0.36 + bob * 0.012 + Math.max(0, rx) * 0.08, -0.4 + Math.abs(bob) * 0.015, -0.6);
-    this.vmArm.rotation.set(rx, -0.12, bob * 0.03);
+    if (A.stop > 0) A.stop -= dt; // pausa de impacto
+    else if (A.follow > 0) { A.follow -= dt; A.t = 0.58 + (1 - Math.max(0, A.follow) / A.followDur) * 0.42; if (A.follow <= 0) A.t = 0; }
+    else if (A.click > 0) { A.click -= dt; A.t = Math.min(0.58, A.t + dt / 0.07 * 0.22); }
+    else if (Game.mineT > 0 && P.swing > 0.001) A.t = Math.min(0.575, P.swing * 0.58); // segurando: sobe devagar até o golpe
+    else A.t = Math.max(0, A.t - dt * 2);
+    const want = this.vmPoseAt(A.combo, A.t);
+    if (!A.pose) A.pose = want;
+    const k = A.follow > 0 || A.click > 0 ? 1 : Math.min(1, dt * 18);
+    for (const key in want) A.pose[key] += (want[key] - A.pose[key]) * k;
+    this.applyVmPose(A.pose, bob);
     if (this.vmTorch) this.vmTorch.position.set(-0.32 - bob * 0.01, -0.36 + Math.abs(bob) * 0.012, -0.55);
+    // martelo do Vale: cristais girando e brilho pulsando
+    const u = this.vmHam && this.vmHam.userData;
+    if (u && u.orbit) { u.orbit.rotation.y += dt * 3; u.ring.rotation.z += dt * 1.5; this.vmGlow.intensity = 0.8 + Math.sin(this.t * 4) * 0.3; } else this.vmGlow.intensity = 0;
+    this.vmFlash.intensity = Math.max(0, this.vmFlash.intensity - dt * 12);
+  },
+
+  // ---------- impacto: lascas, faíscas, clarão e onda de choque (crescem com o martelo) ----------
+  buildHitFx() {
+    const N = this.hfN = 420;
+    this.chips = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: '#ffffff' }), 220);
+    this.chips.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.chips.frustumCulled = false;
+    const z = new THREE.Matrix4().makeScale(0, 0, 0), c0 = new THREE.Color('#888');
+    for (let i = 0; i < 220; i++) { this.chips.setMatrixAt(i, z); this.chips.setColorAt(i, c0); }
+    this.scene.add(this.chips); this.chipD = Array.from({ length: 220 }, () => ({ t: 0 }));
+    const tex = canvasTex(32, 32, (g) => { const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); });
+    const sg = new THREE.BufferGeometry(); this.spPos = new Float32Array(N * 3); this.spCol = new Float32Array(N * 3);
+    sg.setAttribute('position', new THREE.BufferAttribute(this.spPos, 3)); sg.setAttribute('color', new THREE.BufferAttribute(this.spCol, 3));
+    this.sparkPts = new THREE.Points(sg, new THREE.PointsMaterial({ map: tex, size: 0.09, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    this.sparkPts.frustumCulled = false; this.scene.add(this.sparkPts); this.spD = Array.from({ length: N }, () => ({ t: 0 }));
+    for (let i = 0; i < N; i++) this.spPos[i * 3 + 1] = -999;
+    this.hitLight = new THREE.PointLight('#ffd27a', 0, 7, 2); this.scene.add(this.hitLight);
+    this.wave = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#bff8ff', transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+    this.scene.add(this.wave); this.waveT = 0; this.hitLightT = 0;
+  },
+  hitFx(n, o) {
+    if (!this.chips) return;
+    const L = Game.S.hammer, A = this.anim;
+    // combo: cada golpe troca de lado; o terceiro é o golpe final, com mais partículas
+    const fin = A && A.combo % 3 === 2;
+    if (A) { A.followDur = Math.min(0.26, Math.max(0.12, Game.interval() * (o.click ? 0.3 : 0.25))); A.follow = A.followDur; A.click = 0; A.t = 0.58; A.stop = 0.03 + L / 1200 + (fin ? 0.03 : 0); A.combo = (A.combo + 1) % 3; }
+    let power = (fin ? 1.7 : 1) * (o.broke ? 2 : 1) * (o.click ? 0.85 : 1);
+    // ponto do impacto: superfície da pedra virada para o jogador
+    const P = Game.P, dx = P.x - n.x, dy = P.y - n.y, dd = Math.hypot(dx, dy) || 1, r = n.r * 0.55;
+    const ix = n.x + dx / dd * r, iy = n.y + dy / dd * r, iz = World.height(n.x, n.y) + n.r * 0.75;
+    const chipCols = [n.res.c, n.res.c2, n.res.c].map(c => new THREE.Color(c));
+    const nChips = Math.round((4 + L * 0.45) * power), nSparks = Math.round((L < 6 ? 0 : 6 + L * 1.25) * power);
+    const look = hammerLook(L);
+    const sc = new THREE.Color(L >= 51 ? look.head : L >= 31 ? '#ffd27a' : '#ffb24a'), sc2 = new THREE.Color(L >= 51 ? '#ffffff' : '#ff7a2e'), sc3 = new THREE.Color(L >= 58 ? '#c06af0' : sc2);
+    let made = 0;
+    for (let i = 0; i < 220 && made < nChips; i++) {
+      const d = this.chipD[i]; if (d.t > 0) continue; made++;
+      const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * (1.5 + L / 25);
+      Object.assign(d, { t: 0.7 + Math.random() * 0.5, x: ix, y: iz, z: iy, vx: Math.cos(a) * sp, vy: 2 + Math.random() * 2.5, vz: Math.sin(a) * sp, s: (0.04 + Math.random() * 0.05) * (1 + L / 80), rx: Math.random() * 6, ry: Math.random() * 6, g: World.height(ix, iy) });
+      this.chips.setColorAt(i, chipCols[i % 3]);
+    }
+    this.chips.instanceColor.needsUpdate = true;
+    made = 0;
+    for (let i = 0; i < this.hfN && made < nSparks; i++) {
+      const d = this.spD[i]; if (d.t > 0) continue; made++;
+      const a = Math.random() * Math.PI * 2, el = Math.random() * 1.2, sp = 3 + Math.random() * (2.5 + L / 12);
+      d.t0 = d.t = 0.3 + Math.random() * 0.45;
+      Object.assign(d, { x: ix, y: iz, z: iy, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp + 1.2, vz: Math.sin(a) * Math.cos(el) * sp, c: Math.random() < 0.25 ? sc2 : Math.random() < 0.2 ? sc3 : sc });
+    }
+    // clarão, onda de choque e tremida
+    if (L >= 10) { this.hitLight.position.set(ix, iz + 0.3, iy); this.hitLight.color.copy(sc); this.hitLightT = 0.14; this.hitLightPow = 0.5 + L / 45 * power; this.vmFlash.color.copy(sc); this.vmFlash.intensity = 0.8 + L / 40; }
+    if (L >= 50 || (fin && L >= 35) || (o.broke && L >= 30)) { this.waveT = 0.45; this.wave.position.set(ix, World.height(ix, iy) + 0.08, iy); this.wave.material.color.set(L >= 51 ? look.head : '#ffe2a0'); this.waveSize = 1 + L / 40 * power; }
+    Game.shake = Math.min(1, Game.shake + 0.05 * power + L / 400);
+    // número do dano
+    Game.floats.push({ x: n.x + (Math.random() - 0.5) * 0.8, y: n.y - 0.2, txt: '-' + fmt(Math.round(o.dmg)), c: fin ? '#ffd34d' : '#ffffff', t: 0.8, cls: 'dmg' });
+  },
+  updateHitFx(dt) {
+    if (!this.chips) return;
+    const m = this._m || (this._m = new THREE.Matrix4()), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new V3(), sc = new V3(), z = new THREE.Matrix4().makeScale(0, 0, 0);
+    let any = false;
+    for (let i = 0; i < 220; i++) {
+      const d = this.chipD[i];
+      if (d.t > 0) {
+        any = true; d.t -= dt; d.vy -= 14 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt; d.rx += dt * 8; d.ry += dt * 6;
+        if (d.y < d.g + 0.03) { d.y = d.g + 0.03; d.vy *= -0.3; d.vx *= 0.5; d.vz *= 0.5; }
+        const k = Math.min(1, d.t * 3) * d.s;
+        m.compose(v.set(d.x, d.y, d.z), q.setFromEuler(e.set(d.rx, d.ry, 0)), sc.set(k, k, k)); this.chips.setMatrixAt(i, m);
+        if (d.t <= 0) this.chips.setMatrixAt(i, z);
+      }
+    }
+    if (any) this.chips.instanceMatrix.needsUpdate = true;
+    let anyS = false;
+    for (let i = 0; i < this.hfN; i++) {
+      const d = this.spD[i], j = i * 3;
+      if (d.t > 0) {
+        anyS = true; d.t -= dt; d.vy -= 9 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
+        const f = Math.max(0, d.t / d.t0);
+        this.spPos[j] = d.x; this.spPos[j + 1] = d.t > 0 ? d.y : -999; this.spPos[j + 2] = d.z;
+        const ff = f * 0.85; this.spCol[j] = d.c.r * ff; this.spCol[j + 1] = d.c.g * ff; this.spCol[j + 2] = d.c.b * ff;
+      }
+    }
+    if (anyS || this._spWas) { this.sparkPts.geometry.attributes.position.needsUpdate = this.sparkPts.geometry.attributes.color.needsUpdate = true; }
+    this._spWas = anyS;
+    this.sparkPts.material.size = 0.045 + Game.S.hammer / 1600;
+    this.hitLightT = Math.max(0, this.hitLightT - dt); this.hitLight.intensity = this.hitLightT > 0 ? (this.hitLightT / 0.14) * this.hitLightPow : 0;
+    this.waveT = Math.max(0, this.waveT - dt); const wk = this.waveT / 0.45;
+    this.wave.material.opacity = wk * 0.55; this.wave.scale.setScalar(0.3 + (1 - wk) * (this.waveSize || 2)); this.wave.visible = this.waveT > 0;
   },
 
   // ---------- personagem (terceira pessoa e pés na primeira) ----------
@@ -1127,10 +1264,10 @@ const Render = {
     const body = new THREE.Group(); g.add(body); out.body = body;
     const torso = mesh(new THREE.BoxGeometry(0.6, 0.72, 0.34), mat('#3e6b8a')); torso.position.y = 1.28; body.add(torso);
     const belt = mesh(new THREE.BoxGeometry(0.62, 0.1, 0.36), mat('#5a3d24')); belt.position.y = 0.95; body.add(belt);
-    const head = mesh(new THREE.BoxGeometry(0.38, 0.4, 0.38), mat('#d4a17a')); head.position.y = 1.86; body.add(head);
-    for (const x of [-0.08, 0.08]) { const eye = mesh(new THREE.BoxGeometry(0.05, 0.05, 0.01), mat('#2a1a10'), false); eye.position.set(x, 1.88, -0.195); body.add(eye); }
-    const hair = mesh(new THREE.BoxGeometry(0.4, 0.14, 0.4), mat('#4a2e1a')); hair.position.y = 2.08; body.add(hair);
-    const hairB = mesh(new THREE.BoxGeometry(0.4, 0.3, 0.08), mat('#4a2e1a')); hairB.position.set(0, 1.93, 0.17); body.add(hairB);
+    const head = this.tag(mesh(new THREE.BoxGeometry(0.38, 0.4, 0.38), mat('#d4a17a')), 'head'); head.position.y = 1.86; body.add(head);
+    for (const x of [-0.08, 0.08]) { const eye = this.tag(mesh(new THREE.BoxGeometry(0.05, 0.05, 0.01), mat('#2a1a10'), false), 'head'); eye.position.set(x, 1.88, -0.195); body.add(eye); }
+    const hair = this.tag(mesh(new THREE.BoxGeometry(0.4, 0.14, 0.4), mat('#4a2e1a')), 'head'); hair.position.y = 2.08; body.add(hair);
+    const hairB = this.tag(mesh(new THREE.BoxGeometry(0.4, 0.3, 0.08), mat('#4a2e1a')), 'head'); hairB.position.set(0, 1.93, 0.17); body.add(hairB);
     // mochila
     const B = gear.bag, s = B.size, bag = new THREE.Group(); bag.position.set(0, 1.3 + (s - 0.5) * 0.4, 0.17 + s * 0.3);
     let bgeo;
@@ -1140,7 +1277,7 @@ const Render = {
     else if (B.era === 4) bgeo = new THREE.CylinderGeometry(s * 0.5, s * 0.38, s * 1.2, 8);
     else bgeo = new THREE.BoxGeometry(s * 0.85, s * 1.3, s * 0.6);
     bag.add(this.tag(mesh(bgeo, mat(B.col)), 'bag'));
-    for (const x of [-0.18, 0.18]) { const strap = this.tag(mesh(new THREE.BoxGeometry(0.06, 0.6, 0.03), mat(B.strap)), 'bag'); strap.position.set(x, 1.28, -0.175); body.add(strap); }
+    for (const x of [-0.18, 0.18]) { const strap = this.tag(mesh(new THREE.BoxGeometry(0.06, 0.6, 0.03), mat(B.strap)), 'strap'); strap.position.set(x, 1.28, -0.175); body.add(strap); }
     if (B.era >= 5) { const fr = this.tag(mesh(new THREE.BoxGeometry(s * 0.95, s * 1.45, 0.05), mat(B.era === 6 ? '#22262c' : '#8a9098', { shininess: 60 })), 'bag'); fr.position.z = -s * 0.32; bag.add(fr); }
     if (B.era === 6) for (let i = 0; i < 3; i++) { const li = this.tag(new THREE.Mesh(new THREE.BoxGeometry(s * 0.2, 0.04, 0.02), new THREE.MeshBasicMaterial({ color: '#40d0ff' })), 'bag'); li.position.set(-s * 0.2, -s * 0.4 + i * s * 0.4, s * 0.31); bag.add(li); }
     for (let i = 0; i < (B.lvl - 1) % 10; i++) { const rv = this.tag(mesh(new THREE.SphereGeometry(0.02, 4, 3), mat('#e8d8a8', { shininess: 80 }), false), 'bag'); rv.position.set(-s * 0.3 + (i % 5) * s * 0.15, -s * 0.25 - Math.floor(i / 5) * 0.06, s * 0.28); bag.add(rv); }
@@ -1186,6 +1323,7 @@ const Render = {
     this.player.clear();
     while (out.g.children.length) this.player.add(out.g.children[0]);
     this.legs = out.legs; this.pArm = out.arm; this.pBody = out.body; this.wheel = out.wheel;
+    this.pOrbit = null; this.player.traverse(o => { if (o.userData && o.userData.orbit) this.pOrbit = o.userData; });
   },
 
   // ---------- imagens dos itens para as lojas ----------
@@ -1260,7 +1398,7 @@ const Render = {
     this.rebuildPlayer();
     const P = Game.P, g = this.player;
     const rh = this.rideH();
-    g.position.set(P.x, World.height(P.x, P.y) + P.z + rh, P.y);
+    g.position.set(P.x, World.height(P.x, P.y) + P.z + rh - (this.view === 'fp' ? FP_DROP : 0), P.y);
     g.rotation.y = P.yaw;
     const riding = !!Game.ride(), lvR = Game.S.gear.ride;
     const w = P.moving ? Math.sin(P.walkT * 2.2) * (riding ? (lvR === 1 ? 0.35 : 0) : 0.6) : 0;
@@ -1269,9 +1407,14 @@ const Render = {
     const s = P.swing, raise = s < 0.7 ? s / 0.7 : 1 - (s - 0.7) / 0.3;
     this.pArm.rotation.x = raise * 2.4;
     const fp = this.view === 'fp';
-    this.pBody.visible = !fp;
-    // na primeira pessoa, as pernas ficam um pouco atrás para aparecerem ao olhar para baixo
-    for (const l of this.legs) l.position.z = fp ? -0.08 : 0;
+    // primeira pessoa: o corpo aparece ao olhar para baixo; só a cabeça, o braço do martelo e a mochila somem
+    if (this._fpWas !== fp || this._fpSig !== this.sig.pl) {
+      this._fpWas = fp; this._fpSig = this.sig.pl;
+      this.pBody.traverse(o => { if (o.isMesh) { const part = o.userData.part; o.visible = !(fp && (part === 'head' || part === 'bag' || (part === 'light' && Game.S.gear.light >= 2) || (part || '').startsWith('pw_'))); } });
+      this.pArm.visible = !fp;
+    }
+    for (const l of this.legs) l.position.z = 0;
+    if (this.pOrbit) { this.pOrbit.orbit.rotation.y += 0.05; this.pOrbit.ring.rotation.z += 0.03; }
   },
 
   // ---------- quadro ----------
@@ -1286,7 +1429,7 @@ const Render = {
     const shake = Game.shake * 0.012;
     this.cam.rotation.set(P.pitch + (Math.random() - 0.5) * shake, P.yaw + (Math.random() - 0.5) * shake, 0);
     const rh = this.rideH(), ridingNow = !!Game.ride();
-    if (this.view === 'fp') this.cam.position.set(P.x, gh + P.z + EYE + rh + (ridingNow ? bob * 0.2 : bob), P.y);
+    if (this.view === 'fp') this.cam.position.set(P.x - Math.sin(P.yaw) * FP_FWD, gh + P.z + EYE + rh + (ridingNow ? bob * 0.2 : bob), P.y - Math.cos(P.yaw) * FP_FWD);
     else {
       const bs = this.gear().bag.size, back = 4 + bs * 2.2, fx = Math.sin(P.yaw) * Math.cos(P.pitch), fz = Math.cos(P.yaw) * Math.cos(P.pitch);
       const cx = P.x + fx * back + Math.cos(P.yaw) * 0.7, cz = P.y + fz * back - Math.sin(P.yaw) * 0.7; // câmera sobre o ombro
@@ -1307,6 +1450,7 @@ const Render = {
     if (this.shopIcons) this.shopIcons.forEach((ic, i) => { ic.rotation.y = this.t * 1.2 + i; ic.position.y = 5.4 + Math.sin(this.t * 2 + i) * 0.15; });
     this.updatePlayerLights();
     this.updateRobots(dt);
+    this.updateHitFx(dt);
     this.updateObstacleHint();
     this.stars.position.copy(this.cam.position);
     this.updateNightFx(dt);
@@ -1329,7 +1473,7 @@ const Render = {
     for (const f of Game.floats) {
       const p = this.project(f.x, f.y, World.height(f.x, f.y) + 1.6 + (1.6 - f.t) * 0.8);
       if (!p) continue;
-      html += `<div style="left:${p[0]}px;top:${p[1]}px;color:${f.c};opacity:${Math.min(1, f.t * 1.5)}">${f.txt}</div>`;
+      html += `<div ${f.cls ? `class="${f.cls}"` : ''} style="left:${p[0]}px;top:${p[1]}px;color:${f.c};opacity:${Math.min(1, f.t * 1.5)}">${f.txt}</div>`;
     }
     this.floatsEl.innerHTML = html;
   },

@@ -1,9 +1,12 @@
 {
-  "version": "2.5.0",
-  "date": "2026-10-19",
+  "version": "2.6.0",
+  "date": "2026-10-30",
   "notes": [
-    "Correção: recursos raros (Obsidiana Real, Ferro Celeste…) não são mais vendidos quando a próxima evolução ainda não pede; ficam guardados para todos os martelos e equipamentos futuros, como o Hoverboard",
-    "Quem teve recurso raro vendido por engano nas últimas entregas recebe de volta no depósito"
+    "Nova martelada: combo de três golpes (direita, esquerda e golpe final por cima, com mais partículas)",
+    "Cada golpe solta lascas, faíscas e clarão que crescem com o nível do martelo; no 60 vira uma explosão de cristais com onda de choque",
+    "Pausa de impacto, tremida e número de dano em cada golpe",
+    "Primeira pessoa: olhando para baixo você vê o próprio corpo",
+    "Martelo do Vale (nível 60) com anel de energia e cristais girando"
   ],
   "files": [
     {
@@ -16,7 +19,7 @@
     },
     {
       "path": "index.html",
-      "size": 25247
+      "size": 25320
     },
     {
       "path": "js/audio.js",
@@ -32,11 +35,11 @@
     },
     {
       "path": "js/game.js",
-      "size": 33342
+      "size": 33579
     },
     {
       "path": "js/render3d.js",
-      "size": 116865
+      "size": 129215
     },
     {
       "path": "js/robots.js",
@@ -64,7 +67,7 @@
     },
     {
       "path": "version.json",
-      "size": 1159
+      "size": 1336
     }
   ]
 }
