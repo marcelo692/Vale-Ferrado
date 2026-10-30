@@ -1031,9 +1031,8 @@ const Render = {
     if (this.sig.vm === sig) return; this.sig.vm = sig;
     this.vm.clear();
     const arm = new THREE.Group();
-    const sleeve = mesh(new THREE.BoxGeometry(0.1, 0.1, 0.26), mat('#2c4f68'), false); sleeve.position.z = 0.15; arm.add(sleeve);
     const G = gear.glove, gs = 0.075 + G.era * 0.008;
-    const glove = mesh(new THREE.BoxGeometry(gs * 1.2, gs * 1.1, gs * 1.4), mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {}), false); glove.position.z = -0.02; arm.add(glove);
+    const glove = mesh(new THREE.BoxGeometry(gs * 1.2, gs * 1.1, gs * 1.4), mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {}), false); glove.position.z = -0.02; arm.add(glove); this.vmGlove = glove;
     if (G.era >= 4) { const brace = mesh(new THREE.BoxGeometry(0.13, 0.13, 0.16), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 }), false); brace.position.z = 0.12; arm.add(brace); }
     if (G.era >= 5) { const pis = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6), mat('#d8dde2', { shininess: 80 }), false); pis.rotation.x = Math.PI / 2; pis.position.set(0.07, 0.05, 0.2); arm.add(pis); }
     const ham = this.makeHammer(L);
@@ -1044,6 +1043,9 @@ const Render = {
     arm.add(ham); this.vmHam = ham;
     this.vmRig = new THREE.Group(); this.vmRig.add(arm);
     this.vmArm = arm; this.vm.add(this.vmRig);
+    // manga: sempre liga a mão ao ombro (fora da tela, embaixo à direita), assim o braço nunca parece cortado
+    const sg = new THREE.BoxGeometry(0.07, 0.07, 1); sg.translate(0, 0, 0.5);
+    this.vmSleeve = mesh(sg, mat('#2c4f68'), false); this.vm.add(this.vmSleeve);
     // ajusta o braço para a batida cair um pouco abaixo da mira
     const hp = new V3(); this.vmCam.updateMatrixWorld(true);
     this.applyVmPose(this.vmPoseAt(0, 0.58));
@@ -1091,6 +1093,11 @@ const Render = {
     const k = A.follow > 0 || A.click > 0 ? 1 : Math.min(1, dt * 18);
     for (const key in want) A.pose[key] += (want[key] - A.pose[key]) * k;
     this.applyVmPose(A.pose, bob);
+    if (this.vmSleeve) {
+      this.vmRig.updateMatrixWorld(true);
+      const hand = this.vmGlove.getWorldPosition(this._hv || (this._hv = new V3())), sh = this._sh || (this._sh = new V3(0.42, -0.78, 0.25));
+      this.vmSleeve.position.copy(hand); this.vmSleeve.lookAt(sh); this.vmSleeve.scale.set(1, 1, hand.distanceTo(sh));
+    }
     if (this.vmTorch) this.vmTorch.position.set(-0.32 - bob * 0.01, -0.36 + Math.abs(bob) * 0.012, -0.55);
     // martelo do Vale: cristais girando e brilho pulsando
     const u = this.vmHam && this.vmHam.userData;

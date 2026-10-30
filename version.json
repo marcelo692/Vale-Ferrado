@@ -1,8 +1,8 @@
 {
-  "version": "3.2.0",
+  "version": "3.2.1",
   "date": "2026-10-30",
   "notes": [
-    "Atualizar pelo jogo: aperte Esc e, se houver versão nova, aparece o botão verde Atualizar agora"
+    "Correção: o braço na primeira pessoa não aparece mais cortado; agora ele sempre vem do ombro, no canto de baixo da tela"
   ],
   "files": [
     {
@@ -43,7 +43,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 148780
+      "size": 149279
     },
     {
       "path": "js/robots.js",
@@ -75,7 +75,7 @@
     },
     {
       "path": "version.json",
-      "size": 1731
+      "size": 1313
     }
   ]
 }
