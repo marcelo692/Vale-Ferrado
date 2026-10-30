@@ -41,11 +41,18 @@ const Game = {
 
   init() {
     this.S = this.load() || newState();
+    const lastSeen = this.S.lastSeen; // lido antes de qualquer salvamento
     this.P.x = this.S.x; this.P.y = this.S.y;
     World.build();
     this.fixSoldSpecials();
     Missions.init();
     if (this.S.world) World.restore(this.S.world);
+    // robôs trabalhando com o jogo fechado (metade do ritmo, até 8 horas)
+    const S = this.S;
+    if ((S.robots || 0) > 0 && lastSeen && (S.robotTime || 0) > 60 && S.robotValue > 0) {
+      const away = Math.min(8 * 3600, (Date.now() - lastSeen) / 1000);
+      if (away > 120) { const gain = Math.round(S.robotValue / S.robotTime * away * 0.5); if (gain > 0) { S.money += gain; S.earned += gain; this.offline = { gain, away, robots: S.robots }; } }
+    }
     this.inCity = this.wasInCity = Math.hypot(this.P.x, this.P.y) < CITY_R;
     this.bindInput();
   },
@@ -292,6 +299,7 @@ const Game = {
     UI.toast(`Seu Bento forjou: ${HAMMERS[L].n}! Força ${fmt(HAMMERS[L].f)}.`, 'level');
     this.fxBurst(this.P.x, this.P.y, '#ffb347', 30);
     if (L === RECALL_LVL) setTimeout(() => UI.toast(`🏠 Novo: botão Voltar à cidade (tecla H). Te leva de volta voando rapidinho, por uma taxa pequena.`, 'level'), 1500);
+    if (L % 10 === 0) Platform.happy();
     if (STORY[L] && !this.S.seen[L]) setTimeout(() => UI.story(L), 400);
     this.save();
   },
@@ -777,7 +785,7 @@ const Game = {
   },
 
   // ---------- salvamento ----------
-  save() { try { this.S.world = World.serialize(); localStorage.setItem(SAVE_KEY, JSON.stringify(this.S)); } catch (e) {} },
+  save() { try { this.S.lastSeen = Date.now(); this.S.world = World.serialize(); localStorage.setItem(SAVE_KEY, JSON.stringify(this.S)); } catch (e) {} },
   load() {
     try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) { const n = Object.assign(newState(), s); n.gear = Object.assign({ detector: 0, ride: 0, light: 0, climb: 0 }, s.gear || {}); return n; } } catch (e) {}
     return null;

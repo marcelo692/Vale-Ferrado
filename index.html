@@ -205,6 +205,7 @@
   <button class="buy alt" onclick="Updater.open();Updater.check(true)">⬆ Atualizações</button>
   <button class="buy alt" onclick="UI.soundPanel()">🔊 Som</button>
   <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>
+  <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value)"><option value="alto">Bonito</option><option value="leve">Leve (para PC mais fraco)</option></select><b></b></label>
   <label class="vol sens"><span>Sensibilidade do mouse</span><input type="range" min="20" max="250" value="100" id="sens" oninput="Game.S.sens=this.value/100;this.nextElementSibling.textContent=this.value+'%';Game.save()"><b>100%</b></label>
   <small>O mouse fica preso no jogo para você olhar em volta. Aperte <b>Esc</b> a qualquer momento para soltar o mouse e ver este menu.</small></div></div>
 <div id="panel" class="hidden"></div>
@@ -217,6 +218,7 @@
   <p style="font-size:12px;opacity:.6;margin-top:18px">Mouse olha · WASD anda · Shift corre · Espaço pula · Segure o clique para minerar · E fala com NPCs · V muda a câmera</p>
 </div>
 
+<script src="js/platform.js"></script>
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/world.js"></script>
@@ -239,11 +241,14 @@
       if (!paused) Game.update(dt);
       else if (UI.open === 'sound' && Game.sndState) Snd.update(dt, Object.assign({}, Game.sndState, { moving: false, speed: 0 }));
       Snd.setPaused(paused && UI.open !== 'sound'); // na janela de Som a música continua para você ajustar o volume
+      Platform.play(!paused && !UI.open);
       UI.updateHud(dt);
     }
     Render.draw(dt);
+    Render.watchFps(dt);
     requestAnimationFrame(frame);
   }
+  Platform.init().then(() => Platform.ready());
   Game.init(); Render.init(); Updater.init(); Backup.init();
   document.getElementById('play').textContent = Game.S.time > 1 ? 'Continuar' : 'Jogar';
   document.getElementById('play').onclick = () => {
@@ -251,6 +256,7 @@
     document.getElementById('title').remove(); started = true;
     Game.lock();
     if (!Game.S.seen[1]) UI.story(1);
+    else if (Game.offline) setTimeout(() => UI.offlinePanel(), 400);
   };
   addEventListener('beforeunload', () => Game.save());
   requestAnimationFrame(frame);

@@ -177,6 +177,12 @@ const UI = {
       <label class="vol mute"><input type="checkbox" ${Snd.muted ? 'checked' : ''} onchange="Snd.muted=this.checked;Snd.apply();Snd.saveCfg()"> <span>Silenciar tudo (tecla M)</span></label>
       <div class="row"><button class="buy alt" onclick="Snd.hit('ore', Game.S.hammer); Snd.coins(500)">Testar efeitos</button><button class="buy" onclick="UI.close()">Voltar ao jogo</button></div></div>`;
   },
+  offlinePanel() {
+    const o = Game.offline; if (!o) return; Game.offline = null;
+    this.freeMouse(); this.open = 'offline'; Snd.coins(o.gain);
+    $('panel').innerHTML = `<div class="story"><h2>🤖 Bem-vindo de volta!</h2><p>Enquanto você estava fora (${fmtTime(o.away)}), ${o.robots === 1 ? 'seu robô continuou' : `seus ${o.robots} robôs continuaram`} trabalhando.</p><p style="font-size:22px">+<i class="coin"></i><b>${fmt(o.gain)}</b> moedas</p><p class="hint">Com o jogo fechado eles rendem metade do normal, por até 8 horas.</p><div class="row"><button class="buy" onclick="UI.close();Game.lock()">Continuar</button></div></div>`;
+    $('panel').classList.remove('hidden');
+  },
   bagPanel() {
     const S = Game.S; this.freeMouse(); this.open = 'bag'; Snd.open();
     const need = Game.needs(), sneed = Game.specialNeed(), by = Game.needsBy(), ids = Object.keys(S.bag);

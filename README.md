@@ -64,6 +64,14 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 - Atalhos de pulo em cada região
 - História com marcos a cada 10 níveis e cidade sendo reconstruída
 
+## Versão para a CrazyGames
+
+`python3 tools/build_web.py` gera `dist/vale-ferrado-crazygames.zip`, pronto para enviar. Essa versão carrega o SDK da CrazyGames (avisa ao site quando o jogo está carregando, quando está pausado e comemora a cada 10 martelos) e não tem atualizador nem salvamento em pasta: o progresso fica no navegador.
+
+## Ritmo
+
+`node tools/sim_ritmo.js` estima quanto tempo um jogador leva até cada martelo (segurando o clique, sem robôs, poções nem cliques rápidos).
+
 ## Estrutura do código
 
 | Arquivo | Conteúdo |
@@ -72,6 +80,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | `js/data.js` | Tabelas do jogo: martelos, recursos, regiões, custos, power-ups, história |
 | `js/world.js` | Mundo: trechos, obstáculos, nós de recurso e respawn |
 | `js/game.js` | Regras: movimento, pulo, mineração, mochila, economia, salvamento |
+| `js/platform.js` | Integração com portais (CrazyGames); sem o SDK não faz nada |
 | `js/missions.js` | Missões, seta de objetivo e registro de tempos |
 | `js/robots.js` | Robôs auto-mineradores: busca, mineração e entrega |
 | `js/ui.js` | Interface: HUD, lojas dos NPCs, avisos |

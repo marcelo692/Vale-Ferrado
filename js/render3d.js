@@ -90,6 +90,8 @@ const Render = {
     this.buildViewModel();
     this.player = new THREE.Group(); this.scene.add(this.player);
     this.buildPlayerLights();
+    let q = 'alto'; try { q = localStorage.getItem('valeferrado_gfx') || 'alto'; } catch (e) {}
+    this.setQuality(q, true);
     this.mini = document.getElementById('minimap'); this.mctx = this.mini.getContext('2d');
     this.floatsEl = document.getElementById('floats');
     this.ray = new THREE.Raycaster();
@@ -116,6 +118,29 @@ const Render = {
     this.cityLight = new THREE.PointLight('#ffcf8a', 0, 55, 1); this.cityLight.position.set(0, 7, 0); this.scene.add(this.cityLight);
   },
 
+  // ---------- qualidade do gráfico ----------
+  quality: 'alto',
+  setQuality(q, silent) {
+    this.quality = q === 'leve' ? 'leve' : 'alto';
+    const leve = this.quality === 'leve';
+    this.r.setPixelRatio(leve ? Math.min(devicePixelRatio, 0.85) : Math.min(devicePixelRatio, 2)); this.r.setSize(innerWidth, innerHeight);
+    this.sun.castShadow = !leve;
+    if (this.grass) this.grass.visible = !leve;
+    this.scene.fog.far = leve ? 300 : 420;
+    this.fxScale = leve ? 0.45 : 1;
+    try { localStorage.setItem('valeferrado_gfx', this.quality); } catch (e) {}
+    const sel = document.getElementById('gfx'); if (sel) sel.value = this.quality;
+    if (!silent) UI.toast(leve ? 'Gráfico leve: sem sombras e grama, menos partículas.' : 'Gráfico bonito ligado.');
+  },
+  // se o jogo ficar lento, sugere o gráfico leve (uma vez)
+  watchFps(dt) {
+    if (this.quality === 'leve' || this.fpsTold || !Game.locked || !Game.locked()) return;
+    this.fpsAcc = (this.fpsAcc || 0) + dt; this.fpsN = (this.fpsN || 0) + 1;
+    if (this.fpsAcc < 6) return;
+    const fps = this.fpsN / this.fpsAcc; this.fpsAcc = 0; this.fpsN = 0;
+    this.fpsLow = fps < 28 ? (this.fpsLow || 0) + 1 : 0;
+    if (this.fpsLow >= 2) { this.fpsTold = true; UI.toast('O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve.', 'warn'); }
+  },
   // ---------- aviso de altura nos obstáculos (atalhos de pulo) ----------
   updateObstacleHint() {
     const P = Game.P;
@@ -716,6 +741,7 @@ const Render = {
     this.scene.add(this.grass); this.grassAt = null;
   },
   updateGrass() {
+    if (this.quality === 'leve') return;
     const P = Game.P, sx = Math.round(P.x / 6) * 6, sy = Math.round(P.y / 6) * 6;
     if (this.grassAt && this.grassAt[0] === sx && this.grassAt[1] === sy) return;
     this.grassAt = [sx, sy];
@@ -1098,7 +1124,7 @@ const Render = {
     const P = Game.P, dx = P.x - n.x, dy = P.y - n.y, dd = Math.hypot(dx, dy) || 1, r = n.r * 0.55;
     const ix = n.x + dx / dd * r, iy = n.y + dy / dd * r, iz = World.height(n.x, n.y) + n.r * 0.75;
     const chipCols = [n.res.c, n.res.c2, n.res.c].map(c => new THREE.Color(c));
-    const nChips = Math.round((4 + L * 0.45) * power), nSparks = Math.round((L < 6 ? 0 : 6 + L * 1.25) * power);
+    const fs = this.fxScale || 1, nChips = Math.round((4 + L * 0.45) * power * fs), nSparks = Math.round((L < 6 ? 0 : 6 + L * 1.25) * power * fs);
     const look = hammerLook(L);
     const sc = new THREE.Color(L >= 51 ? look.head : L >= 31 ? '#ffd27a' : '#ffb24a'), sc2 = new THREE.Color(L >= 51 ? '#ffffff' : '#ff7a2e'), sc3 = new THREE.Color(L >= 58 ? '#c06af0' : sc2);
     let made = 0;

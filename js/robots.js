@@ -66,6 +66,7 @@ const Robots = {
   update(dt) {
     if (!Game.S || !(Game.S.robots > 0)) { this.list.length = 0; return; }
     this.sync();
+    Game.S.robotTime = (Game.S.robotTime || 0) + dt;
     for (const r of this.list) this.step(r, dt);
     // aviso das entregas (agrupado, para não encher a tela)
     this.reportT -= dt;
@@ -162,7 +163,7 @@ const Robots = {
       const k = Math.min(want, q), sq = q - k, money = sq * RES[id].value;
       if (k) { S.stock[id] = (S.stock[id] || 0) + k; R.kept += k; }
       if (sq) { S.money += money; S.earned += money; R.money += money; }
-      R.items[id] = (R.items[id] || 0) + q;
+      R.items[id] = (R.items[id] || 0) + q; S.robotValue = (S.robotValue || 0) + q * RES[id].value;
     }
     S.robotTotal = (S.robotTotal || 0) + r.n;
     r.carry = {}; r.n = 0;
