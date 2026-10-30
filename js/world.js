@@ -168,20 +168,74 @@ const World = {
     this.nodes.splice(this.nodes.indexOf(node), 1);
     const sub = node.sub;
     sub.harvest += 1;
-    if (sub.mountain) { Game.timers.push({ t: 90 + Math.random() * 60, fn: () => this.spawn(sub) }); return; } // recurso raro: renasce devagar
+    if (sub.wild) return; // achado do mapa não renasce
+    const si = this.subs.indexOf(sub);
+    if (sub.mountain) { this.pending.push({ t: 90 + Math.random() * 60, s: si }); return; } // recurso raro: renasce devagar
     const deplete = 1 + Math.min(0.5, sub.harvest * 0.05);
     // recurso acabando: renasce bem mais rápido e do mesmo tipo
     const left = node.res.special ? 1 : this.countRes(node.res);
-    if (left === 0) { this.rescue[node.res.id] = true; Game.timers.push({ t: 3 + Math.random() * 3, fn: () => { delete this.rescue[node.res.id]; this.spawn(sub, node.res) || this.spawnRescue(node.res); } }); return; }
-    if (left <= 2) { const force = Math.random() < 0.6 ? node.res : null; Game.timers.push({ t: (6 + Math.random() * 10), fn: () => this.spawn(sub, force) }); return; }
+    if (left === 0) { this.rescue[node.res.id] = true; this.pending.push({ t: 3 + Math.random() * 3, s: si, f: node.res.id, rescue: true }); return; }
+    if (left <= 2) { this.pending.push({ t: 6 + Math.random() * 10, s: si, f: Math.random() < 0.6 ? node.res.id : null }); return; }
     const delay = (15 + Math.random() * 45) * deplete;
-    Game.timers.push({ t: delay, fn: () => this.spawn(sub) });
+    this.pending.push({ t: delay, s: si });
   },
 
   rescue: {},
+  // ---------- achados espalhados pelo mapa: Veio de Cintilha e Geodo de Poção ----------
+  WILD_SUB: { wild: true, nodes: [], spawnPts: [], harvest: 0 },
+  wildT: 60,
+  updateWild(dt) {
+    const S = Game.S, P = Game.P;
+    for (let i = this.nodes.length - 1; i >= 0; i--) { const n = this.nodes[i]; if (n.res.wild && S.time - n.born > 240) { n.dead = true; this.nodes.splice(i, 1); this.WILD_SUB.nodes.splice(this.WILD_SUB.nodes.indexOf(n), 1); } }
+    if (Math.hypot(P.x, P.y) < CITY_R + 10 || Game.travel) return;
+    this.wildT -= dt; if (this.wildT > 0) return;
+    this.wildT = 25;
+    if (this.WILD_SUB.nodes.length >= 2 || Math.random() > 0.22) return;
+    for (let tries = 0; tries < 12; tries++) {
+      const a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 90, x = P.x + Math.cos(a) * d, y = P.y + Math.sin(a) * d;
+      if (Math.hypot(x, y) < CITY_R + 25 || Math.hypot(x, y) > 4200 || this.obstacles.some(o => Game.inObstacle(o, x, y, 2))) continue;
+      const res = Math.random() < 0.6 ? RES.veiocint : RES.geodo, hp = Math.max(10, Game.force() * 4);
+      const node = { x, y, pt: { used: true }, sub: this.WILD_SUB, res, size: 1, rare: 1, hp, maxHp: hp, r: 1.1, seed: Math.random() * 1000, hitT: 0, born: S.time };
+      this.WILD_SUB.nodes.push(node); this.nodes.push(node);
+      Snd.veio(); UI.toast(res.id === 'veiocint' ? '✦ Um Veio de Cintilha brilhou por perto! Siga a luz antes que suma.' : '✦ Um Geodo de Poção apareceu por perto! (abre com 1 Cintilha)', 'veio');
+      return;
+    }
+  },
+  // salvar e restaurar as pedras do mapa
+  WORLD_V: 1,
+  serialize() {
+    const nodes = [];
+    for (const n of this.nodes) { if (n.res.wild) continue; const s = this.subs.indexOf(n.sub); nodes.push([s, n.sub.spawnPts.indexOf(n.pt), n.res.id, n.size, n.rare, Math.round(n.hp)]); }
+    return { v: this.WORLD_V, nodes, pending: this.pending.map(p => [Math.round(p.t), p.s, p.f || 0, p.rescue ? 1 : 0]) };
+  },
+  restore(w) {
+    if (!w || w.v !== this.WORLD_V || !w.nodes || !w.nodes.length) return false;
+    for (const s of this.subs) { s.nodes = []; for (const p of s.spawnPts) p.used = false; }
+    this.nodes = [];
+    for (const [si, pi, id, size, rare, hp] of w.nodes) {
+      const sub = this.subs[si], pt = sub && sub.spawnPts[pi], res = RES[id];
+      if (!pt || !res || pt.used) continue;
+      pt.used = true;
+      const mh = res.hard * size, node = { x: pt.x, y: pt.y, pt, sub, res, size, rare, hp: Math.min(hp, mh), maxHp: mh, r: 0.9 + size * 0.7, seed: Math.random() * 1000, hitT: 0 };
+      sub.nodes.push(node); this.nodes.push(node);
+    }
+    this.pending = (w.pending || []).map(([t, s, f, r]) => ({ t, s, f: f || null, rescue: !!r }));
+    for (const p of this.pending) if (p.rescue && p.f) this.rescue[p.f] = true;
+    return true;
+  },
   spawnRescue(res) { const s = this.subFor(res); return s ? this.spawn(s, res) : false; },
+  pending: [],
   update(dt) {
     for (const s of this.subs) s.harvest = Math.max(0, s.harvest - dt / 20);
+    // renascimentos agendados (ficam salvos: fechar e abrir o jogo não faz as pedras voltarem)
+    for (let i = this.pending.length - 1; i >= 0; i--) {
+      const p = this.pending[i]; p.t -= dt; if (p.t > 0) continue;
+      this.pending.splice(i, 1);
+      const sub = this.subs[p.s], res = p.f ? RES[p.f] : null;
+      if (p.rescue) { delete this.rescue[p.f]; (sub && this.spawn(sub, res)) || this.spawnRescue(res); }
+      else if (sub) this.spawn(sub, res);
+    }
+    this.updateWild(dt);
     // a cada 3 s: se algum recurso sumiu do mapa, agenda um renascimento rápido dele
     this.checkT = (this.checkT || 0) - dt;
     if (this.checkT <= 0) {
@@ -189,7 +243,7 @@ const World = {
       const count = {}; for (const x of this.nodes) count[x.res.id] = (count[x.res.id] || 0) + 1;
       for (const r of RESOURCES) if (!r.special && !count[r.id] && !this.rescue[r.id]) {
         this.rescue[r.id] = true;
-        Game.timers.push({ t: 2 + Math.random() * 3, fn: () => { delete this.rescue[r.id]; this.spawnRescue(r); } });
+        this.pending.push({ t: 2 + Math.random() * 3, s: -1, f: r.id, rescue: true });
       }
     }
     // veio aflorado

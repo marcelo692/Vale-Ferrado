@@ -43,7 +43,7 @@
   #recall kbd { font: 700 11px system-ui; background: rgba(0,0,0,.35); border-radius: 4px; padding: 1px 5px; } #recall span { color: var(--gold); font-weight: 700; }
   #travelbar { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); display: none; font: 800 20px system-ui; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.8); text-align: center; }
   #travelbar i { display: block; width: 260px; height: 6px; margin: 8px auto 0; background: rgba(0,0,0,.45); border-radius: 3px; overflow: hidden; } #travelbar b { display: block; height: 100%; width: 0; background: #ffd34d; }
-  #mission { position: fixed; top: 262px; left: 14px; width: 240px; padding: 9px 12px; font-size: 12px; display: none; }
+  #mission { position: fixed; top: 282px; left: 14px; width: 240px; padding: 9px 12px; font-size: 12px; display: none; }
   #mission .mh { display: flex; align-items: center; gap: 6px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; }
   #mission .mh kbd, #bagbtn kbd { font: 700 10px system-ui; background: rgba(255,255,255,.12); border-radius: 4px; padding: 1px 5px; color: #fff; }
   #mission .mh span { margin-left: auto; color: #ffd34d; }
@@ -82,7 +82,7 @@
   #loc i { opacity: .7; } #loc .veio { color: var(--gold); font-size: 12px; }
   #tr { position: fixed; top: 14px; right: 14px; display: flex; gap: 8px; }
   #tr button { background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
-  #attrs { position: fixed; top: 128px; left: 14px; padding: 10px 14px; font-size: 12px; min-width: 240px; }
+  #attrs { position: fixed; top: 146px; left: 14px; padding: 10px 14px; font-size: 12px; min-width: 240px; }
   #attrs div { display: grid; grid-template-columns: 1fr 26px auto; gap: 6px; padding: 2px 0; }
   #attrs b { color: var(--gold); text-align: right; } #attrs i { opacity: .7; font-style: normal; }
   #bottom { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); padding: 10px 14px; width: min(620px, 92vw); }
@@ -167,7 +167,7 @@
 <body>
 <canvas id="game"></canvas>
 
-<div id="tl" class="box"><div class="money" id="money">0</div><div id="hname"></div><div id="hlv"></div><div id="hforce"></div></div>
+<div id="tl" class="box"><div class="money" id="money">0</div><div id="cint" style="color:#9ff3ff;font-weight:700;font-size:13px;margin:-2px 0 4px"></div><div id="hname"></div><div id="hlv"></div><div id="hforce"></div></div>
 <div id="attrs" class="box"></div>
 <div id="mission" class="box"></div>
 <div id="objarrow"></div>

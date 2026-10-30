@@ -149,6 +149,10 @@ const Missions = {
   arrowTarget() {
     const S = Game.S;
     if (!Game.inCity && Game.free() <= 0) return { x: 0, y: 0, label: 'Mochila cheia: volte à vila' };
+    // achado brilhando por perto tem prioridade (some em 4 minutos)
+    const P = Game.P; let w = null, wd = 260;
+    for (const n of World.WILD_SUB.nodes) { const d = Math.hypot(n.x - P.x, n.y - P.y); if (d < wd) { wd = d; w = n; } }
+    if (w && (w.res.id === 'veiocint' || (S.cint || 0) >= 1)) return { x: w.x, y: w.y, label: '✦ ' + w.res.name };
     const c = this.current();
     if (c && c.target) return c.target;
     return null;

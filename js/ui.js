@@ -88,13 +88,16 @@ const UI = {
       for (const pid in POWERUPS) {
         const P = POWERUPS[pid], price = powerPrice(pid, S.hammer);
         const owned = S.pw.filter(p => p.id === pid).length;
-        const ok = S.money >= price && Game.free() >= P.slots;
+        const ci = powerCint(pid, S.hammer), ok = S.money >= price && (S.cint || 0) >= ci && Game.free() >= P.slots;
         h += `<div class="card">${this.pics('pw', pid)}<span class="lv" style="color:${P.color}">Tecla ${P.key} · na mochila: ${owned}</span><h3>${P.name} ${ROMAN[tier]}</h3>
           <p>+${Math.round(powerBonus(pid, tier) * 100)}% ${P.desc} por ${P.dur / 60} min</p><p>Ocupa <b>${P.slots} espaços</b> na mochila</p>
-          <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(price)}</b></li></ul>
+          <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(price)}</b></li><li class="${(S.cint || 0) >= ci ? 'ok' : 'no'}">✦ Cintilhas: <b>${ci}</b> <small>(você tem ${fmt(S.cint || 0)})</small></li></ul>
           <button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyPower('${pid}');UI.renderPanel()">Comprar</button></div>`;
       }
-      h += `</div><p class="hint">Ative com as teclas 1, 2 e 3. Dá para ativar vários ao mesmo tempo: os efeitos se multiplicam. Ao ativar, o espaço volta a ficar livre.</p>`;
+      const oL = S.olho || 0, oN = oL + 1;
+      h += `<div class="card"><span class="lv">Nível ${oL} de ${OLHO.length - 1}</span><h3>👁 Olho de Garimpeiro</h3><p>Aumenta a chance de achar <b>Cintilha</b> dentro das pedras. Hoje: <b>${(cintChance(oL) * 100).toFixed(1).replace('.', ',')}%</b> por pedra${oN < OLHO.length ? `, no próximo nível: ${(cintChance(oN) * 100).toFixed(1).replace('.', ',')}%` : ''}.</p>
+        ${oN < OLHO.length ? `<ul class="cost"><li class="${S.money >= OLHO[oN] ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(OLHO[oN])}</b></li></ul><button class="buy" ${S.money >= OLHO[oN] ? '' : 'disabled'} onclick="Game.buyOlho();UI.renderPanel()">Melhorar</button>` : '<button class="buy" disabled>Nível máximo</button>'}</div>`;
+      h += `</div><p class="hint">Poções custam moedas e <b>✦ Cintilhas</b>. Cintilhas saem de qualquer pedra (às vezes), dos robôs e dos Veios de Cintilha que aparecem pelo mapa. Ative com as teclas 1, 2 e 3. Dá para ativar vários ao mesmo tempo: os efeitos se multiplicam. Ao ativar, o espaço volta a ficar livre.</p>`;
     }
 
     if (id === 'bazar') {
@@ -329,6 +332,7 @@ const UI = {
     this.hudT -= dt; if (this.hudT > 0) return; this.hudT = 0.1;
     const S = Game.S, G = Game;
     $('money').textContent = fmt(S.money);
+    $('cint').textContent = '✦ ' + fmt(S.cint || 0) + ' Cintilha' + ((S.cint || 0) === 1 ? '' : 's');
     $('hname').textContent = HAMMERS[S.hammer].n;
     $('hlv').textContent = 'Martelo nível ' + S.hammer + ' / 60';
     $('hforce').textContent = 'Força ' + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');

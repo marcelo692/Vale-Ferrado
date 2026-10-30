@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '2.7.0';
+const GAME_VERSION = '2.8.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -221,6 +221,24 @@ function powerBonus(id, tier) {
   if (id === 'elixir') return 0.35 + 0.15 * (tier - 1);
   return 0.5 + 0.2 * (tier - 1);
 }
+// regra do nível: pedra acima do martelo demora mais (×2 a ×12); 11+ níveis acima não quebra
+const LEVEL_LOCK = 10;
+function levelRule(resIdeal, hammer) {
+  const gap = resIdeal - hammer;
+  if (gap <= 0) return { mult: 1, gap, blocked: false };
+  if (gap > LEVEL_LOCK) return { mult: Infinity, gap, blocked: true };
+  return { mult: 2 * Math.pow(6, (gap - 1) / 9), gap, blocked: false };
+}
+// Cintilha: pedrinha brilhante que sai de qualquer pedra e compra poções
+function powerCint(id, hammerLvl) { return (id === 'elixir' ? 3 : 1) * (1 + Math.floor((eraOf(hammerLvl) - 1) / 2)); }
+const OLHO = [0, 800, 8000, 80000, 800000, 8000000]; // preço de cada nível do Olho de Garimpeiro
+function cintChance(olho) { return 0.03 + 0.015 * (olho || 0); }
+// achados espalhados pelo mapa (não entram na lista normal de recursos)
+const WILDS = [
+  { id: 'veiocint', name: 'Veio de Cintilha', kind: 'wild', wild: true, c: '#7af0ff', c2: '#e8fbff', value: 0, hard: 1, ideal: 0, region: -1 },
+  { id: 'geodo',    name: 'Geodo de Poção',   kind: 'wild', wild: true, c: '#6a4a8a', c2: '#d9b3ff', value: 0, hard: 1, ideal: 0, region: -1 },
+];
+for (const w of WILDS) RES[w.id] = w;
 function powerPrice(id, hammerLvl) {
   const base = 15 * Math.pow(1.31, hammerLvl - 1);
   return Math.round(base * (id === 'elixir' ? 2 : 1));

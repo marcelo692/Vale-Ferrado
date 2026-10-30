@@ -706,6 +706,17 @@ const Render = {
     } else if (kind === 'clay') {
       const c = mesh(jitterGeo(new THREE.IcosahedronGeometry(s, 1), s * 0.12, n.seed), mat(res.c, { shininess: 30 })); c.scale.y = 0.5; c.position.y = s * 0.22; g.add(c);
       const c2 = mesh(jitterGeo(new THREE.IcosahedronGeometry(s * 0.45, 0), s * 0.08, n.seed + 3), mat(res.c2, { shininess: 30 })); c2.scale.y = 0.6; c2.position.set(s * 0.55, s * 0.12, s * 0.35); g.add(c2);
+    } else if (kind === 'wild') {
+      if (res.id === 'veiocint') {
+        const base = rock('#3a4a5a', s * 0.9, n.seed); base.position.y = s * 0.35; base.scale.y = 0.6; g.add(base);
+        for (let i = 0; i < 9; i++) { const h = s * (0.6 + r() * 1.2), c = mesh(new THREE.CylinderGeometry(0, s * 0.16, h, 5), mat(i % 3 ? res.c : res.c2, { emissive: res.c, emissiveIntensity: 0.9, shininess: 120 })); const a = r() * 6.28, d = r() * s * 0.6; c.position.set(Math.cos(a) * d, s * 0.5 + h / 2, Math.sin(a) * d); c.rotation.set((r() - 0.5) * 0.7, 0, (r() - 0.5) * 0.7); g.add(c); }
+      } else {
+        const ge = mesh(jitterGeo(new THREE.IcosahedronGeometry(s, 1), s * 0.15, n.seed), mat('#6e6470', { shininess: 20 })); ge.position.y = s * 0.7; g.add(ge);
+        const cav = mesh(new THREE.IcosahedronGeometry(s * 0.62, 0), mat('#d9b3ff', { emissive: '#9a4ff0', emissiveIntensity: 0.9 })); cav.position.set(0, s * 0.75, s * 0.48); cav.scale.z = 0.45; g.add(cav);
+      }
+      // feixe de luz até o céu: dá para ver de longe
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.9, 60, 10, 1, true), new THREE.MeshBasicMaterial({ color: res.id === 'veiocint' ? '#7af0ff' : '#c08aff', transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+      beam.position.y = 30; g.add(beam); g.userData.beam = beam;
     } else if (this.SHAPES[res.id]) {
       this.SHAPES[res.id].call(this, g, s, r, n, res);
     } else {
@@ -717,7 +728,7 @@ const Render = {
       if (kind === 'crystal') for (let i = 0; i < 6; i++) { const h = s * (0.8 + r() * 1.1); const c = mesh(new THREE.CylinderGeometry(0, s * 0.18, h, 6), mat(res.c2, { emissive: res.c, emissiveIntensity: 0.5, shininess: 100, transparent: true, opacity: 0.9 })); c.position.set((r() - 0.5) * s, s * 0.7 + h / 2 - s * 0.2, (r() - 0.5) * s); c.rotation.set((r() - 0.5) * 0.7, 0, (r() - 0.5) * 0.7); g.add(c); }
       if (kind === 'meteor') for (let i = 0; i < 6; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(s * 0.5, 0.05, 0.05), new THREE.MeshBasicMaterial({ color: res.c2 })); c.position.set((r() - 0.5) * s * 1.2, s * (0.4 + r() * 0.6), (r() - 0.5) * s * 1.2); c.rotation.set(r() * 3, r() * 3, r() * 3); g.add(c); }
     }
-    if (n.rare > 1 || res.special) {
+    if (n.rare > 1 || res.special || res.wild) {
       if (!this.glowTex) this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); });
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: res.special ? (g.userData.glowCol || '#ffffff') : n.rare === 10 ? '#8ff0ff' : '#ffd860', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
       sp.scale.setScalar(s * (res.special ? 2.6 : 4)); sp.position.y = s * 0.8; if (res.special) sp.material.opacity = 0.4; g.add(sp); g.userData.glow = sp; g.userData.glowMax = res.special ? 0.4 : 0.85;
@@ -730,15 +741,17 @@ const Render = {
   // informações de valor de um recurso para o jogador atual
   resInfo(n) {
     const res = n.res, units = Math.max(1, Math.round(2 * n.size)) * n.rare;
-    const hits = Math.ceil(n.hp / Game.force()), time = Math.max(0.3, hits * Game.interval());
+    const rule = res.wild ? { mult: 1 } : levelRule(res.ideal, Game.S.hammer);
+    const hits = rule.blocked ? Infinity : Math.ceil(n.hp / (Game.force() / rule.mult)), time = Math.max(0.3, hits * Game.interval());
     const need = (Game.missCache || []).find(m => m.id === res.id);
-    return { lvl: res.ideal, value: res.value, units, total: units * res.value, perMin: units * res.value / time * 60, hits, time, need };
+    return { lvl: res.ideal, value: res.value, units, total: units * res.value, perMin: rule.blocked ? 0 : units * res.value / time * 60, hits, time, need, rule };
   },
   tierColor(lvl) { // cor do nível: cinza → verde → azul → roxo → laranja → dourado
     return ['#b8b0a0', '#7fd36a', '#5aa8f0', '#b07af0', '#ff9a3d', '#ffd34d'][Math.min(5, Math.floor((lvl - 1) / 10))];
   },
   badgeTex(res, need) {
-    const key = res.id + (need ? '*' : '');
+    const lock = levelRule(res.ideal, Game.S.hammer).blocked;
+    const key = res.id + (need ? '*' : '') + (lock ? '#' : '');
     this.badgeCache = this.badgeCache || {};
     if (this.badgeCache[key]) return this.badgeCache[key];
     const c = document.createElement('canvas'); c.width = 256; c.height = 72; /* etiqueta */ const g = c.getContext('2d');
@@ -749,7 +762,8 @@ const Render = {
     g.font = '700 26px system-ui, sans-serif'; g.fillStyle = '#ffd34d'; g.textAlign = 'right'; g.fillText(fmt(res.value), 206, 47);
     const cg = g.createRadialGradient(221, 33, 2, 226, 38, 13); cg.addColorStop(0, '#fff2a8'); cg.addColorStop(0.6, '#e0a820'); cg.addColorStop(1, '#8a5a10');
     g.fillStyle = cg; g.beginPath(); g.arc(226, 38, 12, 0, Math.PI * 2); g.fill();
-    if (need) { g.fillStyle = '#8fe07a'; g.font = '800 30px system-ui'; g.textAlign = 'center'; g.fillText('★', 132, 46); }
+    if (lock) { g.fillStyle = 'rgba(20,14,8,0.6)'; g.fillRect(4, 4, 248, 64); g.font = '800 30px system-ui'; g.textAlign = 'center'; g.fillStyle = '#ff6a5a'; g.fillText('🔒', 140, 47); }
+    else if (need) { g.fillStyle = '#8fe07a'; g.font = '800 30px system-ui'; g.textAlign = 'center'; g.fillText('★', 132, 46); }
     const t = new THREE.CanvasTexture(c); this.badgeCache[key] = t; return t;
   },
   syncNodes() {
@@ -770,7 +784,7 @@ const Render = {
       if (m.userData.spin) m.userData.spin.rotation.y += 0.02;
       if (m.userData.pulse) m.userData.pulse.scale.setScalar(1 + Math.sin(this.t * 3) * 0.08);
       // etiqueta com nível e valor para recursos por perto
-      const d2 = dx * dx + dy * dy, near = d2 < 22 * 22 && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false;
+      const d2 = dx * dx + dy * dy, near = d2 < 22 * 22 && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false && !n.res.wild;
       if (near) {
         const need = (Game.missCache || []).some(x => x.id === n.res.id);
         if (!m.userData.badge) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: true, transparent: true, fog: false, sizeAttenuation: false })); sp.scale.set(0.2, 0.056, 1); sp.renderOrder = 4; m.userData.badge = sp; this.scene.add(sp); }
@@ -1519,14 +1533,14 @@ const Render = {
     const el = document.getElementById('tinfo'), n = Game.target;
     const cross = document.getElementById('cross');
     if (!n || UI.open) { el.style.display = 'none'; cross.className = ''; return; }
-    const hits = Math.ceil(n.hp / Game.force()), time = hits * Game.interval();
-    const col = time <= 10 ? '#7fd36a' : time <= 60 ? '#ffd34d' : '#ff6a5a';
+    const I = this.resInfo(n), tc = this.tierColor(I.lvl), hits = I.hits, time = I.time, R = I.rule;
+    const col = R.blocked ? '#ff6a5a' : time <= 10 ? '#7fd36a' : time <= 60 ? '#ffd34d' : '#ff6a5a';
     cross.className = 'on';
     el.style.display = 'block';
-    const I = this.resInfo(n), tc = this.tierColor(I.lvl);
+    if (n.res.wild) { el.innerHTML = `<div class="tl"><b>✦ ${n.res.name}</b></div><div class="hp"><i style="width:${Math.max(0, n.hp / n.maxHp * 100)}%;background:#9ff3ff"></i></div><span>${n.res.id === 'veiocint' ? 'Rende de 3 a 6 Cintilhas · qualquer martelo quebra' : 'Abre com 1 Cintilha e solta uma poção'} · some em ${fmtTime(Math.max(0, 240 - (Game.S.time - n.born)))}</span>`; return; }
     el.innerHTML = `<div class="tl"><em style="border-color:${tc};color:${tc}">Nv ${I.lvl}</em><b>${n.res.name}${n.size === 2 ? ' · grande' : n.size === 0.5 ? ' · pequena' : ''}${n.rare === 10 ? ' · 💎 cristalizada' : n.rare === 3 ? ' · ✨ veio rico' : ''}</b></div>
       <div class="hp"><i style="width:${Math.max(0, n.hp / n.maxHp * 100)}%;background:${col}"></i></div>
-      <span style="color:${col}">${fmt(hits)} golpes · ${fmtTime(time)}</span>
+      ${R.blocked ? `<span style="color:${col}">🔒 Precisa do Martelo ${I.lvl - LEVEL_LOCK} para quebrar</span>` : `<span style="color:${col}">${fmt(hits)} golpes · ${fmtTime(time)}${R.mult > 1 ? ` · <b>×${R.mult < 10 ? R.mult.toFixed(1).replace('.', ',') : Math.round(R.mult)} mais lento</b> (pedra acima do seu martelo)` : ''}</span>`}
       <div class="val"><i class="coin"></i>${fmt(I.value)} cada · rende ${I.units} = <b>${fmt(I.total)}</b> · ≈ ${fmt(Math.round(I.perMin))}/min</div>
       ${I.need ? `<div class="need">⭐ Precisa para evolução · faltam ${fmt(I.need.falta)}</div>` : ''}`;
   },
@@ -1547,6 +1561,7 @@ const Render = {
       const lab = map(R.ux * (R.dMin + R.dMax) / 2, R.uy * (R.dMin + R.dMax) / 2);
       c.fillStyle = '#fff'; c.font = '700 18px system-ui'; c.textAlign = 'center'; c.fillText(R.era, lab[0], lab[1] + 6);
     }
+    for (const n of World.WILD_SUB.nodes) { const p = map(n.x, n.y); c.fillStyle = n.res.id === 'veiocint' ? '#7af0ff' : '#c08aff'; c.strokeStyle = '#000'; c.lineWidth = 2; c.font = '800 22px system-ui'; c.textAlign = 'center'; c.strokeText('✦', p[0], p[1] + 8); c.fillText('✦', p[0], p[1] + 8); }
     for (const m of World.mountains) { const p = map(m.x, m.y), s2 = 5 + m.H / 14; c.fillStyle = m.special ? m.special.c2 : '#a89a88'; c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(p[0], p[1] - s2); c.lineTo(p[0] + s2, p[1] + s2 * 0.7); c.lineTo(p[0] - s2, p[1] + s2 * 0.7); c.closePath(); c.fill(); c.stroke(); }
     if (World.veio) { const R = REGIONS[RES[World.veio.res].region]; const p = map(R.ux * (R.dMin + R.dMax) / 2, R.uy * (R.dMin + R.dMax) / 2); c.strokeStyle = '#ffd34d'; c.lineWidth = 4; c.beginPath(); c.arc(p[0], p[1], 16 + Math.sin(this.t * 5) * 4, 0, Math.PI * 2); c.stroke(); }
     c.fillStyle = '#d8c8a8'; c.beginPath(); c.arc(cx, cy, 7, 0, Math.PI * 2); c.fill();

@@ -1,14 +1,12 @@
 {
-  "version": "2.7.0",
+  "version": "2.8.0",
   "date": "2026-10-30",
   "notes": [
-    "Missões: 16 missões guiadas para os primeiros minutos e depois 3 missões que se renovam, com recompensa (tecla J)",
-    "Seta 3D no alto da tela apontando para o objetivo (ou para a vila quando a mochila enche)",
-    "Minimapa agora gira com você (sua frente fica sempre para cima)",
-    "Botão e tecla Tab para abrir a mochila",
-    "Primeiros martelos mais baratos: o primeiro sai em menos de 1 minuto",
-    "Ovo de dragão na praça: racha nos martelos 20, 40 e 50",
-    "Seus tempos de cada marco aparecem na Ajuda"
+    "Regra do nível: pedra acima do seu martelo demora mais (×2 a ×12); 11 níveis acima não quebra (cadeado na etiqueta)",
+    "Cintilha: pedrinha rara que sai de qualquer pedra e agora é necessária para comprar poções",
+    "Olho de Garimpeiro no Zé da Botica: aumenta a chance de Cintilha",
+    "Veio de Cintilha e Geodo de Poção aparecem pelo mapa com um feixe de luz, por 4 minutos",
+    "Correção: fechar e abrir o jogo não faz mais as pedras quebradas voltarem"
   ],
   "files": [
     {
@@ -17,11 +15,11 @@
     },
     {
       "path": "README.md",
-      "size": 5071
+      "size": 5556
     },
     {
       "path": "index.html",
-      "size": 27980
+      "size": 28072
     },
     {
       "path": "js/audio.js",
@@ -33,27 +31,27 @@
     },
     {
       "path": "js/data.js",
-      "size": 21430
+      "size": 22607
     },
     {
       "path": "js/game.js",
-      "size": 34706
+      "size": 37730
     },
     {
       "path": "js/missions.js",
-      "size": 12769
+      "size": 13122
     },
     {
       "path": "js/render3d.js",
-      "size": 133727
+      "size": 136522
     },
     {
       "path": "js/robots.js",
-      "size": 8005
+      "size": 8216
     },
     {
       "path": "js/ui.js",
-      "size": 30306
+      "size": 31506
     },
     {
       "path": "js/updater.js",
@@ -61,7 +59,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 12940
+      "size": 16169
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -73,7 +71,7 @@
     },
     {
       "path": "version.json",
-      "size": 1479
+      "size": 1612
     }
   ]
 }

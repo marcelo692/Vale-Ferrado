@@ -46,6 +46,10 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 - 11 montanhas espalhadas (subida lenta, sem correr) com 5 recursos raros que só existem perto do topo: Pedra-do-Vento, Âmbar Antigo, Ferro Celeste, Obsidiana Real e Coração da Montanha
 - Martelos 20, 30, 40, 50 e 60, detector de satélite, esquadrilha de drones e hoverboard pedem 5 unidades de recurso raro
 - Terreno com pequenos relevos e depressões
+- Regra do nível: pedra acima do seu martelo demora mais (de ×2 a ×12); 11 níveis acima ou mais não quebra
+- Cintilha: pedrinha brilhante que às vezes sai das pedras (e dos robôs); compra poções junto com moedas. O Olho de Garimpeiro (Zé da Botica) aumenta a chance
+- Achados pelo mapa: Veio de Cintilha e Geodo de Poção aparecem perto de você com um feixe de luz e somem em 4 minutos
+- As pedras do mapa ficam salvas: fechar e abrir o jogo não faz as quebradas voltarem
 - 5 NPCs: Seu Bento (martelo), Dona Cida (mineração, mochila, movimento e pulo), Zé da Botica (power-ups), Seu Lauro (venda automática) e Tonho do Bazar (equipamentos)
 - Equipamentos: detector de minério (3 níveis), transporte (patins, patinete, monociclo, hoverboard) e iluminação (lanterna, headlamp, drone, esquadrilha de drones)
 - Robôs auto-mineradores (até 10, no Tonho do Bazar): bonequinhos com hélice na cabeça que buscam sozinhos o que falta para suas evoluções e entregam no depósito

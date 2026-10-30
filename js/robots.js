@@ -127,6 +127,7 @@ const Robots = {
         if (n.hp <= 0) {
           const units = Math.max(1, Math.round(2 * n.size)) * n.rare;
           r.carry[n.res.id] = (r.carry[n.res.id] || 0) + units; r.n += units;
+          if (Math.random() < cintChance(Game.S.olho) / 2) { Game.S.cint = (Game.S.cint || 0) + 1; if (near < 40) Game.floats.push({ x: n.x, y: n.y - 1.6, txt: '🤖 ✦ +1 Cintilha', c: '#9ff3ff', t: 1.6 }); }
           if (near < 40) { Game.fxBurst(n.x, n.y, n.res.c, 10, 1.1); Game.floats.push({ x: n.x, y: n.y - 1, txt: `🤖 +${units} ${n.res.name}`, c: '#9fe8ff', t: 1.4 }); if (near < 20) Snd.breakNode(n.res.kind, n.rare); }
           if (Game.target === n) Game.target = null;
           this.claimed.delete(n); r.node = null;
