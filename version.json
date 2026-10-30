@@ -1,12 +1,14 @@
 {
-  "version": "2.6.0",
+  "version": "2.7.0",
   "date": "2026-10-30",
   "notes": [
-    "Nova martelada: combo de três golpes (direita, esquerda e golpe final por cima, com mais partículas)",
-    "Cada golpe solta lascas, faíscas e clarão que crescem com o nível do martelo; no 60 vira uma explosão de cristais com onda de choque",
-    "Pausa de impacto, tremida e número de dano em cada golpe",
-    "Primeira pessoa: olhando para baixo você vê o próprio corpo",
-    "Martelo do Vale (nível 60) com anel de energia e cristais girando"
+    "Missões: 16 missões guiadas para os primeiros minutos e depois 3 missões que se renovam, com recompensa (tecla J)",
+    "Seta 3D no alto da tela apontando para o objetivo (ou para a vila quando a mochila enche)",
+    "Minimapa agora gira com você (sua frente fica sempre para cima)",
+    "Botão e tecla Tab para abrir a mochila",
+    "Primeiros martelos mais baratos: o primeiro sai em menos de 1 minuto",
+    "Ovo de dragão na praça: racha nos martelos 20, 40 e 50",
+    "Seus tempos de cada marco aparecem na Ajuda"
   ],
   "files": [
     {
@@ -15,11 +17,11 @@
     },
     {
       "path": "README.md",
-      "size": 4838
+      "size": 5071
     },
     {
       "path": "index.html",
-      "size": 25320
+      "size": 27980
     },
     {
       "path": "js/audio.js",
@@ -31,23 +33,27 @@
     },
     {
       "path": "js/data.js",
-      "size": 21300
+      "size": 21430
     },
     {
       "path": "js/game.js",
-      "size": 33579
+      "size": 34706
+    },
+    {
+      "path": "js/missions.js",
+      "size": 12769
     },
     {
       "path": "js/render3d.js",
-      "size": 129215
+      "size": 133727
     },
     {
       "path": "js/robots.js",
-      "size": 7976
+      "size": 8005
     },
     {
       "path": "js/ui.js",
-      "size": 28365
+      "size": 30306
     },
     {
       "path": "js/updater.js",
@@ -67,7 +73,7 @@
     },
     {
       "path": "version.json",
-      "size": 1336
+      "size": 1479
     }
   ]
 }

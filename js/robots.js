@@ -33,7 +33,7 @@ const Robots = {
     if (n >= ROBOT_MAX) return;
     const price = robotPrice(n);
     if (S.money < price) return;
-    S.money -= price; S.robots = n + 1;
+    S.money -= price; S.robots = n + 1; Game.mark('robo' + (n + 1));
     this.sync();
     Snd.levelUp(); this.chirp();
     UI.toast(`🤖 ${ROBOT_NAMES[n]} entrou para a equipe! Ele vai minerar o que falta para suas evoluções.`, 'level');

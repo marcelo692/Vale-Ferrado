@@ -174,6 +174,20 @@ const UI = {
       <label class="vol mute"><input type="checkbox" ${Snd.muted ? 'checked' : ''} onchange="Snd.muted=this.checked;Snd.apply();Snd.saveCfg()"> <span>Silenciar tudo (tecla M)</span></label>
       <div class="row"><button class="buy alt" onclick="Snd.hit('ore', Game.S.hammer); Snd.coins(500)">Testar efeitos</button><button class="buy" onclick="UI.close()">Voltar ao jogo</button></div></div>`;
   },
+  bagPanel() {
+    const S = Game.S; this.freeMouse(); this.open = 'bag'; Snd.open();
+    const need = Game.needs(), sneed = Game.specialNeed(), by = Game.needsBy(), ids = Object.keys(S.bag);
+    let h = `<div class="story"><h2>🎒 Mochila</h2><p class="hint">${fmt(Game.used())} de ${fmt(Game.capacity())} espaços usados.</p>`;
+    if (ids.length) {
+      const bv = Game.bagValue();
+      h += `<table class="bagt"><tr><th>Recurso</th><th>Qtd</th><th>Cada</th><th>Vai pro depósito</th></tr>`;
+      for (const id of ids) { const q = S.bag[id], k = Math.min(Game.keepWant(id, need, sneed), Game.keepCap(id, q)); h += `<tr><td><span class="dot" style="background:${RES[id].c2}"></span> ${RES[id].name}${by[id] ? `<br><small style="opacity:.6">${by[id].join(', ')}</small>` : ''}</td><td>${fmt(q)}</td><td>${fmt(RES[id].value)}</td><td>${k ? fmt(k) : '—'}</td></tr>`; }
+      h += `</table><p>Ao entrar na vila você recebe <b><i class="coin"></i>${fmt(bv.money)}</b>${bv.kept ? ` e ${fmt(bv.kept)} vão para o depósito` : ''}.</p>`;
+    } else h += `<p>A mochila está vazia. Saia da vila e minere!</p>`;
+    if (S.pw.length) { const c = {}; S.pw.forEach(p => c[p.id] = (c[p.id] || 0) + 1); h += `<h4>Power-ups</h4><p>${Object.keys(c).map(id => `${POWERUPS[id].name} ×${c[id]} (tecla ${POWERUPS[id].key})`).join(' · ')}</p>`; }
+    h += `<div class="row"><button class="buy" onclick="UI.close()">Fechar</button></div></div>`;
+    $('panel').innerHTML = h; $('panel').classList.remove('hidden');
+  },
   help() {
     this.freeMouse();
     this.open = 'help';
@@ -192,12 +206,14 @@ const UI = {
         <li><b>V</b>: alternar primeira e terceira pessoa</li>
         <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: escolher o minério do detector na mão · <b>Shift+T</b>: voltar ao automático</li>
         <li><b>H</b>: voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20)</li>
+        <li><b>J</b>: missões · <b>Tab</b>: abrir a mochila</li>
         <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
         <li><b>Esc</b>: soltar o mouse</li>
       </ul>
       <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra tudo sozinho. Use o dinheiro no Ferreiro (martelo), na Tropeira (atributos) e na Botica (power-ups).</p>
       <p>Qualquer martelo quebra qualquer pedra, mas a informação embaixo da mira mostra quanto tempo vai levar: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
       <p>O jogo salva sozinho no seu computador.</p>
+      ${Object.keys(Game.S.ms || {}).length ? `<h4>Seus tempos</h4><div class="mst">${Object.entries(Game.S.ms).sort((a, b) => a[1] - b[1]).map(([k, t]) => `<span>${k.replace(/^martelo/, 'Martelo ').replace(/^missao/, 'Missão ').replace(/^robo/, 'Robô ').replace('venda1', 'Primeira venda')}</span><b>${fmtTime(t)}</b>`).join('')}</div>` : ''}
       <h4>Seu progresso</h4><p class="hint" style="margin-top:0">O jogo salva sozinho a cada 30 segundos e sempre que você sai da janela, troca de aba ou fecha o jogo: no navegador e no arquivo <b>save/progresso.json</b> dentro da pasta do jogo (Chrome/Edge, depois de liberar a pasta em <b>💾 Salvar agora</b>). ${Backup.statusText()}</p>
       <div class="row"><button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button><button class="buy alt" onclick="Backup.restoreFromFile()">📂 Carregar do arquivo da pasta</button></div>
       <div class="row"><button class="buy alt" onclick="UI.exportSave()">Salvar cópia do progresso</button><button class="buy alt" onclick="document.getElementById('impfile').click()">Carregar progresso</button><input type="file" id="impfile" accept=".json" style="display:none" onchange="UI.importSave(this.files[0])"></div>
@@ -360,6 +376,7 @@ const UI = {
     $('equip').innerHTML = eq.join('');
     this.updateDetectorHud();
     this.updateInvHud();
+    Missions.hud();
     { const rb = $('recall'), ok = S.hammer >= RECALL_LVL && !G.inCity && !G.travel && !this.open;
       rb.style.display = ok ? 'inline-flex' : 'none';
       if (ok) { const c = G.recallCost(); $('recallc').innerHTML = `<i class="coin"></i>${fmt(c)}`; rb.classList.toggle('off', S.money < c); }

@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '2.6.0';
+const GAME_VERSION = '2.7.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -192,8 +192,9 @@ function attrLabel(key, lvl) {
 // ---------- Custos ----------
 function hammerCost(L) { // custo para chegar ao nível L
   const h = HAMMERS[L];
-  const qty = 3 + Math.floor(L / 2);
-  const money = Math.round(25 * Math.pow(1.31, L - 2));
+  // primeiros martelos bem baratos: a primeira evolução sai em menos de 1 minuto
+  const qty = L <= 4 ? L : 3 + Math.floor(L / 2);
+  const money = L <= 4 ? [0, 0, 10, 20, 32][L] : Math.round(25 * Math.pow(1.31, L - 2));
   const mats = h.mat.map(id => ({ id, qty }));
   if (SPECIAL_AT[L]) mats.push({ id: SPECIAL_AT[L], qty: 5 });
   return { money, mats };

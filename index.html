@@ -43,6 +43,21 @@
   #recall kbd { font: 700 11px system-ui; background: rgba(0,0,0,.35); border-radius: 4px; padding: 1px 5px; } #recall span { color: var(--gold); font-weight: 700; }
   #travelbar { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); display: none; font: 800 20px system-ui; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.8); text-align: center; }
   #travelbar i { display: block; width: 260px; height: 6px; margin: 8px auto 0; background: rgba(0,0,0,.45); border-radius: 3px; overflow: hidden; } #travelbar b { display: block; height: 100%; width: 0; background: #ffd34d; }
+  #mission { position: fixed; top: 262px; left: 14px; width: 240px; padding: 9px 12px; font-size: 12px; display: none; }
+  #mission .mh { display: flex; align-items: center; gap: 6px; color: var(--gold); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; }
+  #mission .mh kbd, #bagbtn kbd { font: 700 10px system-ui; background: rgba(255,255,255,.12); border-radius: 4px; padding: 1px 5px; color: #fff; }
+  #mission .mh span { margin-left: auto; color: #ffd34d; }
+  #mission .mt { font-size: 14px; font-weight: 700; margin: 4px 0 6px; line-height: 1.3; }
+  .mpb { display: block; height: 7px; background: rgba(0,0,0,.4); border-radius: 4px; overflow: hidden; } .mpb em { display: block; height: 100%; background: linear-gradient(90deg,#d8a040,#ffe27a); }
+  #mission small { display: block; text-align: right; opacity: .75; margin-top: 2px; }
+  #objarrow { position: fixed; left: 50%; top: 118px; transform: translateX(-50%); font: 700 13px system-ui; color: #fff; text-shadow: 0 2px 4px #000, 0 0 2px #000; display: none; white-space: nowrap; pointer-events: none; }
+  #bottom { position: fixed; } #bagbtn { position: absolute; top: 10px; right: 14px; font: 700 12px system-ui; color: #f1e4cc; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+  .mlist { list-style: none; padding: 0; margin: 10px 0 16px; text-align: left; display: grid; gap: 6px; max-height: 52vh; overflow: auto; }
+  .mlist li { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: start; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.04); }
+  .mlist li.cur { background: rgba(216,160,64,.14); border: 1px solid rgba(216,160,64,.5); } .mlist li.lock { opacity: .45; } .mlist li.done b { color: #7fd36a; }
+  .mlist span { font-weight: 700; display: block; } .mlist small { display: block; opacity: .75; margin: 2px 0 4px; } .mlist strong { color: #ffd34d; }
+  .bagt { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; margin: 8px 0 12px; } .bagt td, .bagt th { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,.08); } .bagt td:nth-child(n+2), .bagt th:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; }
+  .mst { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; text-align: left; font-size: 13px; max-width: 360px; margin: 6px auto 14px; font-variant-numeric: tabular-nums; }
   #climb { position: fixed; left: 50%; bottom: 172px; transform: translateX(-50%); font: 700 12px system-ui; color: #ffd34d; background: rgba(20,14,8,.7); padding: 3px 10px; border-radius: 6px; display: none; }
   .card.eq { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,211,77,.25); }
   select { background: #1f1810; color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 4px 6px; font-size: 13px; }
@@ -154,13 +169,15 @@
 
 <div id="tl" class="box"><div class="money" id="money">0</div><div id="hname"></div><div id="hlv"></div><div id="hforce"></div></div>
 <div id="attrs" class="box"></div>
+<div id="mission" class="box"></div>
+<div id="objarrow"></div>
 <div id="loc" class="box"></div>
 <div id="tr"><button onclick="Updater.open();Updater.check(true)">⬆ Atualizações <small id="ver"></small></button><button onclick="UI.soundPanel()">🔊 Som</button><button onclick="UI.help()">❔ Ajuda</button></div>
 <div id="toasts"></div>
 <div id="upd"></div>
 <div id="npchint"></div>
 <div id="bottom" class="box">
-  <div id="bagtxt"><span id="bagtxt2"></span></div>
+  <div id="bagtxt"><span id="bagtxt2"></span></div><button id="bagbtn" onclick="UI.bagPanel()">🎒 Abrir <kbd>Tab</kbd></button>
   <div id="bagbar"><div id="bagfill"></div></div>
   <div id="bagitems"></div>
   <div id="pws"></div>
@@ -204,6 +221,7 @@
 <script src="js/game.js"></script>
 <script src="js/robots.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/missions.js"></script>
 <script src="lib/three.min.js"></script>
 <script src="js/render3d.js"></script>
 <script src="js/updater.js"></script>

@@ -428,6 +428,15 @@ const Render = {
     const f1 = mesh(new THREE.CylinderGeometry(2.6, 2.8, 0.7, 12), mat('#8a8070')); f1.position.y = 0.35; this.city.add(f1);
     this.water = mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.1, 12), new THREE.MeshPhongMaterial({ color: '#3d7a95', shininess: 80 }), false); this.water.position.y = 0.68; this.city.add(this.water);
     const f2 = mesh(new THREE.CylinderGeometry(0.35, 0.5, 2.2, 8), mat('#9a9080')); f2.position.y = 1.1; this.city.add(f2);
+    // ovo de dragão: choca no martelo 60 e racha nos marcos 20, 40 e 50
+    const nest = mesh(new THREE.TorusGeometry(0.62, 0.16, 5, 12).rotateX(Math.PI / 2), mat('#6b4a2e')); nest.position.y = 2.25; this.city.add(nest);
+    const eg = new THREE.SphereGeometry(0.62, 14, 10); eg.scale(1, 1.32, 1);
+    this.egg = mesh(eg, mat('#4b7a5a', { emissive: '#ff7a2e', emissiveIntensity: 0, shininess: 50 })); this.egg.position.y = 2.95; this.city.add(this.egg);
+    for (let i = 0; i < 9; i++) { const sp = mesh(new THREE.ConeGeometry(0.09, 0.2, 4), mat('#2f5a3e')); const a = i / 9 * Math.PI * 2, yy = (i % 3 - 1) * 0.35; sp.position.set(Math.cos(a) * 0.6 * Math.cos(yy), yy * 1.3, Math.sin(a) * 0.6 * Math.cos(yy)); sp.lookAt(sp.position.clone().multiplyScalar(2)); sp.rotateX(Math.PI / 2); this.egg.add(sp); }
+    this.eggCracks = [];
+    for (let i = 0; i < 3; i++) { const cr = new THREE.Group(); for (let j = 0; j < 4; j++) { const seg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.03), new THREE.MeshBasicMaterial({ color: '#ffb347' })); seg.position.set(0, -0.3 + j * 0.2, 0); seg.rotation.z = (j % 2 ? 0.5 : -0.5); cr.add(seg); } const a = i * 2.1; cr.position.set(Math.cos(a) * 0.61, 0, Math.sin(a) * 0.61); cr.lookAt(cr.position.clone().multiplyScalar(2)); cr.visible = false; this.egg.add(cr); this.eggCracks.push(cr); }
+    this.eggLight = new THREE.PointLight('#ff8a3d', 0, 8, 2); this.eggLight.position.set(0, 3, 0); this.city.add(this.eggLight);
+    const eggLabel = labelSprite('Ovo de Dragão', 'choca no Martelo 60', '#ffd27a', 0.6); eggLabel.position.y = 4.5; this.city.add(eggLabel);
     // barracas dos NPCs (em círculo, de frente para a fonte)
     this.npcObjs = []; this.shopIcons = [];
     for (const n of NPCS) {
@@ -844,6 +853,29 @@ const Render = {
     this.vmGlow = new THREE.PointLight('#7af0ff', 0, 2.5, 2); this.vmGlow.position.set(0.3, -0.2, -0.7); this.vmScene.add(this.vmGlow);
     this.vmFlash = new THREE.PointLight('#ffd27a', 0, 3, 2); this.vmFlash.position.set(0.05, -0.35, -0.9); this.vmScene.add(this.vmFlash);
     this.anim = { t: 0, combo: 0, follow: 0, stop: 0, click: 0, pose: null };
+    // seta 3D de objetivo no alto da tela
+    const ar = new THREE.Group(), am = new THREE.MeshPhongMaterial({ color: '#ffcf4a', emissive: '#a86a00', emissiveIntensity: 0.5, shininess: 60, flatShading: true });
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.018, 0.09), am); shaft.position.z = 0.03; ar.add(shaft);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.075, 4).rotateX(-Math.PI / 2).rotateZ(Math.PI / 4), am); tip.scale.y = 0.4; tip.position.z = -0.045; ar.add(tip);
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.008, 0.095), new THREE.MeshBasicMaterial({ color: '#5a3a00' })); edge.position.set(0, -0.012, 0.03); ar.add(edge);
+    this.arrowPivot = new THREE.Group(); this.arrowPivot.position.set(0, 0.22, -0.75); ar.scale.setScalar(0.7); this.arrowPivot.rotation.x = 0.75; this.arrowPivot.add(ar); this.arrow = ar;
+    this.vmScene.add(this.arrowPivot);
+  },
+  updateArrow() {
+    const T = Missions.arrowTarget(), P = Game.P, el = document.getElementById('objarrow');
+    let show = false;
+    if (T && !UI.open && !Game.travel) {
+      const dx = T.x - P.x, dy = T.y - P.y, d = Math.hypot(dx, dy);
+      if (d > 4) {
+        show = true;
+        const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw), lf = -dx * sy - dy * cy, lx = dx * cy - dy * sy;
+        const want = Math.atan2(-lx, lf);
+        let dd = want - this.arrow.rotation.y; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); this.arrow.rotation.y += dd * 0.25;
+        this.arrowPivot.position.y = 0.22 + Math.sin(this.t * 3) * 0.004;
+        el.textContent = `${T.label} · ${d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', ',') + ' km'}`;
+      }
+    }
+    this.arrowPivot.visible = show; el.style.display = show ? 'block' : 'none';
   },
   rebuildViewModel() {
     const gear = this.gear(), L = Game.S.hammer;
@@ -1447,6 +1479,7 @@ const Render = {
     this.sun.target.position.set(P.x, gh, P.y);
     // efeitos de veio aflorado: recurso brilha
     this.water.position.y = 0.68 + Math.sin(this.t * 2) * 0.02;
+    if (this.egg) { const L = Game.S.hammer, st = L >= 50 ? 3 : L >= 40 ? 2 : L >= 20 ? 1 : 0; this.eggCracks.forEach((c, i) => c.visible = i < st); const pulse = st ? (0.15 + st * 0.15) * (0.6 + 0.4 * Math.sin(this.t * (1 + st))) : 0; this.egg.material.emissiveIntensity = pulse; this.eggLight.intensity = pulse * 2; this.egg.rotation.z = st >= 2 ? Math.sin(this.t * 7) * 0.04 * (Math.sin(this.t * 0.7) > 0.6 ? 1 : 0) : 0; }
     if (this.shopIcons) this.shopIcons.forEach((ic, i) => { ic.rotation.y = this.t * 1.2 + i; ic.position.y = 5.4 + Math.sin(this.t * 2 + i) * 0.15; });
     this.updatePlayerLights();
     this.updateRobots(dt);
@@ -1457,7 +1490,12 @@ const Render = {
 
     this.r.clear();
     this.r.render(this.scene, this.cam);
-    if (this.view === 'fp' && !UI.open) { this.updateViewModel(dt); this.r.clearDepth(); this.r.render(this.vmScene, this.vmCam); }
+    this.updateArrow();
+    if (!UI.open) {
+      const fpv = this.view === 'fp'; this.vm.visible = fpv;
+      if (fpv) this.updateViewModel(dt);
+      if (fpv || this.arrowPivot.visible) { this.r.clearDepth(); this.r.render(this.vmScene, this.vmCam); }
+    }
     this.drawFloats();
     this.drawTargetInfo();
     this.drawMinimap();
@@ -1495,7 +1533,9 @@ const Render = {
 
   drawMinimap() {
     const c = this.mctx, W = this.mini.width, H = this.mini.height, cx = W / 2, cy = H / 2, MAXD = 4300, RAD = W / 2 - 6;
-    const map = (x, y) => { const d = Math.hypot(x, y); if (d < 0.001) return [cx, cy]; const r = Math.sqrt(d / MAXD) * RAD; return [cx + x / d * r, cy + y / d * r]; };
+    // o mapa gira com você: a frente do jogador fica sempre para cima
+    const rot = Game.P.yaw, rc = Math.cos(rot), rs = Math.sin(rot);
+    const map = (x, y) => { const d = Math.hypot(x, y); if (d < 0.001) return [cx, cy]; const r = Math.sqrt(d / MAXD) * RAD, px = x / d * r, py = y / d * r; return [cx + px * rc - py * rs, cy + px * rs + py * rc]; };
     c.clearRect(0, 0, W, H);
     c.fillStyle = 'rgba(30,26,20,0.85)'; c.beginPath(); c.arc(cx, cy, W / 2 - 2, 0, Math.PI * 2); c.fill();
     for (const R of REGIONS) {
@@ -1511,10 +1551,12 @@ const Render = {
     if (World.veio) { const R = REGIONS[RES[World.veio.res].region]; const p = map(R.ux * (R.dMin + R.dMax) / 2, R.uy * (R.dMin + R.dMax) / 2); c.strokeStyle = '#ffd34d'; c.lineWidth = 4; c.beginPath(); c.arc(p[0], p[1], 16 + Math.sin(this.t * 5) * 4, 0, Math.PI * 2); c.stroke(); }
     c.fillStyle = '#d8c8a8'; c.beginPath(); c.arc(cx, cy, 7, 0, Math.PI * 2); c.fill();
     for (const r of Robots.list) { const p = map(r.x, r.y); c.fillStyle = '#6ff3ff'; c.strokeStyle = 'rgba(0,0,0,.7)'; c.lineWidth = 1.5; c.beginPath(); c.arc(p[0], p[1], 4, 0, Math.PI * 2); c.fill(); c.stroke(); }
-    const pp = map(Game.P.x, Game.P.y), a = -Game.P.yaw - Math.PI / 2;
+    const pp = map(Game.P.x, Game.P.y), a = -Math.PI / 2;
+    // alvo da seta
+    const T = Missions.arrowTarget(); if (T) { const tp = map(T.x, T.y); c.fillStyle = '#ffcf4a'; c.strokeStyle = '#000'; c.lineWidth = 2; c.beginPath(); c.arc(tp[0], tp[1], 7, 0, Math.PI * 2); c.fill(); c.stroke(); }
     c.save(); c.translate(pp[0], pp[1]); c.rotate(a);
     c.fillStyle = '#ff5a3a'; c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.moveTo(12, 0); c.lineTo(-8, 8); c.lineTo(-4, 0); c.lineTo(-8, -8); c.closePath(); c.fill(); c.stroke();
     c.restore();
-    c.fillStyle = 'rgba(255,255,255,0.8)'; c.font = '700 18px system-ui'; c.textAlign = 'center'; c.fillText('N', cx, 24);
+    { const n = map(0, -MAXD * 0.92), dx = n[0] - cx, dy = n[1] - cy, k = (RAD - 12) / Math.hypot(dx, dy); c.fillStyle = '#ff6a5a'; c.font = '800 20px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('N', cx + dx * k, cy + dy * k); c.textBaseline = 'alphabetic'; }
   },
 };

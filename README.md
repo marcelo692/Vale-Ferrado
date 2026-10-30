@@ -33,6 +33,8 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | L | Ligar/desligar a luz |
 | G | Ligar/desligar o detector (no automático ele procura o que falta) · T escolhe na mão · Shift+T volta ao automático |
 | H | Voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20; também tem botão na tela) |
+| J | Missões (as guiadas do começo e depois 3 missões que se renovam) |
+| Tab | Abrir a mochila: o que tem dentro, quanto vale e o que vai para o depósito |
 | M | Som on/off (volumes no botão 🔊 Som) |
 | K | Salvar agora (navegador + arquivo save/progresso.json na pasta do jogo) |
 | Esc | Soltar o mouse e abrir o menu de pausa |
@@ -63,6 +65,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | `js/data.js` | Tabelas do jogo: martelos, recursos, regiões, custos, power-ups, história |
 | `js/world.js` | Mundo: trechos, obstáculos, nós de recurso e respawn |
 | `js/game.js` | Regras: movimento, pulo, mineração, mochila, economia, salvamento |
+| `js/missions.js` | Missões, seta de objetivo e registro de tempos |
 | `js/robots.js` | Robôs auto-mineradores: busca, mineração e entrega |
 | `js/ui.js` | Interface: HUD, lojas dos NPCs, avisos |
 | `js/audio.js` | Música e efeitos sonoros, todos sintetizados (sem arquivos de áudio) |

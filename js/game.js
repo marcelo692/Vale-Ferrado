@@ -41,6 +41,7 @@ const Game = {
     this.P.x = this.S.x; this.P.y = this.S.y;
     World.build();
     this.fixSoldSpecials();
+    Missions.init();
     this.inCity = this.wasInCity = Math.hypot(this.P.x, this.P.y) < CITY_R;
     this.bindInput();
   },
@@ -78,10 +79,12 @@ const Game = {
     this.locked = () => document.pointerLockElement === cv;
     addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
-      if (UI.open) { if (k === 'escape' || k === 'e') UI.close(); return; }
+      if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag')) { e.preventDefault(); UI.close(); } return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
       this.keys[k] = true;
       if (k === 'h') this.recall();
+      if (k === 'j') { Missions.panel(); return; }
+      if (k === 'tab') { UI.bagPanel(); return; }
       if (this.travel) return; // voltando à cidade: controles travados
       if (k === ' ') this.jump();
       if (k === 'e') this.interact();
@@ -144,7 +147,7 @@ const Game = {
       if (!this.noBreathT || this.S.time - this.noBreathT > 3) { this.noBreathT = this.S.time; UI.toast('Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar.', 'warn'); Snd.denied(); }
       return;
     }
-    P.stamina -= CLICK_COST; this.lastClickT = this.S.time;
+    P.stamina -= CLICK_COST; this.lastClickT = this.S.time; this.S.stats.clicks++;
     if (P.stamina <= 0) { P.stamina = 0; P.tired = true; Snd.tired(); }
     this.clickCD = this.interval() * CLICK_CD;
     this.swingAnim = SWING_ANIM;
@@ -173,7 +176,7 @@ const Game = {
     if (i < 0) { UI.toast(`Você não tem ${POWERUPS[id].name} na mochila. Compre no Zé da Botica.`); return; }
     // usa o de maior nível
     let best = i; this.S.pw.forEach((p, j) => { if (p.id === id && p.tier > this.S.pw[best].tier) best = j; });
-    const p = this.S.pw.splice(best, 1)[0];
+    const p = this.S.pw.splice(best, 1)[0]; this.S.stats.powers++;
     const cur = this.S.active.find(a => a.id === id);
     if (cur) { cur.left += POWERUPS[id].dur; cur.tier = Math.max(cur.tier, p.tier); }
     else this.S.active.push({ id, tier: p.tier, left: POWERUPS[id].dur });
@@ -212,6 +215,8 @@ const Game = {
     if (RES[id].special) return Math.max(0, (sneed[id] || 0) - (this.S.stock[id] || 0));
     return Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
   },
+  keepCap(id, q) { return RES[id].special || this.S.hammer < 6 ? q : Math.floor(q * 0.6); },
+  mark(key) { const S = this.S; if (!S.ms) S.ms = {}; if (S.ms[key] === undefined) S.ms[key] = Math.round(S.time); },
   // quais evoluções usam cada material (para explicar ao jogador)
   needsBy() {
     const by = {};
@@ -226,7 +231,7 @@ const Game = {
     const need = this.needs(), sneed = this.specialNeed(); let money = 0, all = 0, kept = 0;
     for (const id in this.S.bag) {
       const q = this.S.bag[id], want = this.keepWant(id, need, sneed);
-      const k = Math.min(want, RES[id].special ? q : Math.floor(q * 0.6));
+      const k = Math.min(want, this.keepCap(id, q));
       money += (q - k) * RES[id].value; all += q * RES[id].value; kept += k;
     }
     return { money, all, kept };
@@ -240,7 +245,7 @@ const Game = {
     for (const id of ids) {
       const q = this.S.bag[id];
       const want = this.keepWant(id, need, sneed);
-      const cap = RES[id].special ? q : Math.floor(q * 0.6); // recurso raro: guarda tudo que for preciso
+      const cap = this.keepCap(id, q); // recurso raro (ou começo do jogo): guarda tudo que for preciso
       const k = Math.min(want, cap); // vende sempre pelo menos 40% de cada carga
       if (k > 0) { this.S.stock[id] = (this.S.stock[id] || 0) + k; kept += k; }
       const sq = q - k, money = sq * RES[id].value;
@@ -249,12 +254,13 @@ const Game = {
       if (RES[id].special && sneed[id] && k > 0) why = 'recurso raro: guardei para martelos e equipamentos futuros';
       else if (!need[id] && !(RES[id].special && sneed[id])) why = 'nenhuma evolução próxima usa';
       else if (want === 0) why = 'o depósito já tem o suficiente';
-      else if (k < want) why = `guardei 60% da carga; faltam ${fmt(want - k)}`;
+      else if (k < want) why = `guardei ${this.S.hammer < 6 ? 'o que veio' : '60% da carga'}; faltam ${fmt(want - k)}`;
       else why = 'guardei tudo que faltava';
       lines.push({ id, q, k, sq, money, why, for: by[id] || [] });
     }
     this.S.bag = {};
     this.S.money += earned; this.S.earned += earned;
+    if (lines.length) { this.S.stats.sales++; this.mark('venda1'); }
     const r = { lines, earned, kept, sold, t: Date.now() };
     this.S.receipts = [r, ...(this.S.receipts || [])].slice(0, 5);
     UI.showReceipt(r);
@@ -273,7 +279,8 @@ const Game = {
   buyHammer() {
     const L = this.S.hammer + 1; if (L > MAX_LEVEL) return;
     const c = hammerCost(L); if (!this.canPay(c)) return;
-    this.pay(c); this.S.hammer = L; Snd.forge();
+    this.pay(c); this.S.hammer = L; Snd.forge(); this.mark('martelo' + L);
+    if ({ 20: 1, 40: 1, 50: 1, 60: 1 }[L]) setTimeout(() => UI.toast(L === 60 ? '🥚 O ovo de dragão está pronto para chocar! (o dragão chega numa próxima grande atualização)' : '🥚 Crack! O ovo de dragão da praça rachou mais um pouco…', 'veio'), 2500);
     UI.toast(`Seu Bento forjou: ${HAMMERS[L].n}! Força ${fmt(HAMMERS[L].f)}.`, 'level');
     this.fxBurst(this.P.x, this.P.y, '#ffb347', 30);
     if (L === RECALL_LVL) setTimeout(() => UI.toast(`🏠 Novo: botão Voltar à cidade (tecla H). Te leva de volta voando rapidinho, por uma taxa pequena.`, 'level'), 1500);
@@ -431,6 +438,7 @@ const Game = {
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= dt; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
     World.update(dt);
     Robots.update(dt);
+    Missions.update(dt);
     const wasNight = this.isNight();
     S.clock = (S.clock + dt / DAY_LEN) % 1;
     if (!wasNight && this.isNight()) UI.toast(S.gear.light ? 'Anoiteceu. Aperte L para ligar sua luz.' : 'Anoiteceu! O Tonho do Bazar vende lanternas.', 'veio');
@@ -490,6 +498,7 @@ const Game = {
     // pulo
     // pulo e queda: dá para subir em cima de troncos, muros e pedras e andar por cima deles
     const support = this.supportAt(P.x, P.y);
+    if (support > 0 && !this.onObs) { this.onObs = true; this.S.stats.hops++; } else if (support <= 0) this.onObs = false;
     if (this.travel) { /* voando de volta */ }
     else if (P.z > support + 0.001 || P.vz > 0) {
       P.vz -= GRAV * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
@@ -564,6 +573,7 @@ const Game = {
       const units = Math.max(1, Math.round(2 * n.size)) * n.rare;
       const got = Math.min(units, this.free());
       this.S.bag[n.res.id] = (this.S.bag[n.res.id] || 0) + got;
+      this.S.stats.mined[n.res.id] = (this.S.stats.mined[n.res.id] || 0) + got; if (n.rare > 1) this.S.stats.veios++;
       let txt = `+${got} ${n.res.name}`;
       if (n.rare === 10) txt = '💎 CRISTALIZADO! ' + txt; else if (n.rare === 3) txt = '✨ Veio rico! ' + txt;
       this.floats.push({ x: n.x, y: n.y - 1, txt, c: n.rare > 1 ? '#ffe27a' : '#fff', t: 1.4 });
