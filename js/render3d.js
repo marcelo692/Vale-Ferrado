@@ -967,6 +967,8 @@ const Render = {
   },
 
   // ---------- martelo (usado na mão e no personagem) ----------
+  // martelo girado no próprio cabo: a face de bater fica virada para o alvo (e não de lado)
+  hammerInHand(L) { const w = new THREE.Group(), h = this.makeHammer(L); h.rotation.y = Math.PI / 2; w.add(h); w.userData = h.userData; return w; },
   makeHammer(L) {
     const look = hammerLook(L), g = new THREE.Group();
     const len = 0.5 + L * 0.02, hw = 0.07 + L * 0.004, hl = 0.18 + L * 0.011;
@@ -1035,7 +1037,7 @@ const Render = {
     const glove = mesh(new THREE.BoxGeometry(gs * 1.2, gs * 1.1, gs * 1.4), mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {}), false); glove.position.z = -0.02; arm.add(glove); this.vmGlove = glove;
     if (G.era >= 4) { const brace = mesh(new THREE.BoxGeometry(0.13, 0.13, 0.16), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 }), false); brace.position.z = 0.12; arm.add(brace); }
     if (G.era >= 5) { const pis = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6), mat('#d8dde2', { shininess: 80 }), false); pis.rotation.x = Math.PI / 2; pis.position.set(0.07, 0.05, 0.2); arm.add(pis); }
-    const ham = this.makeHammer(L);
+    const ham = this.hammerInHand(L);
     ham.scale.setScalar(0.42 - L * 0.0035);
     ham.position.set(0, -0.06, 0); ham.rotation.set(-0.45, 0, 0.32);
     // braço e luva um pouco menores para não tampar a pedra
@@ -1477,7 +1479,7 @@ const Render = {
     const G = gear.glove;
     const gl = this.tag(mesh(new THREE.BoxGeometry(0.17 + G.era * 0.012, 0.16, 0.2), mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {})), 'mine'); gl.position.y = -0.64; arm.add(gl);
     if (G.era >= 4) { const br = this.tag(mesh(new THREE.BoxGeometry(0.19, 0.16, 0.21), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 })), 'mine'); br.position.y = -0.45; arm.add(br); }
-    const ham = this.tag(this.makeHammer(L), 'hammer'); ham.position.y = -0.64; ham.rotation.x = -Math.PI / 2; arm.add(ham);
+    const ham = this.tag(this.hammerInHand(L), 'hammer'); ham.position.y = -0.64; ham.rotation.x = -Math.PI / 2; arm.add(ham); ham.traverse(o => { if (o.isMesh) o.userData.part = 'hammer'; });
     const arm2 = new THREE.Group(); arm2.position.set(-0.4, 1.55, 0); body.add(arm2);
     { const up2 = mesh(new THREE.BoxGeometry(0.16, 0.65, 0.18), mat('#3e6b8a')); up2.position.y = -0.32; arm2.add(up2); }
     const gl2 = this.tag(mesh(new THREE.BoxGeometry(0.17 + G.era * 0.012, 0.16, 0.2), mat(G.col)), 'mine'); gl2.position.y = -0.66; arm2.add(gl2);

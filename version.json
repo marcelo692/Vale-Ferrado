@@ -1,8 +1,8 @@
 {
-  "version": "3.2.2",
+  "version": "3.2.3",
   "date": "2026-10-30",
   "notes": [
-    "Correção do atualizador: ele confere se a pasta escolhida é a do jogo aberto e mostra o caminho certo; se for de outro download, pede para escolher de novo"
+    "O martelo agora é segurado do jeito certo: a face de bater fica virada para a pedra, e não de lado"
   ],
   "files": [
     {
@@ -43,7 +43,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 149279
+      "size": 149593
     },
     {
       "path": "js/robots.js",
@@ -75,7 +75,7 @@
     },
     {
       "path": "version.json",
-      "size": 1339
+      "size": 1375
     }
   ]
 }
