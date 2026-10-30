@@ -31,6 +31,7 @@ const UI = {
   lockHint(show) {
     const el = $('lockhint'), want = show && started ? 'flex' : 'none';
     if (want === 'flex') { const st = $('savest'); if (st) st.textContent = Backup.statusText(); }
+    if (want === 'flex') Updater.pauseBox(el.style.display !== 'flex');
     if (el.style.display !== want && want === 'flex') { const v = Math.round((Game.S.sens || 1) * 100), sl = $('sens'); if (sl) { sl.value = v; sl.nextElementSibling.textContent = v + '%'; } }
     el.style.display = want;
   },

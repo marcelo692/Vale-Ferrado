@@ -21,9 +21,9 @@ const Updater = {
     this.state = 'checking'; if (manual) this.render();
     try {
       // commit mais recente da branch principal (assim os arquivos baixados são sempre os mais novos)
-      const r = await fetch(`https://api.github.com/repos/${REPO}/commits/main`, { cache: 'no-store' });
-      if (!r.ok) throw new Error(r.status === 404 ? 'privado' : 'http ' + r.status);
-      this.sha = (await r.json()).sha;
+      // se a API do GitHub recusar (limite de consultas), usa direto a branch main
+      try { const r = await fetch(`https://api.github.com/repos/${REPO}/commits/main`, { cache: 'no-store' }); if (r.status === 404) throw new Error('privado'); this.sha = r.ok ? (await r.json()).sha : 'main'; }
+      catch (e) { if (e.message === 'privado') throw e; this.sha = 'main'; }
       const v = await fetch(`https://raw.githubusercontent.com/${REPO}/${this.sha}/version.json`, { cache: 'no-store' });
       if (!v.ok) throw new Error('version.json ' + v.status);
       this.latest = await v.json();
@@ -34,6 +34,7 @@ const Updater = {
     }
     this.banner();
     if (manual || UI.open === 'update') this.render();
+    this.pauseBox(false);
   },
 
   banner() {
@@ -125,6 +126,24 @@ const Updater = {
     } catch (e) {
       this.state = 'error'; this.err = 'falha ao baixar ' + e.message; this.render();
     }
+  },
+  // caixa de atualização no menu de pausa (Esc): verifica ao abrir e atualiza com um clique
+  pauseBox(opened) {
+    const el = document.getElementById('pauseupd'); if (!el) return;
+    if (opened && this.state !== 'checking' && this.state !== 'updating' && Date.now() - this.checkedAt > 120000) this.check(false);
+    const st = this.state, L = this.latest;
+    let h;
+    if (st === 'available') h = `<button class="buy" onclick="Updater.quick()">⬆ Atualizar agora para a ${L.version}</button><small>${(L.notes || []).slice(0, 2).join(' · ')}</small>`;
+    else if (st === 'checking') h = `<small>Procurando atualização…</small>`;
+    else if (st === 'uptodate') h = `<small>✅ Versão ${GAME_VERSION} · é a mais nova</small>`;
+    else if (st === 'error') h = `<small>⚠ Não consegui procurar atualização (${this.err}). <a href="#" onclick="Updater.check(true);return false" style="color:#ffe27a">Tentar de novo</a></small>`;
+    else h = '';
+    if (el.dataset.h !== h) { el.dataset.h = h; el.innerHTML = h; }
+  },
+  quick() {
+    this.open();
+    if (this.isOnline()) this.reloadFresh();
+    else if (this.canWriteFolder()) this.install();
   },
   progress(p, file) {
     const b = document.getElementById('updbar'), t = document.getElementById('updpct'), f = document.getElementById('updfile');

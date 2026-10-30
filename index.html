@@ -63,6 +63,7 @@
   #citybar { position: fixed; left: 50%; bottom: 182px; transform: translateX(-50%); display: none; font: 600 13px system-ui; color: #fff; background: rgba(20,14,8,.8); border: 1px solid #a07a2a; border-radius: 8px; padding: 6px 12px; z-index: 6; }
   #citybar button { font: 700 13px system-ui; color: #ffe27a; background: none; border: 0; cursor: pointer; }
   .detopts { display: grid; gap: 6px; text-align: left; margin: 10px 0 16px; } .detopts label { display: flex; gap: 8px; align-items: center; font-size: 15px; cursor: pointer; } .detopts label.dis { opacity: .45; }
+  #pauseupd { margin: 2px 0 8px; font-size: 13px; } #pauseupd .buy { width: 100%; background: linear-gradient(#7fd36a, #4f9a3e); color: #10200a; } #pauseupd small { display: block; opacity: .75; margin-top: 4px; }
   #climb { position: fixed; left: 50%; bottom: 172px; transform: translateX(-50%); font: 700 12px system-ui; color: #ffd34d; background: rgba(20,14,8,.7); padding: 3px 10px; border-radius: 6px; display: none; }
   .card.eq { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,211,77,.25); }
   select { background: #1f1810; color: var(--ink); border: 1px solid var(--edge); border-radius: 6px; padding: 4px 6px; font-size: 13px; }
@@ -207,6 +208,7 @@
   <button class="buy" onclick="UI.resume()">▶ Continuar jogando</button>
   <button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button>
   <p class="savest" id="savest"></p>
+  <div id="pauseupd"></div>
   <button class="buy alt" onclick="Updater.open();Updater.check(true)">⬆ Atualizações</button>
   <button class="buy alt" onclick="UI.soundPanel()">🔊 Som</button>
   <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>

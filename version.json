@@ -1,12 +1,8 @@
 {
-  "version": "3.1.0",
+  "version": "3.2.0",
   "date": "2026-10-30",
   "notes": [
-    "Missões pegam primeiro: as de trazer recurso usam o que chega na vila e o que já estava guardado no depósito",
-    "Modo de entrega na vila (tecla N ou botão na mochila): guardar o que falta e vender o resto, guardar tudo, ou vender tudo",
-    "Vender tudo do depósito de uma vez (tecla U na vila ou no Seu Lauro)",
-    "A seta agora é o detector: sem ele não aparece e ela respeita o alcance; segure G para escolher até 3 coisas que ela procura",
-    "A primeira missão dá o Detector de bolso de presente"
+    "Atualizar pelo jogo: aperte Esc e, se houver versão nova, aparece o botão verde Atualizar agora"
   ],
   "files": [
     {
@@ -19,7 +15,7 @@
     },
     {
       "path": "index.html",
-      "size": 29875
+      "size": 30117
     },
     {
       "path": "js/audio.js",
@@ -55,15 +51,15 @@
     },
     {
       "path": "js/ui.js",
-      "size": 36528
+      "size": 36600
     },
     {
       "path": "js/updater.js",
-      "size": 8234
+      "size": 9571
     },
     {
       "path": "js/web-stubs.js",
-      "size": 593
+      "size": 608
     },
     {
       "path": "js/world.js",
@@ -79,7 +75,7 @@
     },
     {
       "path": "version.json",
-      "size": 1653
+      "size": 1731
     }
   ]
 }

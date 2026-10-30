@@ -2,7 +2,7 @@
 'use strict';
 const Updater = {
   init() { document.querySelectorAll('[onclick*="Updater"]').forEach(e => { e.style.display = 'none'; }); },
-  open() {}, check() {},
+  open() {}, check() {}, pauseBox() {},
 };
 const Backup = {
   init() { document.querySelectorAll('[onclick*="Backup.restoreFromFile"]').forEach(e => { e.style.display = 'none'; }); },
