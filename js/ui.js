@@ -112,9 +112,7 @@ const UI = {
             ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você já tem melhor</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
         }
         h += `</div>`;
-        if (type === 'detector' && have) {
-          h += `<p class="free" style="margin-top:10px">Minério procurado: <select onchange="if(this.value==='auto'){Game.S.detAuto=true}else{Game.S.detAuto=false;Game.S.detRes=this.value}Game.detT=0;Game.save()"><option value="auto" ${S.detAuto ? 'selected' : ''}>Automático: o que falta para as evoluções</option>${RESOURCES.map(r => `<option value="${r.id}" ${!S.detAuto && r.id === (S.detRes || Game.defaultDetRes()) ? 'selected' : ''}>${r.name} (região ${REGIONS[r.region].era})</option>`).join('')}</select></p>`;
-        }
+        if (type === 'detector' && have) h += `<div class="row" style="margin-top:10px"><button class="buy alt" onclick="UI.detectorPanel()">🧭 Escolher o que a seta procura</button></div>`;
       }
       // robôs auto-mineradores
       const nR = S.robots || 0;
@@ -134,9 +132,12 @@ const UI = {
 
     if (id === 'armazem') {
       const ids = Object.keys(S.stock).filter(k => S.stock[k] > 0);
-      h += `<p>Tudo o que você traz na mochila é vendido automaticamente quando entra na cidade. O que for necessário para a próxima evolução fica guardado aqui.</p>`;
+      const mode = Game.sellMode();
+      h += `<p>Quando você chega na vila, primeiro as <b>missões</b> pegam o que precisam. Depois eu faço o que você escolher:</p><div class="row" style="flex-wrap:wrap">${Object.keys(SELL_MODES).map(m => `<button class="buy ${m === mode ? '' : 'alt'}" onclick="Game.S.sellMode='${m}';Game.save();UI.renderPanel()">${{ sobra: '🏠 Guardar o que falta, vender o resto', guardar: '📦 Guardar tudo', vender: '💰 Vender tudo' }[m]}</button>`).join('')}</div><p class="hint">Fora daqui, a tecla <b>N</b> troca o modo. No modo guardar tudo você junta no depósito e vende tudo de uma vez quando quiser (por exemplo, depois de tomar um power-up).</p>`;
+      const sv = Object.keys(S.stock).reduce((a, k) => a + (S.stock[k] || 0) * RES[k].value, 0);
+      if (sv) h += `<div class="row"><button class="buy" onclick="Game.sellAllStock();UI.renderPanel()">💰 Vender tudo do depósito por ${fmt(sv)} moedas</button></div>`;
       h += `<p class="free">Total ganho até hoje: <b>${fmt(S.earned)}</b> moedas</p>`;
-      h += `<p class="hint" style="margin-top:0">Regra: ao entrar na cidade eu guardo no depósito só o que falta para a próxima evolução do martelo e de cada atributo (no máximo 60% de cada material que você traz, para sempre entrar dinheiro). Todo o resto eu compro na hora.</p>`;
+
       if ((S.receipts || []).length) h += `<h4>Última entrega</h4><div class="receipt-in">${this.receiptHtml(S.receipts[0])}</div>`;
       if (ids.length) {
         h += `<h4>Depósito</h4><ul class="stock">${ids.map(k => `<li><span class="dot" style="background:${RES[k].c2}"></span>${RES[k].name}<b>${fmt(S.stock[k])}</b><i>${fmt(RES[k].value)} cada</i></li>`).join('')}</ul>
@@ -183,6 +184,27 @@ const UI = {
     $('panel').innerHTML = `<div class="story"><h2>🤖 Bem-vindo de volta!</h2><p>Enquanto você estava fora (${fmtTime(o.away)}), ${o.robots === 1 ? 'seu robô continuou' : `seus ${o.robots} robôs continuaram`} trabalhando.</p><p style="font-size:22px">+<i class="coin"></i><b>${fmt(o.gain)}</b> moedas</p><p class="hint">Com o jogo fechado eles rendem metade do normal, por até 8 horas.</p><div class="row"><button class="buy" onclick="UI.close();Game.lock()">Continuar</button></div></div>`;
     $('panel').classList.remove('hidden');
   },
+  // menu do detector (segurar G): até 3 coisas para a seta procurar
+  detectorPanel() {
+    const S = Game.S; this.freeMouse(); this.open = 'detector'; Snd.open();
+    if (!S.gear.detector) { $('panel').innerHTML = `<div class="story"><h2>🧭 Detector</h2><p>Você ainda não tem detector. Sem ele a seta não aparece. O Tonho do Bazar vende (barraca ITENS).</p><div class="row"><button class="buy" onclick="UI.close()">Fechar</button></div></div>`; $('panel').classList.remove('hidden'); return; }
+    const sel = S.detSel || (S.detSel = DET_DEFAULT.slice()), G = GADGETS.detector.levels[S.gear.detector];
+    let h = `<div class="story"><h2>🧭 O que a seta procura</h2><p class="hint">${G.n} · alcance ${fmt(G.range)} m. Marque até 3. Ela aponta para o primeiro que encontrar, nesta ordem. Com a mochila cheia ela sempre aponta para a vila.</p><div class="detopts">`;
+    for (const o of DET_ORDER) {
+      const on = sel.includes(o), dis = !on && sel.length >= 3;
+      h += `<label class="${dis ? 'dis' : ''}"><input type="checkbox" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''} onchange="UI.detToggle('${o}', this.checked)"> ${DET_OPTIONS[o]}</label>`;
+      if (o === 'recurso' && on) h += `<select onchange="Game.S.detRes=this.value;Game.save()" style="margin:0 0 6px 28px">${RESOURCES.filter(r => !levelRule(r.ideal, S.hammer).blocked || r.special).map(r => `<option value="${r.id}" ${r.id === S.detRes ? 'selected' : ''}>${r.name} (nível ${r.ideal})</option>`).join('')}</select>`;
+    }
+    h += `</div><div class="row"><button class="buy alt" onclick="Game.toggleDetector();UI.detectorPanel()">${S.detOn ? 'Desligar a seta' : 'Ligar a seta'}</button><button class="buy" onclick="UI.close()">Pronto</button></div><p class="hint">Toque em G para ligar/desligar · segure G (ou T) para abrir este menu</p></div>`;
+    $('panel').innerHTML = h; $('panel').classList.remove('hidden');
+  },
+  detToggle(o, on) {
+    const S = Game.S, sel = S.detSel || (S.detSel = DET_DEFAULT.slice());
+    if (on && !sel.includes(o) && sel.length < 3) sel.push(o);
+    if (!on) S.detSel = sel.filter(x => x !== o);
+    if (o === 'recurso' && on && !S.detRes) S.detRes = resourceForLevel(S.hammer).id;
+    Game.save(); this.detectorPanel();
+  },
   bagPanel() {
     const S = Game.S; this.freeMouse(); this.open = 'bag'; Snd.open();
     const need = Game.needs(), sneed = Game.specialNeed(), by = Game.needsBy(), ids = Object.keys(S.bag);
@@ -216,6 +238,8 @@ const UI = {
         <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: escolher o minério do detector na mão · <b>Shift+T</b>: voltar ao automático</li>
         <li><b>H</b>: voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20)</li>
         <li><b>J</b>: missões · <b>Tab</b>: abrir a mochila</li>
+        <li><b>Na vila</b>: as missões pegam primeiro o que você traz; o resto segue o modo (<b>N</b> troca: guardar o que falta e vender o resto, guardar tudo ou vender tudo). <b>U</b> na vila vende tudo do depósito</li>
+        <li><b>G</b>: liga/desliga a seta do detector · segure <b>G</b> para escolher o que ela procura (até 3)</li>
         <li><b>Valões</b>: cada região (menos a primeira) é uma cava em degraus, cada vez mais funda. Descer é fácil; para subir use a rampa no meio de cada degrau, pule, ou use os itens de Escalada do Tonho do Bazar: <b>Q</b> gancho, <b>Z</b> escada, <b>X</b> cama elástica, <b>Espaço no ar</b> jetpack. A Serra dos Cristais não tem rampa</li>
         <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
         <li><b>Esc</b>: soltar o mouse</li>
@@ -256,7 +280,7 @@ const UI = {
     for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ ic: { mine: '✊', bag: '🎒', move: '👟', jump: '⤒' }[k], name: ATTRS[k].short, lv: S.attrs[k] + 1, c: attrCost(k, S.attrs[k] + 1), npc: 'Dona Cida' });
     for (const g of Game.gadgetUps()) ups.push({ ic: '🛒', name: g.label, lv: '', c: g.c });
     const bv = Game.bagValue();
-    let html = Object.keys(S.bag).length ? `<div class="bagv"><span>🎒 Mochila vale</span><b><i class="coin"></i>${fmt(bv.money)}</b>${bv.kept ? `<small>+ ${fmt(bv.kept)} vão pro depósito</small>` : ''}</div>` : '';
+    let html = Object.keys(S.bag).length ? `<div class="bagv"><span>🎒 Mochila vale</span><b><i class="coin"></i>${fmt(bv.money)}</b><small>${bv.mission ? `📜 ${fmt(bv.mission)} para a missão · ` : ''}${bv.kept ? `${fmt(bv.kept)} vão pro depósito` : ''}</small></div>` : '';
     if (Robots.list.length) {
       const cnt = {}; for (const r of Robots.list) { const k = r.st === 'go' ? 'indo' : r.st === 'mine' ? 'minerando' : r.st === 'home' ? 'voltando' : 'procurando'; cnt[k] = (cnt[k] || 0) + 1; }
       const carrying = Robots.list.reduce((a, r) => a + r.n, 0);
@@ -297,17 +321,19 @@ const UI = {
       h += `<tr><td><i style="background:${RES[l.id].c2}"></i>${RES[l.id].name.split(' (')[0]}</td><td>${fmt(l.q)}</td><td class="${l.k ? 'k' : ''}">${l.k ? fmt(l.k) : '—'}</td><td class="${l.sq ? 'v' : ''}">${l.sq ? fmt(l.sq) + ' <small>= ' + fmt(l.money) + '</small>' : '—'}</td></tr>`;
       h += `<tr class="why"><td colspan="4">${l.k && l.for.length ? 'Para: ' + l.for.join(', ') + ' · ' : ''}${l.why}</td></tr>`;
     }
-    h += `</table><div class="tot"><span>🏠 ${fmt(r.kept)} guardados</span><span><i class="coin"></i>+${fmt(r.earned)} moedas</span></div>`;
+    const took = r.took ? Object.keys(r.took) : [];
+    h += `</table>${took.length ? `<div class="tot"><span>📜 Missão pegou: ${took.map(id => fmt(r.took[id]) + ' ' + RES[id].name).join(', ')}</span></div>` : ''}<div class="tot"><span>🏠 ${fmt(r.kept)} guardados</span><span><i class="coin"></i>+${fmt(r.earned)} moedas</span></div>`;
     return h;
   },
   showReceipt(r) {
     const el = $('receipt');
-    el.innerHTML = `<div class="rh">Seu Lauro, do Armazém</div><p class="rule">Guardo no depósito só o que falta para a <b>próxima</b> evolução (até 60% de cada material que você traz) e vendo o resto.</p>${this.receiptHtml(r)}<p class="rule dim">Veja de novo no Armazém · some em instantes</p>`;
+    el.innerHTML = `<div class="rh">Seu Lauro, do Armazém</div><p class="rule">Modo: <b>${SELL_MODES[r.mode || 'sobra']}</b> · <kbd>N</kbd> troca</p>${this.receiptHtml(r)}<p class="rule dim">Veja de novo no Armazém · some em instantes</p>`;
     el.classList.add('on');
     clearTimeout(this.rcT); this.rcT = setTimeout(() => el.classList.remove('on'), 9000 + r.lines.length * 1200);
   },
   updateDetectorHud() {
     const el = $('det'), d = Game.det;
+    el.style.display = 'none'; return; // a bússola virou a seta do detector
     if (!d) { el.style.display = 'none'; return; }
     el.style.display = 'flex';
     if (d.done) { el.innerHTML = `<div class="dial off"><i></i></div><div><b>AUTO · tudo pronto</b><span>Nada faltando para as próximas evoluções</span></div>`; return; }
@@ -394,6 +420,11 @@ const UI = {
       if (ok) { const c = G.recallCost(); $('recallc').innerHTML = `<i class="coin"></i>${fmt(c)}`; rb.classList.toggle('off', S.money < c); }
       $('travelbar').style.display = G.travel ? 'block' : 'none';
       if (G.travel) $('travelp').style.width = Math.min(100, G.travel.t / G.travel.dur * 100) + '%'; }
+    { const sm = $('sellmode'); sm.innerHTML = `${{ sobra: '🏠', guardar: '📦', vender: '💰' }[G.sellMode()]} Na vila: ${{ sobra: 'guardar o que falta', guardar: 'guardar tudo', vender: 'vender tudo' }[G.sellMode()]} <kbd>N</kbd>`;
+      const cb = $('citybar'), sv = G.inCity && !this.open ? Object.keys(S.stock).reduce((a, k) => a + (S.stock[k] || 0) * RES[k].value, 0) : 0;
+      if (G.unloadT !== undefined && !this.open) { cb.style.display = 'block'; cb.innerHTML = `Entregando a mochila… modo: <b>${SELL_MODES[G.sellMode()]}</b> · <kbd>N</kbd> troca`; }
+      else if (sv) { cb.style.display = 'block'; cb.innerHTML = `<button onclick="Game.sellAllStock()">💰 Vender tudo do depósito · ${fmt(sv)} moedas <kbd>U</kbd></button>`; }
+      else cb.style.display = 'none'; }
     $('climb').style.display = Game.P.climbing && Game.P.moving && !this.open ? 'block' : 'none';
   },
 };

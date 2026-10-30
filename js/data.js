@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '3.0.1';
+const GAME_VERSION = '3.1.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -275,11 +275,11 @@ function fmtTime(s) {
 // ---------- Equipamentos (Tonho do Bazar) ----------
 const GADGETS = {
   detector: {
-    title: 'Detector de minério', key: 'G', desc: 'No automático, aponta para o que falta para suas evoluções e passa para o próximo sozinho. T escolhe na mão, Shift+T volta ao automático.',
+    title: 'Detector (a seta)', key: 'G', desc: 'O detector é a seta no alto da tela: sem ele ela não aparece, e ela só acha o que estiver dentro do alcance. Toque em G para ligar/desligar; segure G para escolher até 3 coisas que ela procura.',
     levels: [null,
-      { n: 'Detector de bolso',    price: 300,     range: 80,   err: 0.6,  info: 'Alcance 80 m · direção aproximada' },
-      { n: 'Detector de campo',    price: 15000,   range: 600,  err: 0.35, info: 'Alcance 600 m · mais preciso' },
-      { n: 'Detector de satélite', price: 1500000, range: 4500, err: 0.15, info: 'Alcance de quase o mapa inteiro', mats: [{ id: 'ferroceleste', qty: 5 }] },
+      { n: 'Detector de bolso',    price: 300,     range: 80,   err: 0.6,  info: 'A seta acha coisas a até 80 m' },
+      { n: 'Detector de campo',    price: 15000,   range: 600,  err: 0.35, info: 'A seta acha coisas a até 600 m' },
+      { n: 'Detector de satélite', price: 1500000, range: 4500, err: 0.15, info: 'A seta acha coisas em quase o mapa inteiro', mats: [{ id: 'ferroceleste', qty: 5 }] },
     ],
   },
   ride: {
@@ -311,4 +311,5 @@ GADGETS.climb = {
     { n: 'Jetpack',            price: 60000000, info: 'Segure Espaço no ar para voar; o combustível recarrega no chão. Sai até do fundo da Serra dos Cristais', mats: [{ id: 'ferroceleste', qty: 5 }] },
   ],
 };
+const SELL_MODES = { sobra: 'guardar o que as evoluções precisam (até 60% de cada carga) e vender o resto', guardar: 'guardar tudo no depósito', vender: 'vender tudo' };
 const DAY_LEN = 16 * 60; // um dia inteiro dura 16 minutos

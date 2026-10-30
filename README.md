@@ -31,7 +31,9 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | B | Mostrar/esconder as etiquetas de nível e valor em cima dos recursos |
 | R | Subir/descer do transporte |
 | L | Ligar/desligar a luz |
-| G | Ligar/desligar o detector (no automático ele procura o que falta) · T escolhe na mão · Shift+T volta ao automático |
+| G | Liga/desliga a seta do detector · segure G (ou aperte T) para escolher até 3 coisas que ela procura |
+| N | Modo de entrega na vila: guardar o que falta e vender o resto · guardar tudo · vender tudo |
+| U | Na vila: vender tudo do depósito |
 | H | Voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20; também tem botão na tela) |
 | J | Missões (as guiadas do começo e depois 3 missões que se renovam) |
 | Tab | Abrir a mochila: o que tem dentro, quanto vale e o que vai para o depósito |

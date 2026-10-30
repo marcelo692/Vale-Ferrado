@@ -90,7 +90,7 @@ const Game = {
     this.locked = () => document.pointerLockElement === cv;
     addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
-      if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag')) { e.preventDefault(); UI.close(); } return; }
+      if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag') || (k === 't' && UI.open === 'detector')) { e.preventDefault(); UI.close(); } return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
       this.keys[k] = true;
       if (k === 'h') this.recall();
@@ -107,15 +107,17 @@ const Game = {
       if (k === 'i') { this.S.showInv = !this.S.showInv; Snd.toggle(this.S.showInv); }
       if (k === 'r') this.toggleRide();
       if (k === 'l') this.toggleLight();
-      if (k === 'g') this.toggleDetector();
-      if (k === 't') this.cycleDetector(e.shiftKey ? -1 : 1);
+      if (k === 'g' && !e.repeat) { this.gHold = setTimeout(() => { this.gHold = null; this.gMenu = true; UI.detectorPanel(); }, 400); }
+      if (k === 't') UI.detectorPanel();
+      if (k === 'n') this.cycleSellMode();
+      if (k === 'u' && this.inCity) this.sellAllStock();
       if (k === 'k' && e.ctrlKey === false) { Backup.manual(); }
       if (k === 'm') { const on = Snd.toggleMute(); UI.toast(on ? 'Som ligado' : 'Som desligado'); }
       if (k === '1') this.activate('tonico');
       if (k === '2') this.activate('cafe');
       if (k === '3') this.activate('elixir');
     });
-    addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
+    addEventListener('keyup', e => { const k = e.key.toLowerCase(); this.keys[k] = false; if (k === 'g') { if (this.gHold) { clearTimeout(this.gHold); this.gHold = null; if (!UI.open) this.toggleDetector(); } this.gMenu = false; } });
     addEventListener('blur', () => { this.keys = {}; this.mouse.down = false; });
     addEventListener('mousemove', e => {
       if (!this.locked() || this.travel) return;
@@ -230,7 +232,23 @@ const Game = {
     if (RES[id].special) return Math.max(0, (sneed[id] || 0) - (this.S.stock[id] || 0));
     return Math.max(0, (need[id] || 0) - (this.S.stock[id] || 0));
   },
-  keepCap(id, q) { return RES[id].special || this.S.hammer < 6 ? q : Math.floor(q * 0.6); },
+  // modo de entrega na vila: 'sobra' guarda o que as evoluções precisam e vende o resto; 'guardar' guarda tudo; 'vender' vende tudo
+  sellMode() { return this.S.sellMode || 'sobra'; },
+  keepCap(id, q) { const m = this.sellMode(); return m === 'guardar' ? q : m === 'vender' ? 0 : RES[id].special || this.S.hammer < 6 ? q : Math.floor(q * 0.6); }, // 'sobra': até 60% (para sempre entrar dinheiro)
+  cycleSellMode() {
+    const order = ['sobra', 'guardar', 'vender'], m = order[(order.indexOf(this.sellMode()) + 1) % 3];
+    this.S.sellMode = m; Snd.toggle(true); if (this.unloadT !== undefined) this.unloadT = Math.max(this.unloadT, 1.2);
+    UI.toast('Na vila: ' + SELL_MODES[m]); this.save();
+  },
+  // vende todo o depósito de uma vez (ex.: depois de guardar e tomar um power-up)
+  sellAllStock() {
+    const S = this.S, need = this.needs(); let money = 0, n = 0, reserved = 0;
+    for (const id in S.stock) { const q = S.stock[id]; if (!q) continue; money += q * RES[id].value; n += q; reserved += Math.min(q, need[id] || 0); delete S.stock[id]; }
+    if (!n) { UI.toast('O depósito está vazio.'); return; }
+    S.money += money; S.earned += money; Snd.coins(money);
+    UI.toast(`💰 Vendeu tudo do depósito: ${fmt(n)} recursos por ${fmt(money)} moedas.${reserved ? ` (${fmt(reserved)} deles iam para as evoluções)` : ''}`, 'money');
+    this.save();
+  },
   mark(key) { const S = this.S; if (!S.ms) S.ms = {}; if (S.ms[key] === undefined) S.ms[key] = Math.round(S.time); },
   // quais evoluções usam cada material (para explicar ao jogador)
   needsBy() {
@@ -244,39 +262,45 @@ const Game = {
   // prévia da venda: quanto o Seu Lauro pagaria pela mochila agora (mesma regra do unload)
   bagValue() {
     const need = this.needs(), sneed = this.specialNeed(); let money = 0, all = 0, kept = 0;
-    for (const id in this.S.bag) {
-      const q = this.S.bag[id], want = this.keepWant(id, need, sneed);
+    const bag = Object.assign({}, this.S.bag), mission = Missions.consume(bag, true);
+    const missionN = Object.values(mission).reduce((a, b) => a + b, 0);
+    for (const id in bag) {
+      const q = bag[id], want = this.sellMode() === 'guardar' ? q : this.keepWant(id, need, sneed);
       const k = Math.min(want, this.keepCap(id, q));
       money += (q - k) * RES[id].value; all += q * RES[id].value; kept += k;
     }
-    return { money, all, kept };
+    return { money, all, kept, mission: missionN };
   },
   unload() {
+    if (!Object.keys(this.S.bag).length) return;
+    const took = Missions.consume(this.S.bag); // missões pegam primeiro
     const ids = Object.keys(this.S.bag);
-    if (!ids.length) return;
+    if (!ids.length) { this.S.stats.sales++; this.mark('venda1'); Snd.pickup(); this.save(); return; }
+    const mode = this.sellMode();
     const need = this.needs(), by = this.needsBy(), sneed = this.specialNeed();
     let earned = 0, kept = 0, sold = 0;
     const lines = [];
     for (const id of ids) {
       const q = this.S.bag[id];
-      const want = this.keepWant(id, need, sneed);
-      const cap = this.keepCap(id, q); // recurso raro (ou começo do jogo): guarda tudo que for preciso
-      const k = Math.min(want, cap); // vende sempre pelo menos 40% de cada carga
+      const want = mode === 'guardar' ? q : this.keepWant(id, need, sneed);
+      const k = Math.min(want, this.keepCap(id, q));
       if (k > 0) { this.S.stock[id] = (this.S.stock[id] || 0) + k; kept += k; }
       const sq = q - k, money = sq * RES[id].value;
       if (sq > 0) { earned += money; sold += sq; }
       let why;
-      if (RES[id].special && sneed[id] && k > 0) why = 'recurso raro: guardei para martelos e equipamentos futuros';
+      if (mode === 'guardar') why = 'modo guardar tudo';
+      else if (mode === 'vender') why = 'modo vender tudo';
+      else if (RES[id].special && sneed[id] && k > 0) why = 'recurso raro: guardei para martelos e equipamentos futuros';
       else if (!need[id] && !(RES[id].special && sneed[id])) why = 'nenhuma evolução próxima usa';
       else if (want === 0) why = 'o depósito já tem o suficiente';
-      else if (k < want) why = `guardei ${this.S.hammer < 6 ? 'o que veio' : '60% da carga'}; faltam ${fmt(want - k)}`;
+      else if (k < want) why = `guardei ${this.S.hammer < 6 ? 'o que veio' : '60% da carga, para sempre entrar dinheiro'}; faltam ${fmt(want - k)}`;
       else why = 'guardei tudo que faltava';
       lines.push({ id, q, k, sq, money, why, for: by[id] || [] });
     }
     this.S.bag = {};
     this.S.money += earned; this.S.earned += earned;
     if (lines.length) { this.S.stats.sales++; this.mark('venda1'); }
-    const r = { lines, earned, kept, sold, t: Date.now() };
+    const r = { lines, earned, kept, sold, t: Date.now(), mode, took };
     this.S.receipts = [r, ...(this.S.receipts || [])].slice(0, 5);
     UI.showReceipt(r);
     if (earned) Snd.coins(earned); else if (kept) Snd.pickup();
@@ -383,8 +407,8 @@ const Game = {
     this.S.lightOn = !this.S.lightOn; Snd.toggle(this.S.lightOn); UI.toast(this.S.lightOn ? 'Luz ligada' : 'Luz desligada');
   },
   toggleDetector() {
-    if (!this.S.gear.detector) { UI.toast('Você ainda não tem detector. Veja o Tonho do Bazar.'); return; }
-    this.S.detOn = !this.S.detOn; Snd.toggle(this.S.detOn); UI.toast(this.S.detOn ? 'Detector ligado' : 'Detector desligado');
+    if (!this.S.gear.detector) { UI.toast('Você ainda não tem detector. Sem ele a seta não aparece: veja o Tonho do Bazar.'); return; }
+    this.S.detOn = !this.S.detOn; Snd.toggle(this.S.detOn); UI.toast(this.S.detOn ? 'Detector ligado: a seta volta a guiar (segure G para escolher o que ela procura)' : 'Detector desligado: a seta some');
   },
   defaultDetRes() {
     const L = Math.min(MAX_LEVEL, this.S.hammer + 1);
@@ -460,7 +484,6 @@ const Game = {
     S.clock = (S.clock + dt / DAY_LEN) % 1;
     if (!wasNight && this.isNight()) UI.toast(S.gear.light ? 'Anoiteceu. Aperte L para ligar sua luz.' : 'Anoiteceu! O Tonho do Bazar vende lanternas.', 'veio');
     if (wasNight && !this.isNight()) UI.toast('Amanheceu em Vale Ferrado.');
-    this.updateDetector(dt);
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(`${POWERUPS[S.active[i].id].name} acabou.`); S.active.splice(i, 1); } }
 
 
@@ -527,8 +550,9 @@ const Game = {
 
     // cidade e venda automática
     this.inCity = Math.hypot(P.x, P.y) < CITY_R;
-    if (this.inCity && !this.wasInCity) this.unload();
-    if (this.inCity && Object.keys(S.bag).length) this.unload();
+    // entrega na vila: espera um instante (dá tempo de trocar o modo com N) e entrega conforme o modo
+    if (this.inCity && Object.keys(S.bag).length && !this.travel) { if (this.unloadT === undefined) this.unloadT = 2.2; this.unloadT -= dt; if (this.unloadT <= 0) { this.unloadT = undefined; this.unload(); } }
+    else this.unloadT = undefined;
     this.wasInCity = this.inCity;
 
     // mineração

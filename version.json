@@ -1,12 +1,12 @@
 {
-  "version": "3.0.1",
+  "version": "3.1.0",
   "date": "2026-10-30",
   "notes": [
-    "Valões: em vez da rampa na lateral, agora há uma rampa no meio de cada degrau (menos na Serra dos Cristais)",
-    "Correção: a câmera não entra mais nas paredes dos valões",
-    "Correção: não dá mais para subir a parede andando de lado",
-    "Correção: sumiram os bloqueios invisíveis entre a lateral e o meio do valão",
-    "Correção: Recomeçar do zero (Ajuda) agora apaga de verdade, inclusive a cópia de segurança"
+    "Missões pegam primeiro: as de trazer recurso usam o que chega na vila e o que já estava guardado no depósito",
+    "Modo de entrega na vila (tecla N ou botão na mochila): guardar o que falta e vender o resto, guardar tudo, ou vender tudo",
+    "Vender tudo do depósito de uma vez (tecla U na vila ou no Seu Lauro)",
+    "A seta agora é o detector: sem ele não aparece e ela respeita o alcance; segure G para escolher até 3 coisas que ela procura",
+    "A primeira missão dá o Detector de bolso de presente"
   ],
   "files": [
     {
@@ -15,11 +15,11 @@
     },
     {
       "path": "README.md",
-      "size": 6628
+      "size": 6753
     },
     {
       "path": "index.html",
-      "size": 28849
+      "size": 29875
     },
     {
       "path": "js/audio.js",
@@ -31,15 +31,15 @@
     },
     {
       "path": "js/data.js",
-      "size": 23638
+      "size": 23870
     },
     {
       "path": "js/game.js",
-      "size": 46873
+      "size": 49311
     },
     {
       "path": "js/missions.js",
-      "size": 13122
+      "size": 16334
     },
     {
       "path": "js/platform.js",
@@ -55,7 +55,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 32759
+      "size": 36528
     },
     {
       "path": "js/updater.js",
@@ -79,7 +79,7 @@
     },
     {
       "path": "version.json",
-      "size": 1529
+      "size": 1653
     }
   ]
 }
