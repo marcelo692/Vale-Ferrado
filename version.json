@@ -1,8 +1,8 @@
 {
-  "version": "3.2.3",
+  "version": "3.2.4",
   "date": "2026-10-30",
   "notes": [
-    "O martelo agora é segurado do jeito certo: a face de bater fica virada para a pedra, e não de lado"
+    "Correção: pular nos troncos e obstáculos não prende mais o personagem no meio; dá para parar em cima, andar por cima e descer"
   ],
   "files": [
     {
@@ -31,7 +31,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 49311
+      "size": 49463
     },
     {
       "path": "js/missions.js",
@@ -75,7 +75,7 @@
     },
     {
       "path": "version.json",
-      "size": 1375
+      "size": 1317
     }
   ]
 }

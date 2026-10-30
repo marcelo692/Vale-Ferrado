@@ -700,7 +700,11 @@ const Game = {
     if (hp - feet > STEP_UP || (hp - feet > 0.05 && (hp - Math.max(h1, feet)) / 0.6 > 1.1)) { this.wallT = this.S.time; return; }
     const grounded = P.vz <= 0 && P.z <= this.supportAt(P.x, P.y) + 0.01;
     P.x = nx; P.y = ny;
-    let z = feet - h1; if (z < 0 || (grounded && z < 0.6)) z = 0; // desce rampas e morros grudado no chão
+    // em cima de tronco/muro: continua apoiado nele; fora dele, desce rampas e morros grudado no chão
+    const sup = this.supportAt(nx, ny);
+    let z = feet - h1;
+    if (z < sup) z = sup; else if (grounded && z - sup < 0.6) z = sup;
+    if (z < 0) z = 0;
     P.z = z;
   },
   // ---------- escalada: gancho, escadas, cama elástica e jetpack ----------
