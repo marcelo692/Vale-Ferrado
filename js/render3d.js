@@ -413,7 +413,7 @@ const Render = {
     this.farGround = new THREE.Mesh(far, farMat); this.farGround.receiveShadow = true; this.scene.add(this.farGround);
     // terreno próximo (detalhado, acompanha o jogador)
     gm.map = this.grassTex;
-    this.nearGeo = mk(240, 120);
+    this.nearGeo = mk(200, 200);
     this.nearGround = new THREE.Mesh(this.nearGeo, gm); this.nearGround.receiveShadow = true; this.scene.add(this.nearGround);
     this.nearAt = null;
   },
@@ -616,10 +616,13 @@ const Render = {
         this.pitWalls.add(b);
       };
       for (let k = 0; k <= 10; k++) {
-        const b = R.dMin + L * k / 10, half = World.pitHalf(R, b), wTo = P.ramp ? half - PIT_LANE : half;
-        if (k === 0) wall(b + 0.05, 1, -half, wTo, World.height(R.ux * (b - 2) , R.uy * (b - 2)) + 0.2, World.height(R.ux * (b + 1.5), R.uy * (b + 1.5)));
-        else if (k < 10) wall(b, 1, -half, wTo, World.height(R.ux * (b - 1.2) + R.vx * (-half / 2), R.uy * (b - 1.2) + R.vy * (-half / 2)), World.height(R.ux * (b + 1) + R.vx * (-half / 2), R.uy * (b + 1) + R.vy * (-half / 2)));
-        else wall(b + 2.2, 1, -half, half, World.height(R.ux * (b + 3), R.uy * (b + 3)) + 0.2, World.height(R.ux * (b - 1.5), R.uy * (b - 1.5)));
+        const b = R.dMin + L * k / 10, half = World.pitHalf(R, b), g = PIT_RW / 2 + 1.2, hp = -half / 2;
+        // com rampa no meio, a parede vira duas (uma de cada lado da rampa)
+        const both = (d, top, bot) => { if (P.ramp && k < 10) { wall(d, 1, -half, -g, top, bot); wall(d, 1, g, half, top, bot); } else wall(d, 1, -half, half, top, bot); };
+        const H = (dd, pp) => World.height(R.ux * dd + R.vx * pp, R.uy * dd + R.vy * pp);
+        if (k === 0) both(b + 0.05, H(b - 2, hp) + 0.2, H(b + 1.5, hp));
+        else if (k < 10) both(b, H(b - 1.2, hp), H(b + 1, hp));
+        else wall(b + 2.2, 1, -half, half, H(b + 3, 0) + 0.2, H(b - 1.5, 0));
       }
     }
   },
@@ -1611,7 +1614,9 @@ const Render = {
     const shake = Game.shake * 0.012;
     this.cam.rotation.set(P.pitch + (Math.random() - 0.5) * shake, P.yaw + (Math.random() - 0.5) * shake, 0);
     const rh = this.rideH(), ridingNow = !!Game.ride();
-    if (this.view === 'fp') this.cam.position.set(P.x - Math.sin(P.yaw) * FP_FWD, gh + P.z + EYE + rh + (ridingNow ? bob * 0.2 : bob), P.y - Math.cos(P.yaw) * FP_FWD);
+    let fwd = FP_FWD;
+    if (this.view === 'fp') { const feet = gh + P.z; for (let i = 0; i < 4 && fwd > 0; i++) { const cx = P.x - Math.sin(P.yaw) * (fwd + 0.3), cz = P.y - Math.cos(P.yaw) * (fwd + 0.3); if (World.height(cx, cz) > feet + 0.05) fwd -= 0.1; else break; } fwd = Math.max(0, fwd); }
+    if (this.view === 'fp') this.cam.position.set(P.x - Math.sin(P.yaw) * fwd, gh + P.z + EYE + rh + (ridingNow ? bob * 0.2 : bob), P.y - Math.cos(P.yaw) * fwd);
     else {
       const bs = this.gear().bag.size, back = 4 + bs * 2.2, fx = Math.sin(P.yaw) * Math.cos(P.pitch), fz = Math.cos(P.yaw) * Math.cos(P.pitch);
       const cx = P.x + fx * back + Math.cos(P.yaw) * 0.7, cz = P.y + fz * back - Math.sin(P.yaw) * 0.7; // câmera sobre o ombro

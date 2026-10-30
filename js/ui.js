@@ -216,7 +216,7 @@ const UI = {
         <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: escolher o minério do detector na mão · <b>Shift+T</b>: voltar ao automático</li>
         <li><b>H</b>: voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20)</li>
         <li><b>J</b>: missões · <b>Tab</b>: abrir a mochila</li>
-        <li><b>Valões</b>: cada região (menos a primeira) é uma cava em degraus, cada vez mais funda. Descer é fácil; para subir use a rampa da lateral, pule, ou use os itens de Escalada do Tonho do Bazar: <b>Q</b> gancho, <b>Z</b> escada, <b>X</b> cama elástica, <b>Espaço no ar</b> jetpack. A Serra dos Cristais não tem rampa</li>
+        <li><b>Valões</b>: cada região (menos a primeira) é uma cava em degraus, cada vez mais funda. Descer é fácil; para subir use a rampa no meio de cada degrau, pule, ou use os itens de Escalada do Tonho do Bazar: <b>Q</b> gancho, <b>Z</b> escada, <b>X</b> cama elástica, <b>Espaço no ar</b> jetpack. A Serra dos Cristais não tem rampa</li>
         <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
         <li><b>Esc</b>: soltar o mouse</li>
       </ul>

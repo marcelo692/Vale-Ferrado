@@ -1,10 +1,12 @@
 {
-  "version": "3.0.0",
+  "version": "3.0.1",
   "date": "2026-10-30",
   "notes": [
-    "Robôs trabalham com o jogo fechado (metade do ritmo, até 8 horas) e te recebem com o que renderam",
-    "Opção de gráfico Leve no menu de pausa (sem sombras e grama, menos partículas); o jogo sugere sozinho se ficar lento",
-    "Preparação para a CrazyGames: versão própria gerada por tools/build_web.py"
+    "Valões: em vez da rampa na lateral, agora há uma rampa no meio de cada degrau (menos na Serra dos Cristais)",
+    "Correção: a câmera não entra mais nas paredes dos valões",
+    "Correção: não dá mais para subir a parede andando de lado",
+    "Correção: sumiram os bloqueios invisíveis entre a lateral e o meio do valão",
+    "Correção: Recomeçar do zero (Ajuda) agora apaga de verdade, inclusive a cópia de segurança"
   ],
   "files": [
     {
@@ -13,7 +15,7 @@
     },
     {
       "path": "README.md",
-      "size": 6609
+      "size": 6628
     },
     {
       "path": "index.html",
@@ -25,7 +27,7 @@
     },
     {
       "path": "js/backup.js",
-      "size": 6529
+      "size": 6618
     },
     {
       "path": "js/data.js",
@@ -33,7 +35,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 46294
+      "size": 46873
     },
     {
       "path": "js/missions.js",
@@ -45,7 +47,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 148464
+      "size": 148780
     },
     {
       "path": "js/robots.js",
@@ -53,7 +55,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 32747
+      "size": 32759
     },
     {
       "path": "js/updater.js",
@@ -65,7 +67,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 19235
+      "size": 19724
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -77,7 +79,7 @@
     },
     {
       "path": "version.json",
-      "size": 1631
+      "size": 1529
     }
   ]
 }

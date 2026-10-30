@@ -6,7 +6,7 @@
 const CITY_R = 22; // raio da cidade em metros
 // valões: cada região (menos a primeira) é uma cava em 10 degraus, cada uma mais funda que a anterior
 const PIT_REGIONS = [1, 2, 3, 4, 5];
-const PIT_LANE = 7;          // largura da rampa lateral (regiões 2 a 5; a 6 não tem rampa)
+const PIT_RW = 6;            // largura das rampas no meio de cada degrau (regiões 2 a 5; a 6 não tem rampa)
 const smooth01 = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const NPCS = [
   { id: 'ferreiro', name: 'Seu Bento, o Ferreiro', role: 'Evolui o martelo',              shop: 'MARTELOS',  color: '#c0502a', ang: -112.5 },
@@ -292,7 +292,9 @@ const World = {
     const steps = [], cum = [0]; // cum[k] = profundidade do degrau k (k = 0..9)
     for (let i = 0; i < 10; i++) steps.push(R.jMin + (R.jMax - R.jMin) * i / 9);
     let acc = 0; for (let i = 0; i < 10; i++) { acc += steps[i]; cum[i] = acc; }
-    R.pit = { steps, cum, total: acc, ramp: R.id < 5 };
+    R.pit = { steps, cum, total: acc, ramp: R.id < 5, ramps: [] };
+    // rampas no meio: uma em cada divisa (inclusive a entrada), descendo para o degrau de baixo
+    for (let j = 0; j < 10; j++) { const top = j ? cum[j - 1] : 0, s = cum[j] - top; R.pit.ramps.push({ b: R.dMin + L * j / 10, top, s, len: Math.max(8, s * 3.2) }); }
   },
   pitHalf(R, d) { return (40 + Math.min(Math.max(d, R.dMin), R.dMax) * 0.12) / 2; },
   pitSpawnOk(R, pt) {
@@ -300,7 +302,7 @@ const World = {
     const L = R.pitL, half = this.pitHalf(R, pt.d);
     for (let k = 0; k <= 10; k++) { const b = R.dMin + L * k / 10; if (Math.abs(pt.d - b) < 3) return false; }
     if (Math.abs(pt.p) > half - 3) return false;
-    if (R.pit.ramp && pt.p > half - PIT_LANE - 2.5) return false;
+    if (R.pit.ramp && Math.abs(pt.p) < PIT_RW / 2 + 3) for (const r of R.pit.ramps) if (pt.d > r.b - 1 && pt.d < r.b + r.len + 2) return false;
     return true;
   },
   pitAt(x, y) {
@@ -324,10 +326,13 @@ const World = {
       const bNext = R.dMin + L * (k + 1) / 10;
       let depth = P.cum[k];
       if (k < 9) depth += P.steps[k + 1] * smooth01(bNext - 0.3, bNext, d);
-      if (P.ramp) { // rampa contínua na lateral direita
-        const u = Math.max(0, Math.min(1, (d - R.dMin) / L)), ramp = P.total * u;
-        const rb = smooth01(half - PIT_LANE - 0.3, half - PIT_LANE, p);
-        depth += (ramp - depth) * rb;
+      if (P.ramp && Math.abs(p) < PIT_RW / 2 + 1.2) { // rampa no meio da divisa
+        for (const r of P.ramps) {
+          if (d < r.b - 0.6 || d > r.b + r.len) continue;
+          const rd = r.top + r.s * Math.max(0, Math.min(1, (d - r.b) / r.len));
+          depth += (rd - depth) * smooth01(PIT_RW / 2 + 1.2, PIT_RW / 2, Math.abs(p));
+          break;
+        }
       }
       return { depth: depth * inside, inside, R };
     }

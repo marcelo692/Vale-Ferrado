@@ -10,7 +10,7 @@ const Backup = {
   canFile() { return 'showDirectoryPicker' in window; },
 
   // ---------- reserva no IndexedDB ----------
-  async idbPut(data) { try { const d = await Updater.db(); d.transaction('kv', 'readwrite').objectStore('kv').put(data, 'save'); } catch (e) {} },
+  async idbPut(data) { if (Game.resetting && data && data.hammer) return; try { const d = await Updater.db(); d.transaction('kv', 'readwrite').objectStore('kv').put(data, 'save'); } catch (e) {} },
   async idbGet() { try { const d = await Updater.db(); return await new Promise(res => { const q = d.transaction('kv').objectStore('kv').get('save'); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch (e) { return null; } },
 
   // ---------- arquivo na pasta do jogo ----------
@@ -30,6 +30,7 @@ const Backup = {
     return d;
   },
   async writeFile(ask) {
+    if (Game.resetting) return false;
     try {
       const d = await this.dir(ask); if (!d) return false;
       const sd = await d.getDirectoryHandle('save', { create: true });

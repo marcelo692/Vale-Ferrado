@@ -669,8 +669,11 @@ const Game = {
     }
     // degraus e paredes dos valões: subir andando só o que for baixinho; o resto é pulo, escada, gancho...
     const h0 = World.height(P.x, P.y), h1 = World.height(nx, ny), feet = h0 + P.z;
-    const rise = h1 - feet, run = Math.hypot(dx, dy) || 0.01;
-    if (rise > STEP_UP || (rise > 0.04 && rise / run > 1.1)) { this.wallT = this.S.time; return; } // parede: mais de ~48° não sobe andando
+    const run = Math.hypot(dx, dy) || 0.01, rise = h1 - feet;
+    if (rise > STEP_UP || (rise > 0.004 && rise / run > 1.1)) { this.wallT = this.S.time; return; } // parede: mais de ~48° não sobe andando
+    // o corpo tem largura: não deixa encostar a cara na parede (senão a câmera entra nela)
+    const px = nx + dx / run * 0.6, py = ny + dy / run * 0.6, hp = World.height(px, py);
+    if (hp - feet > STEP_UP || (hp - feet > 0.05 && (hp - Math.max(h1, feet)) / 0.6 > 1.1)) { this.wallT = this.S.time; return; }
     const grounded = P.vz <= 0 && P.z <= this.supportAt(P.x, P.y) + 0.01;
     P.x = nx; P.y = ny;
     let z = feet - h1; if (z < 0 || (grounded && z < 0.6)) z = 0; // desce rampas e morros grudado no chão
@@ -785,7 +788,7 @@ const Game = {
   },
 
   // ---------- salvamento ----------
-  save() { try { this.S.lastSeen = Date.now(); this.S.world = World.serialize(); localStorage.setItem(SAVE_KEY, JSON.stringify(this.S)); } catch (e) {} },
+  save() { if (this.resetting) return; try { this.S.lastSeen = Date.now(); this.S.world = World.serialize(); localStorage.setItem(SAVE_KEY, JSON.stringify(this.S)); } catch (e) {} },
   load() {
     try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) { const n = Object.assign(newState(), s); n.gear = Object.assign({ detector: 0, ride: 0, light: 0, climb: 0 }, s.gear || {}); return n; } } catch (e) {}
     return null;
@@ -803,5 +806,10 @@ const Game = {
     if (got.length) setTimeout(() => UI.toast(`Seu Lauro devolveu ao depósito o recurso raro que tinha vendido por engano: ${got.join(', ')}.`, 'level'), 2500);
     this.save();
   },
-  reset() { localStorage.removeItem(SAVE_KEY); location.reload(); },
+  async reset() { // apaga tudo (navegador e cópia de segurança) e recomeça
+    this.resetting = true;
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    try { if (Backup.idbPut) await Backup.idbPut({ reset: Date.now() }); } catch (e) {}
+    setTimeout(() => location.reload(), 400);
+  },
 };
