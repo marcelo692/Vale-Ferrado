@@ -1,8 +1,8 @@
 {
-  "version": "3.2.1",
+  "version": "3.2.2",
   "date": "2026-10-30",
   "notes": [
-    "Correção: o braço na primeira pessoa não aparece mais cortado; agora ele sempre vem do ombro, no canto de baixo da tela"
+    "Correção do atualizador: ele confere se a pasta escolhida é a do jogo aberto e mostra o caminho certo; se for de outro download, pede para escolher de novo"
   ],
   "files": [
     {
@@ -55,7 +55,7 @@
     },
     {
       "path": "js/updater.js",
-      "size": 9571
+      "size": 11130
     },
     {
       "path": "js/web-stubs.js",
@@ -75,7 +75,7 @@
     },
     {
       "path": "version.json",
-      "size": 1313
+      "size": 1339
     }
   ]
 }

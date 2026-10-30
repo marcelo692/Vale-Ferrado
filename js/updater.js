@@ -66,7 +66,7 @@ const Updater = {
     }
     if (st !== 'updating' && st !== 'checking') h += `<button class="buy alt" onclick="Updater.check(true)">Verificar de novo</button>`;
     h += `<button class="buy alt" onclick="UI.close()">Fechar</button></div>`;
-    if (st === 'available' && !this.isOnline() && this.canWriteFolder()) h += `<p class="hint">Na primeira vez o navegador vai pedir para você escolher a <b>pasta do jogo</b> (a que tem o index.html) e permitir que ele salve arquivos nela. Depois disso, as próximas atualizações são com um clique.</p>`;
+    if (st === 'available' && !this.isOnline() && this.canWriteFolder()) h += `${this.folderErr ? `<p class="warnbox">${this.folderErr}</p>` : ''}<p class="hint">O jogo aberto agora está na pasta:<br><b style="user-select:all">${this.gameFolder()}</b><br>Na primeira vez (e sempre que você abrir o jogo de outra pasta) o navegador pede para escolher <b>essa pasta</b> e permitir salvar nela.</p><div class="row"><button class="buy alt" onclick="Updater.install(true)">Escolher a pasta de novo</button></div>`;
     if (st === 'available' && !this.isOnline() && !this.canWriteFolder()) h += `<p class="hint">Seu navegador não permite atualizar a pasta sozinho. Use o Chrome ou o Edge para atualizar com um clique.</p>`;
     h += `<p class="hint">Seu progresso fica salvo no navegador e não é apagado ao atualizar.</p></div>`;
     document.getElementById('panel').innerHTML = h;
@@ -79,28 +79,47 @@ const Updater = {
   async getHandle() { try { const d = await this.db(); return await new Promise(res => { const q = d.transaction('kv').objectStore('kv').get('dir'); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } },
   async setHandle(h) { try { const d = await this.db(); d.transaction('kv', 'readwrite').objectStore('kv').put(h, 'dir'); } catch (e) {} },
 
-  async folder() {
-    let dir = await this.getHandle();
+  // pasta de onde o jogo foi aberto (para mostrar ao jogador qual escolher)
+  gameFolder() { try { return decodeURIComponent(location.pathname).replace(/^\/([A-Za-z]:)/, '$1').replace(/\/[^/]*$/, '').replace(/\//g, location.pathname.match(/^\/[A-Za-z]:/) ? '\\' : '/'); } catch (e) { return ''; } },
+  // confere se a pasta é mesmo a do jogo aberto agora (mesma versão instalada)
+  async sameGame(dir) {
+    try {
+      await dir.getFileHandle('index.html');
+      const f = await (await (await dir.getDirectoryHandle('js')).getFileHandle('data.js')).getFile();
+      const m = (await f.text()).match(/GAME_VERSION\s*=\s*'([^']+)'/);
+      return m ? m[1] : 'sem versão';
+    } catch (e) { return null; }
+  },
+  async folder(forcePick) {
+    let dir = forcePick ? null : await this.getHandle();
     if (dir) {
       const p = await dir.requestPermission({ mode: 'readwrite' });
-      if (p !== 'granted') dir = null;
+      if (p !== 'granted' || (await this.sameGame(dir)) !== GAME_VERSION) dir = null; // pasta antiga (outro download): pede de novo
     }
     if (!dir) {
+      UI.toast('Escolha a pasta do jogo aberto agora: ' + this.gameFolder(), 'warn');
       dir = await window.showDirectoryPicker({ id: 'vale-ferrado', mode: 'readwrite' });
-      try { await dir.getFileHandle('index.html'); } catch (e) { throw new Error('pasta'); }
+      const v = await this.sameGame(dir);
+      if (v === null) throw new Error('pasta');
+      if (v !== GAME_VERSION) throw new Error('outra:' + v);
       await this.setHandle(dir);
+      if (window.Backup) Backup.handle = null;
     }
     return dir;
   },
 
-  async install() {
+  async install(forcePick) {
     let dir;
-    try { dir = await this.folder(); }
+    try { dir = await this.folder(forcePick); }
     catch (e) {
       if (e.name === 'AbortError') return;
-      UI.toast(e.message === 'pasta' ? 'Essa pasta não tem o index.html do jogo. Escolha a pasta Vale-Ferrado.' : 'Não foi possível acessar a pasta.', 'warn');
+      const msg = e.message === 'pasta' ? 'Essa pasta não tem o jogo (index.html e js/data.js).'
+        : e.message.startsWith('outra:') ? `Essa pasta tem outra cópia do jogo (versão ${e.message.slice(6)}), não a que está aberta (versão ${GAME_VERSION}).`
+        : 'Não foi possível acessar a pasta.';
+      this.state = 'available'; this.folderErr = msg + ' Escolha a pasta: ' + this.gameFolder(); this.render(); UI.toast(msg, 'warn');
       return;
     }
+    this.folderErr = null;
     Game.save();
     this.state = 'updating'; this.render();
     const files = this.latest.files, base = `https://raw.githubusercontent.com/${REPO}/${this.sha}/`;
