@@ -35,6 +35,7 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 | H | Voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20; também tem botão na tela) |
 | J | Missões (as guiadas do começo e depois 3 missões que se renovam) |
 | Tab | Abrir a mochila: o que tem dentro, quanto vale e o que vai para o depósito |
+| Q · Z · X | Escalada: gancho, pendurar escada, colocar cama elástica (jetpack: segure Espaço no ar) |
 | M | Som on/off (volumes no botão 🔊 Som) |
 | K | Salvar agora (navegador + arquivo save/progresso.json na pasta do jogo) |
 | Esc | Soltar o mouse e abrir o menu de pausa |
@@ -46,6 +47,8 @@ O jogo verifica sozinho se há versão nova (ao abrir e a cada 10 minutos). Quan
 - 11 montanhas espalhadas (subida lenta, sem correr) com 5 recursos raros que só existem perto do topo: Pedra-do-Vento, Âmbar Antigo, Ferro Celeste, Obsidiana Real e Coração da Montanha
 - Martelos 20, 30, 40, 50 e 60, detector de satélite, esquadrilha de drones e hoverboard pedem 5 unidades de recurso raro
 - Terreno com pequenos relevos e depressões
+- Valões: da segunda região em diante, cada região é uma cava em 10 degraus, cada vez mais funda (a sexta tem uns 100 m), com fósseis nas paredes. Desce-se pulando; para subir há rampa lateral (menos na sexta), pulo alto e os itens de escalada
+- Escalada no Tonho do Bazar: corda com gancho, escada de cordas, escada de metal, mini cama elástica e jetpack
 - Regra do nível: pedra acima do seu martelo demora mais (de ×2 a ×12); 11 níveis acima ou mais não quebra
 - Cintilha: pedrinha brilhante que às vezes sai das pedras (e dos robôs); compra poções junto com moedas. O Olho de Garimpeiro (Zé da Botica) aumenta a chance
 - Achados pelo mapa: Veio de Cintilha e Geodo de Poção aparecem perto de você com um feixe de luz e somem em 4 minutos

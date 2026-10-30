@@ -21,6 +21,7 @@
   #floats div.dmg { font: 800 13px system-ui, sans-serif; opacity: .9; }
   #floats div { position: absolute; transform: translate(-50%,-50%); font: 700 16px system-ui, sans-serif; text-shadow: 0 2px 3px #000, 0 0 2px #000; white-space: nowrap; }
   #stamwrap { position: fixed; left: 50%; bottom: 158px; transform: translateX(-50%); width: 220px; height: 7px; background: rgba(0,0,0,.45); border-radius: 4px; overflow: hidden; transition: opacity .4s; }
+  #fuelwrap { position: fixed; left: 50%; bottom: 168px; transform: translateX(-50%); width: 220px; height: 5px; background: rgba(0,0,0,.45); border-radius: 3px; overflow: hidden; display: none; } #fuel { height: 100%; background: linear-gradient(90deg,#ff6a2a,#ffd34d); width: 100%; }
   #stam { height: 100%; background: #7fd36a; width: 100%; } #stam.run { background: #a8f080; } #stam.tired { background: #ff6a4a; animation: pulse .6s infinite; }
   #clock { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); font: 600 13px system-ui; background: rgba(20,14,8,.7); padding: 4px 10px; border-radius: 6px; }
   #det { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 10px; background: rgba(20,14,8,.8); border: 1px solid var(--edge); padding: 6px 14px 6px 8px; border-radius: 30px; font-size: 12px; }
@@ -196,6 +197,7 @@
 <div id="tinfo"></div>
 <div id="floats"></div>
 <div id="stamwrap"><div id="stam"></div></div>
+<div id="fuelwrap"><div id="fuel"></div></div>
 <div id="lockhint" onclick="if(event.target===this)UI.resume()"><div class="pausebox"><h2>Pausado</h2>
   <button class="buy" onclick="UI.resume()">▶ Continuar jogando</button>
   <button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button>

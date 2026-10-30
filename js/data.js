@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '2.8.0';
+const GAME_VERSION = '2.9.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -300,5 +300,15 @@ const GADGETS = {
       { n: 'Esquadrilha de drones', price: 12000000, info: 'Lanterna de cabeça + 3 drones iluminando 80 m', mats: [{ id: 'obsidiana', qty: 5 }] },
     ],
   },
+};
+GADGETS.climb = {
+  title: 'Escalada', key: 'Q · Z · X', desc: 'Para sair dos valões (e subir onde quiser). Q lança o gancho, Z pendura escada, X coloca a cama elástica e, com o jetpack, é só segurar Espaço no ar. Quem tem o melhor continua usando os anteriores.',
+  levels: [null,
+    { n: 'Corda com gancho',   price: 1500,     info: 'Q: lança o gancho na beirada à sua frente e sobe um degrau (até 6 m)' },
+    { n: 'Escada de cordas',   price: 25000,    info: 'Z: pendura uma escada na parede à sua frente (até 3). Subida lenta' },
+    { n: 'Escada de metal',    price: 400000,   info: 'Z: escada de subida rápida (até 6 penduradas)' },
+    { n: 'Mini cama elástica', price: 6000000,  info: 'X: coloca no chão (até 3). Pule nela e suba 2 ou 3 degraus de uma vez; serve também para montanha' },
+    { n: 'Jetpack',            price: 60000000, info: 'Segure Espaço no ar para voar; o combustível recarrega no chão. Sai até do fundo da Serra dos Cristais', mats: [{ id: 'ferroceleste', qty: 5 }] },
+  ],
 };
 const DAY_LEN = 16 * 60; // um dia inteiro dura 16 minutos

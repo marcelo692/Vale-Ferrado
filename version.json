@@ -1,12 +1,11 @@
 {
-  "version": "2.8.0",
+  "version": "2.9.0",
   "date": "2026-10-30",
   "notes": [
-    "Regra do nível: pedra acima do seu martelo demora mais (×2 a ×12); 11 níveis acima não quebra (cadeado na etiqueta)",
-    "Cintilha: pedrinha rara que sai de qualquer pedra e agora é necessária para comprar poções",
-    "Olho de Garimpeiro no Zé da Botica: aumenta a chance de Cintilha",
-    "Veio de Cintilha e Geodo de Poção aparecem pelo mapa com um feixe de luz, por 4 minutos",
-    "Correção: fechar e abrir o jogo não faz mais as pedras quebradas voltarem"
+    "Valões: da segunda região em diante, cada região virou uma cava em degraus, cada vez mais funda (a Serra dos Cristais tem uns 100 m), com camadas de rocha e fósseis nas paredes",
+    "Descer é pulando o degrau; para subir: rampa na lateral (menos na Serra dos Cristais), pulo alto ou os novos itens de Escalada",
+    "Escalada no Tonho do Bazar: corda com gancho (Q), escada de cordas e de metal (Z), mini cama elástica (X) e jetpack (segure Espaço no ar)",
+    "Atenção: as pedras do mapa foram redistribuídas por causa dos valões"
   ],
   "files": [
     {
@@ -15,11 +14,11 @@
     },
     {
       "path": "README.md",
-      "size": 5556
+      "size": 6027
     },
     {
       "path": "index.html",
-      "size": 28072
+      "size": 28405
     },
     {
       "path": "js/audio.js",
@@ -31,11 +30,11 @@
     },
     {
       "path": "js/data.js",
-      "size": 22607
+      "size": 23638
     },
     {
       "path": "js/game.js",
-      "size": 37730
+      "size": 45689
     },
     {
       "path": "js/missions.js",
@@ -43,7 +42,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 136522
+      "size": 146928
     },
     {
       "path": "js/robots.js",
@@ -51,7 +50,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 31506
+      "size": 32053
     },
     {
       "path": "js/updater.js",
@@ -59,7 +58,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 16169
+      "size": 19235
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -71,7 +70,7 @@
     },
     {
       "path": "version.json",
-      "size": 1612
+      "size": 1565
     }
   ]
 }

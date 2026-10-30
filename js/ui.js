@@ -210,6 +210,7 @@ const UI = {
         <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: escolher o minério do detector na mão · <b>Shift+T</b>: voltar ao automático</li>
         <li><b>H</b>: voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20)</li>
         <li><b>J</b>: missões · <b>Tab</b>: abrir a mochila</li>
+        <li><b>Valões</b>: cada região (menos a primeira) é uma cava em degraus, cada vez mais funda. Descer é fácil; para subir use a rampa da lateral, pule, ou use os itens de Escalada do Tonho do Bazar: <b>Q</b> gancho, <b>Z</b> escada, <b>X</b> cama elástica, <b>Espaço no ar</b> jetpack. A Serra dos Cristais não tem rampa</li>
         <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
         <li><b>Esc</b>: soltar o mouse</li>
       </ul>
@@ -338,6 +339,7 @@ const UI = {
     $('hforce').textContent = 'Força ' + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');
     const used = G.used(), cap = G.capacity();
     const st = $('stam'); st.style.width = (G.P.stamina * 100) + '%'; st.className = G.P.tired ? 'tired' : G.P.sprint ? 'run' : '';
+    $('fuelwrap').style.display = (S.gear.climb || 0) >= 5 && (G.fuel !== undefined && G.fuel < 0.999 || G.jetting) ? 'block' : 'none'; if (G.fuel !== undefined) $('fuel').style.width = G.fuel * 100 + '%';
     $('stamwrap').style.opacity = G.P.stamina < 0.999 || G.P.sprint ? 1 : 0.35;
     $('bagtxt').textContent = `Mochila ${fmt(used)} / ${fmt(cap)}`;
     $('bagfill').style.width = Math.min(100, used / cap * 100) + '%';

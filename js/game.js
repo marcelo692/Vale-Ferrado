@@ -8,6 +8,7 @@ const GRAV = 20; // m/s²
 const CLICK_COST = 0.08;  // fôlego gasto por golpe de clique
 const CLICK_CD = 0.35;    // clique pode golpear a cada 35% do intervalo normal (quase 3x mais rápido)
 const SWING_ANIM = 0.16;  // duração da animação do golpe rápido
+const STEP_UP = 0.45;     // altura máxima que dá para subir andando (degrau baixinho)
 const RECALL_LVL = 20;    // nível do martelo que libera o Voltar à cidade
 
 function newState() {
@@ -20,7 +21,8 @@ function newState() {
     active: [],       // power-ups ativos [{id, tier, left}]
     seen: {},         // marcos de história vistos
     time: 0, x: 0, y: 3,
-    gear: { detector: 0, ride: 0, light: 0 }, // equipamentos comprados no Bazar
+    gear: { detector: 0, ride: 0, light: 0, climb: 0 }, // equipamentos comprados no Bazar
+    ladders: [], tramps: [], // escadas e camas elásticas colocadas no mapa
     riding: false, lightOn: true, detOn: true, detRes: null, detAuto: true, sound: true,
     clock: 0.3,       // hora do dia (0 = meia-noite, 0.5 = meio-dia)
     showInv: true,    // tabela lateral de evoluções e materiais
@@ -85,6 +87,9 @@ const Game = {
       if (k === ' ' || k === 'tab') e.preventDefault();
       this.keys[k] = true;
       if (k === 'h') this.recall();
+      if (k === 'q') this.useHook();
+      if (k === 'z') this.placeLadder();
+      if (k === 'x') this.placeTramp();
       if (k === 'j') { Missions.panel(); return; }
       if (k === 'tab') { UI.bagPanel(); return; }
       if (this.travel) return; // voltando à cidade: controles travados
@@ -137,6 +142,7 @@ const Game = {
     } catch (e) { try { cv.requestPointerLock(); } catch (e2) {} }
   },
   jump() {
+    if (this.ladder) { this.ladder = null; this.P.vz = 4; this.P.z += 0.01; return; }
     if (this.onGround()) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()) * 1.04; this.P.z += 0.001; this.P.peak = this.P.z; Snd.jump(); }
   },
 
@@ -450,7 +456,10 @@ const Game = {
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(`${POWERUPS[S.active[i].id].name} acabou.`); S.active.splice(i, 1); } }
 
 
+    const climbing = !this.travel && this.updateClimb(dt);
+    this.updateJet(dt);
     if (this.travel) { this.updateTravel(dt); }
+    else if (climbing) { /* gancho ou escada */ }
     else if (!UI.open) {
       // movimento relativo à câmera (W A S D)
       let fw = 0, st = 0;
@@ -502,7 +511,7 @@ const Game = {
     // pulo e queda: dá para subir em cima de troncos, muros e pedras e andar por cima deles
     const support = this.supportAt(P.x, P.y);
     if (support > 0 && !this.onObs) { this.onObs = true; this.S.stats.hops++; } else if (support <= 0) this.onObs = false;
-    if (this.travel) { /* voando de volta */ }
+    if (this.travel || this.hook || this.ladder) { /* voando de volta ou escalando */ }
     else if (P.z > support + 0.001 || P.vz > 0) {
       P.vz -= GRAV * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
       if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); }
@@ -650,7 +659,111 @@ const Game = {
       if (P.z >= o.h * 0.9) continue; // está acima do obstáculo: pode passar (ou andar por cima)
       if (this.inObstacle(o, nx, ny)) return; // bloqueado
     }
+    // degraus e paredes dos valões: subir andando só o que for baixinho; o resto é pulo, escada, gancho...
+    const h0 = World.height(P.x, P.y), h1 = World.height(nx, ny), feet = h0 + P.z;
+    const rise = h1 - feet, run = Math.hypot(dx, dy) || 0.01;
+    if (rise > STEP_UP || (rise > 0.04 && rise / run > 1.1)) { this.wallT = this.S.time; return; } // parede: mais de ~48° não sobe andando
+    const grounded = P.vz <= 0 && P.z <= this.supportAt(P.x, P.y) + 0.01;
     P.x = nx; P.y = ny;
+    let z = feet - h1; if (z < 0 || (grounded && z < 0.6)) z = 0; // desce rampas e morros grudado no chão
+    P.z = z;
+  },
+  // ---------- escalada: gancho, escadas, cama elástica e jetpack ----------
+  climbLv() { return this.S.gear.climb || 0; },
+  // procura uma parede à frente e o topo dela (onde pisar)
+  findLedge(maxDist, maxUp) {
+    const P = this.P, fx = -Math.sin(P.yaw), fy = -Math.cos(P.yaw), feet = World.height(P.x, P.y) + P.z;
+    let wall = -1;
+    for (let d = 0.6; d <= maxDist; d += 0.3) { if (World.height(P.x + fx * d, P.y + fy * d) - feet > 0.6) { wall = d; break; } }
+    if (wall < 0) return null;
+    let e = wall, h = World.height(P.x + fx * e, P.y + fy * e);
+    for (let i = 0; i < 60; i++) { const h2 = World.height(P.x + fx * (e + 0.3), P.y + fy * (e + 0.3)); if (h2 - h < 0.08) break; e += 0.3; h = h2; }
+    const lx = P.x + fx * (e + 1), ly = P.y + fy * (e + 1), top = World.height(lx, ly);
+    if (top - feet > maxUp) return { tooHigh: true, rise: top - feet };
+    return { wx: P.x + fx * Math.max(0.3, wall - 0.5), wy: P.y + fy * Math.max(0.3, wall - 0.5), lx, ly, top, base: World.height(P.x, P.y), rise: top - feet, yaw: P.yaw };
+  },
+  useHook() {
+    if (this.climbLv() < 1) { UI.toast('Você ainda não tem a corda com gancho. Veja o Tonho do Bazar (ITENS).'); return; }
+    if (this.hook || this.travel || this.ladder || (this.hookCD || 0) > this.S.time) return;
+    const L = this.findLedge(4, 6.2);
+    if (!L) { UI.toast('Nenhuma beirada à sua frente para o gancho.'); Snd.denied(); return; }
+    if (L.tooHigh) { UI.toast(`Alto demais para o gancho (${L.rise.toFixed(1).replace('.', ',')} m; ele alcança 6 m). Use escada, cama elástica ou jetpack.`, 'warn'); Snd.denied(); return; }
+    const P = this.P, feet = World.height(P.x, P.y) + P.z;
+    this.hook = { sx: P.x, sy: P.y, sz: feet, tx: L.lx, ty: L.ly, tz: L.top, t: 0, dur: 0.5 + L.rise * 0.08 };
+    this.hookCD = this.S.time + 1;
+    Snd.noise(0.25, { vol: 0.12, f: 1200, fEnd: 3000, q: 0.8 }); Snd.tone(220, 0.2, { vol: 0.08, type: 'triangle', slide: 2, at: 0.2 });
+  },
+  placeLadder() {
+    const lv = this.climbLv();
+    if (lv < 2) { UI.toast(lv ? 'Escadas são do Tonho do Bazar: Escada de cordas.' : 'Você ainda não tem escada. Veja o Tonho do Bazar (ITENS).'); return; }
+    const L = this.findLedge(2.5, 60);
+    if (!L || L.tooHigh || L.rise < 1) { UI.toast('Chegue de frente para uma parede para pendurar a escada.'); Snd.denied(); return; }
+    const metal = lv >= 3, cap = metal ? 6 : 3, S = this.S;
+    S.ladders.push({ x: L.wx, y: L.wy, yaw: L.yaw, h0: L.base, h1: L.top, tx: L.lx, ty: L.ly, metal });
+    while (S.ladders.length > cap) S.ladders.shift();
+    Snd.forge(); UI.toast(`${metal ? 'Escada de metal' : 'Escada de cordas'} pendurada (${S.ladders.length}/${cap}). Ande de frente para ela para subir.`);
+    this.save();
+  },
+  placeTramp() {
+    if (this.climbLv() < 4) { UI.toast('A cama elástica é do Tonho do Bazar (Escalada nível 4).'); return; }
+    const P = this.P, fx = -Math.sin(P.yaw), fy = -Math.cos(P.yaw), x = P.x + fx * 1.6, y = P.y + fy * 1.6;
+    if (Math.abs(World.height(x, y) - World.height(P.x, P.y)) > 0.8) { UI.toast('Coloque a cama elástica num chão plano.'); Snd.denied(); return; }
+    const S = this.S; S.tramps.push({ x, y }); while (S.tramps.length > 3) S.tramps.shift();
+    Snd.buy(); UI.toast(`Cama elástica colocada (${S.tramps.length}/3). Pule nela!`); this.save();
+  },
+  updateClimb(dt) {
+    const P = this.P, S = this.S;
+    // gancho puxando
+    if (this.hook) {
+      const H = this.hook; H.t += dt; const u = Math.min(1, H.t / H.dur), e = u * u * (3 - 2 * u);
+      P.x = H.sx + (H.tx - H.sx) * e; P.y = H.sy + (H.ty - H.sy) * e;
+      const feet = H.sz + (H.tz - H.sz) * Math.min(1, e * 1.3) + Math.sin(u * Math.PI) * 0.8;
+      P.z = Math.max(0, feet - World.height(P.x, P.y)); P.vz = 0; P.moving = false;
+      if (u >= 1) { this.hook = null; P.z = 0; Snd.land(0.5); S.stats.climbs = (S.stats.climbs || 0) + 1; }
+      return true;
+    }
+    // subindo escada
+    if (this.ladder) {
+      const L = this.ladder, sp = L.metal ? 4.5 : 1.6;
+      let feet = World.height(P.x, P.y) + P.z;
+      if (this.keys['w'] || this.keys['arrowup']) feet += sp * dt;
+      if (this.keys['s'] || this.keys['arrowdown']) feet -= sp * dt;
+      P.vz = 0; P.moving = this.keys['w'] || this.keys['s']; P.walkT += dt * 3;
+      if (P.moving && (this.ladStepT = (this.ladStepT || 0) - dt) <= 0) { this.ladStepT = L.metal ? 0.18 : 0.35; Snd.tone(L.metal ? 900 : 300, 0.05, { vol: 0.05, type: L.metal ? 'square' : 'triangle', filter: { f: 2000 } }); }
+      if (feet >= L.h1 + 0.05) { P.x = L.tx; P.y = L.ty; P.z = 0; this.ladder = null; S.stats.climbs = (S.stats.climbs || 0) + 1; return true; }
+      if (feet <= World.height(P.x, P.y) && (this.keys['s'] || this.keys['arrowdown'])) { this.ladder = null; P.z = 0; return true; }
+      P.z = Math.max(0, feet - World.height(P.x, P.y));
+      return true;
+    }
+    // entra na escada andando de frente para ela
+    if ((this.keys['w'] || this.keys['arrowup']) && S.ladders.length) {
+      for (const L of S.ladders) {
+        if (Math.hypot(L.x - P.x, L.y - P.y) < 1.1 && Math.cos(P.yaw - L.yaw) > 0.4 && Math.abs(World.height(P.x, P.y) + P.z - L.h0) < 1.5) { this.ladder = L; P.x = L.x; P.y = L.y; return true; }
+      }
+    }
+    return false;
+  },
+  updateJet(dt) {
+    const P = this.P, S = this.S;
+    if (this.fuel === undefined) this.fuel = 1;
+    const ground = this.onGround();
+    this.jetting = false;
+    if (this.climbLv() >= 5 && this.keys[' '] && !ground && !this.hook && !this.ladder && !this.travel && this.fuel > 0) {
+      this.jetting = true; this.fuel = Math.max(0, this.fuel - dt / 6);
+      P.vz = Math.min(9, P.vz + 34 * dt);
+      this.jetFxT = (this.jetFxT || 0) - dt;
+      if (this.jetFxT <= 0) { this.jetFxT = 0.05; for (let i = 0; i < 3; i++) this.fx.push({ x: P.x + (Math.random() - 0.5) * 0.3, y: P.y + (Math.random() - 0.5) * 0.3, z: P.z + 0.6, vx: (Math.random() - 0.5), vy: (Math.random() - 0.5), vz: -6 - Math.random() * 3, c: Math.random() < 0.5 ? '#ffb347' : '#ff6a2a', t: 0.35, s: 0.1 }); Snd.noise(0.08, { vol: 0.06, f: 500, q: 0.6, type: 'lowpass' }); }
+      if (this.fuel <= 0) UI.toast('Jetpack sem combustível! Ele recarrega no chão.', 'warn');
+    } else if (ground) this.fuel = Math.min(1, this.fuel + dt / 3);
+    // cama elástica
+    for (const T of S.tramps) {
+      if (Math.hypot(T.x - P.x, T.y - P.y) < 1 && P.z <= this.supportAt(P.x, P.y) + 0.35 && P.vz <= 0 && (this.trampCD || 0) < S.time) {
+        const H = Math.max(8, this.jumpH() * 3);
+        P.vz = Math.sqrt(2 * GRAV * H); P.z += 0.05; P.peak = P.z; this.trampCD = S.time + 0.4;
+        Snd.tone(180, 0.35, { vol: 0.14, type: 'triangle', slide: 3 }); Snd.tone(360, 0.3, { vol: 0.08, type: 'sine', slide: 2.5, at: 0.05 });
+        S.stats.bounces = (S.stats.bounces || 0) + 1;
+      }
+    }
   },
   pushOut() { // caiu em cima de um obstáculo: desliza para fora
     const P = this.P;
@@ -666,7 +779,7 @@ const Game = {
   // ---------- salvamento ----------
   save() { try { this.S.world = World.serialize(); localStorage.setItem(SAVE_KEY, JSON.stringify(this.S)); } catch (e) {} },
   load() {
-    try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) { const n = Object.assign(newState(), s); n.gear = Object.assign({ detector: 0, ride: 0, light: 0 }, s.gear || {}); return n; } } catch (e) {}
+    try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) { const n = Object.assign(newState(), s); n.gear = Object.assign({ detector: 0, ride: 0, light: 0, climb: 0 }, s.gear || {}); return n; } } catch (e) {}
     return null;
   },
   // correção (v2.5): versões antigas vendiam recurso raro quando a próxima evolução ainda não pedia; devolve o que foi vendido nas últimas entregas

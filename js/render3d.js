@@ -81,6 +81,8 @@ const Render = {
     this.buildCity();
     this.buildRoadsAndRiver();
     this.buildObstacles();
+    this.buildPitWalls();
+    this.buildClimbFx();
     this.buildDecor();
     this.buildGrass();
     this.buildFx();
@@ -358,6 +360,14 @@ const Render = {
       out.set(pal[Math.floor(hash2(Math.floor(x / 9), Math.floor(y / 9)) * 3)]);
       if (g.edge < 1) out.lerp(new THREE.Color(d < 400 ? '#5b6b3a' : '#6e6a48'), 0.5);
     } else out.set(d < 500 ? '#5d6e3b' : d < 1600 ? '#6c6b46' : '#77715a');
+    // valões: chão de pedra e camadas de rocha nas paredes laterais
+    const pit = World.pitAt(x, y);
+    if (pit.inside > 0.05 && pit.R) {
+      const h0 = World.height(x, y), sl = Math.abs(World.height(x + 1, y) - h0) + Math.abs(World.height(x, y + 1) - h0);
+      const pal = { 1: ['#7d7a6a', '#8f8b78', '#6c6a5c'], 2: ['#a08060', '#b8956c', '#8a6a4c'], 3: ['#5a4434', '#6e5440', '#4a382a'], 4: ['#8a8884', '#9c9a95', '#76746f'], 5: ['#4a4560', '#5a5472', '#3c3850'] }[pit.R.id];
+      if (sl > 1.2) out.set(pal[((Math.floor(-h0 / 0.9) % 3) + 3) % 3]);
+      else out.lerp(this._pf || (this._pf = new THREE.Color()), 0).lerp(new THREE.Color(pal[1]), 0.45 * pit.inside);
+    }
     // montanhas: rocha nas encostas e neve no topo das altas
     const mh = World.mountainH(x, y);
     if (mh > 1.5) {
@@ -536,6 +546,101 @@ const Render = {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
     this.river = new THREE.Mesh(g, new THREE.MeshPhongMaterial({ color: '#2f6a85', shininess: 90, transparent: true, opacity: 0.88, specular: '#bfe4ff' }));
     this.river.receiveShadow = true; this.scene.add(this.river);
+  },
+
+  // ---------- paredes dos valões, com camadas de rocha e fósseis ----------
+  fossilTex(R) {
+    const pal = { 1: ['#7d7a6a', '#8f8b78', '#6c6a5c', '#a19c86'], 2: ['#a08060', '#b8956c', '#8a6a4c', '#c9a77c'], 3: ['#5a4434', '#6e5440', '#4a382a', '#7d6048'], 4: ['#8a8884', '#9c9a95', '#76746f', '#adaaa4'], 5: ['#4a4560', '#5a5472', '#3c3850', '#6c6488'] }[R.id];
+    const bone = R.id === 5 ? '#d8d0ff' : '#e8dcc0', r = rng(R.id * 97 + 3);
+    return canvasTex(512, 512, (g, w, h) => {
+      let y = 0, i = 0;
+      while (y < h) { const t = 18 + r() * 46; g.fillStyle = pal[i++ % 4]; g.fillRect(0, y, w, t + 1); for (let k = 0; k < 40; k++) { g.fillStyle = `rgba(0,0,0,${0.05 + r() * 0.08})`; g.fillRect(r() * w, y + r() * t, 4 + r() * 18, 2 + r() * 3); } y += t; }
+      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 2; for (let k = 0; k < 14; k++) { g.beginPath(); let x = r() * w, yy = r() * h; g.moveTo(x, yy); for (let s = 0; s < 4; s++) { x += (r() - 0.5) * 50; yy += r() * 40; g.lineTo(x, yy); } g.stroke(); }
+      g.strokeStyle = bone; g.fillStyle = bone; g.lineWidth = 5; g.lineCap = 'round';
+      const amm = (cx, cy, s) => { g.beginPath(); for (let a = 0; a < 18; a += 0.2) { const rr = s * Math.exp(-a * 0.16); const x = cx + Math.cos(a) * rr, yy = cy + Math.sin(a) * rr; a ? g.lineTo(x, yy) : g.moveTo(x, yy); } g.stroke(); };
+      const fish = (cx, cy, s) => { g.beginPath(); g.moveTo(cx - s, cy); g.lineTo(cx + s, cy); g.stroke(); for (let k = -3; k <= 3; k++) { g.beginPath(); g.moveTo(cx + k * s / 4, cy - s * 0.35); g.lineTo(cx + k * s / 4, cy + s * 0.35); g.stroke(); } g.beginPath(); g.moveTo(cx + s, cy); g.lineTo(cx + s * 1.4, cy - s * 0.3); g.lineTo(cx + s * 1.4, cy + s * 0.3); g.closePath(); g.stroke(); };
+      const dino = (cx, cy, s) => { // crânio e coluna de dinossauro
+        g.beginPath(); g.ellipse(cx, cy, s * 0.45, s * 0.28, -0.2, 0, Math.PI * 2); g.stroke();
+        g.beginPath(); g.arc(cx - s * 0.12, cy - s * 0.05, s * 0.08, 0, Math.PI * 2); g.stroke();
+        for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(cx - s * 0.4 + k * s * 0.13, cy + s * 0.18); g.lineTo(cx - s * 0.38 + k * s * 0.13, cy + s * 0.3); g.stroke(); }
+        for (let k = 1; k < 9; k++) { const x = cx + s * 0.4 + k * s * 0.18, yy = cy + Math.sin(k * 0.6) * s * 0.12; g.beginPath(); g.arc(x, yy, s * 0.06, 0, Math.PI * 2); g.fill(); if (k < 6) { g.beginPath(); g.moveTo(x, yy); g.quadraticCurveTo(x + s * 0.05, yy + s * 0.3, x - s * 0.05, yy + s * 0.42); g.stroke(); } }
+      };
+      const shell = (cx, cy, s) => { for (let k = -3; k <= 3; k++) { g.beginPath(); g.moveTo(cx, cy + s * 0.5); g.lineTo(cx + k * s * 0.15, cy - s * 0.4); g.stroke(); } g.beginPath(); g.arc(cx, cy, s * 0.5, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); };
+      const fns = [amm, amm, fish, shell, dino];
+      for (let k = 0; k < 5; k++) { g.lineWidth = 4 + r() * 3; fns[(k + R.id) % fns.length](40 + r() * (w - 100), 40 + r() * (h - 80), 26 + r() * (k % 5 === 4 ? 60 : 24)); }
+    }, 1);
+  },
+  buildPitWalls() {
+    this.pitWalls = new THREE.Group(); this.scene.add(this.pitWalls);
+    for (const R of REGIONS) {
+      if (!R.pit) continue;
+      const tex = this.fossilTex(R); tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      const m = new THREE.MeshLambertMaterial({ map: tex });
+      const top = mat({ 1: '#6f7a5e', 2: '#97805f', 3: '#4d3b2d', 4: '#9a9893', 5: '#56506e' }[R.id]);
+      const L = R.pitL, P = R.pit;
+      const wall = (d, faceSign, wFrom, wTo, hTop, hBot) => { // parede de d até d - 2*faceSign, virada para +faceSign
+        const H = hTop - hBot + 0.6; if (H < 0.4) return;
+        const W = wTo - wFrom, T = 2.2;
+        const geo = new THREE.BoxGeometry(T, H, W), uv = geo.attributes.uv;
+        const ou = Math.random(), ov = Math.random();
+        for (let i = 0; i < uv.count; i++) uv.setXY(i, ou + uv.getX(i) * Math.max(W, T) / 9, ov + uv.getY(i) * H / 9);
+        const b = new THREE.Mesh(geo, [m, m, top, m, m, m]); b.receiveShadow = true;
+        const dc = d - faceSign * T / 2, pc = (wFrom + wTo) / 2, yc = hBot - 0.6 + H / 2;
+        b.position.set(R.ux * dc + R.vx * pc, yc, R.uy * dc + R.vy * pc);
+        b.rotation.y = -Math.atan2(R.uy, R.ux);
+        this.pitWalls.add(b);
+      };
+      for (let k = 0; k <= 10; k++) {
+        const b = R.dMin + L * k / 10, half = World.pitHalf(R, b), wTo = P.ramp ? half - PIT_LANE : half;
+        if (k === 0) wall(b + 0.05, 1, -half, wTo, World.height(R.ux * (b - 2) , R.uy * (b - 2)) + 0.2, World.height(R.ux * (b + 1.5), R.uy * (b + 1.5)));
+        else if (k < 10) wall(b, 1, -half, wTo, World.height(R.ux * (b - 1.2) + R.vx * (-half / 2), R.uy * (b - 1.2) + R.vy * (-half / 2)), World.height(R.ux * (b + 1) + R.vx * (-half / 2), R.uy * (b + 1) + R.vy * (-half / 2)));
+        else wall(b + 2.2, 1, -half, half, World.height(R.ux * (b + 3), R.uy * (b + 3)) + 0.2, World.height(R.ux * (b - 1.5), R.uy * (b - 1.5)));
+      }
+    }
+  },
+  // ---------- escadas, camas elásticas, corda do gancho ----------
+  buildClimbFx() {
+    this.climbObjs = new THREE.Group(); this.scene.add(this.climbObjs); this.climbSig = '';
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    this.rope = new THREE.Line(g, new THREE.LineBasicMaterial({ color: '#c9a66b' })); this.rope.frustumCulled = false; this.rope.visible = false; this.scene.add(this.rope);
+  },
+  makeLadder(h, metal) {
+    const g = new THREE.Group(), rail = metal ? mat('#9aa0a8', { shininess: 70 }) : mat('#c9a66b'), rung = metal ? mat('#c7cdd4', { shininess: 70 }) : mat('#8a6a44');
+    for (const x of [-0.28, 0.28]) { const r = mesh(new THREE.CylinderGeometry(metal ? 0.03 : 0.02, metal ? 0.03 : 0.02, h, 6), rail); r.position.set(x, h / 2, 0); g.add(r); }
+    for (let y = 0.3; y < h; y += metal ? 0.3 : 0.4) { const r = mesh(new THREE.BoxGeometry(0.6, metal ? 0.035 : 0.05, 0.05), rung); r.position.y = y; g.add(r); }
+    if (!metal) { const hook = mesh(new THREE.TorusGeometry(0.1, 0.02, 4, 8, Math.PI), mat('#777')); hook.position.set(0, h + 0.05, 0.08); g.add(hook); }
+    return g;
+  },
+  makeTramp() {
+    const g = new THREE.Group();
+    const ring = mesh(new THREE.TorusGeometry(0.85, 0.07, 6, 18).rotateX(Math.PI / 2), mat('#2f6fd0')); ring.position.y = 0.38; g.add(ring);
+    const bed = mesh(new THREE.CircleGeometry(0.78, 18).rotateX(-Math.PI / 2), mat('#1a1a1e')); bed.position.y = 0.36; g.add(bed);
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2, l = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.38, 5), mat('#555a62')); l.position.set(Math.cos(a) * 0.8, 0.19, Math.sin(a) * 0.8); g.add(l); }
+    return g;
+  },
+  makeJetpack() {
+    const g = new THREE.Group();
+    for (const x of [-0.13, 0.13]) { const t = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 10), mat('#c9ccd1', { shininess: 80 })); t.position.set(x, 0, 0); g.add(t); const n = mesh(new THREE.ConeGeometry(0.08, 0.14, 8), mat('#3a3f48')); n.position.set(x, -0.31, 0); n.rotation.x = Math.PI; g.add(n); const cap = mesh(new THREE.SphereGeometry(0.1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat('#e2574c')); cap.position.set(x, 0.25, 0); g.add(cap); }
+    const strap = mesh(new THREE.BoxGeometry(0.42, 0.12, 0.08), mat('#2b2f36')); strap.position.z = -0.08; g.add(strap);
+    return g;
+  },
+  makeClimbItem(lv) {
+    if (lv === 1) { const g = new THREE.Group(); const coil = mesh(new THREE.TorusGeometry(0.22, 0.04, 6, 18), mat('#c9a66b')); g.add(coil); const coil2 = mesh(new THREE.TorusGeometry(0.18, 0.04, 6, 18), mat('#b8945a')); coil2.position.z = 0.06; g.add(coil2); const sh = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 5), mat('#777', { shininess: 80 })); sh.position.set(0.3, 0.2, 0); sh.rotation.z = 0.6; g.add(sh); for (const a of [-0.6, 0, 0.6]) { const p = mesh(new THREE.TorusGeometry(0.08, 0.018, 4, 8, Math.PI), mat('#888', { shininess: 80 })); p.position.set(0.38, 0.33, 0); p.rotation.set(0, a, 0.6); g.add(p); } return g; }
+    if (lv === 2) return this.makeLadder(1.6, false);
+    if (lv === 3) return this.makeLadder(1.6, true);
+    if (lv === 4) return this.makeTramp();
+    return this.makeJetpack();
+  },
+  updateClimbFx() {
+    const S = Game.S, sig = JSON.stringify([S.ladders, S.tramps]);
+    if (sig !== this.climbSig) {
+      this.climbSig = sig; this.climbObjs.clear();
+      for (const L of S.ladders) { const l = this.makeLadder(Math.max(1, L.h1 - L.h0 + 0.6), L.metal); l.position.set(L.x - Math.sin(L.yaw) * 0.35, L.h0, L.y - Math.cos(L.yaw) * 0.35); l.rotation.y = L.yaw; l.rotation.x = -0.08; this.climbObjs.add(l); }
+      for (const T of S.tramps) { const t = this.makeTramp(); t.position.set(T.x, World.height(T.x, T.y), T.y); this.climbObjs.add(t); }
+    }
+    const H = Game.hook, P = Game.P;
+    this.rope.visible = !!H;
+    if (H) { const a = this.rope.geometry.attributes.position; a.setXYZ(0, P.x - Math.sin(P.yaw) * 0.3 + Math.cos(P.yaw) * 0.3, World.height(P.x, P.y) + P.z + 1.2, P.y - Math.cos(P.yaw) * 0.3 - Math.sin(P.yaw) * 0.3); a.setXYZ(1, H.tx, H.tz + 0.1, H.ty); a.needsUpdate = true; }
   },
 
   // ---------- obstáculos (atalhos de pulo) ----------
@@ -1351,6 +1456,10 @@ const Render = {
     if (dl === 2) { const d = this.tag(this.makeDetector(2), 'detector'); d.position.set(-0.36, 0.55, 0.32); d.rotation.set(0.5, 0, 0.35); d.scale.setScalar(0.9); body.add(d); }
     if (dl === 3) { const d = this.tag(this.makeDetector(3), 'detector'); const tab = d.userData.tablet; d.remove(tab); d.position.set(0, bag.position.y + s * 0.75 + 0.2, bag.position.z); d.scale.setScalar(0.8); body.add(d);
       const t2 = this.tag(tab, 'detector'); t2.position.set(0, -0.5, -0.11); t2.rotation.set(-Math.PI / 2, 0, 0); t2.scale.setScalar(0.6); arm2.add(t2); }
+    // escalada
+    const cl = st.gear.climb || 0;
+    if (cl >= 5) { const j = this.tag(this.makeJetpack(), 'climb'); j.position.set(0, 1.05, 0.2 + s * 0.15); body.add(j); }
+    else if (cl >= 1) { const c = this.tag(mesh(new THREE.TorusGeometry(0.2, 0.04, 6, 16), mat('#c9a66b')), 'climb'); c.position.set(0.3, 1.3, 0.05); c.rotation.set(0, Math.PI / 2, 0.5); body.add(c); }
     // transporte
     if ((st.riding || st.preview === 'ride') && st.gear.ride) {
       const rl = st.gear.ride;
@@ -1407,6 +1516,7 @@ const Render = {
     if (kind === 'hammer') { obj = this.makeHammer(a); obj.rotation.z = -0.7; dir = new V3(0.2, 0.15, -1); }
     else if (kind === 'ride') { obj = this.makeRide(a); dir = new V3(1.3, 0.8, -0.6); }
     else if (kind === 'light') { obj = this.makeLightItem(a); if (a === 1) dir = new V3(1, 0.5, -1.4); if (a === 2) dir = new V3(0.6, 0.9, -1.4); if (a >= 3) dir = new V3(0.5, 0.8, -1.2); }
+    else if (kind === 'climb') { obj = this.makeClimbItem(a); dir = a === 4 ? new V3(0.6, 1, -1) : a === 5 ? new V3(0.9, 0.4, 1.2) : new V3(1, 0.5, -1.2); }
     else if (kind === 'detector') { obj = this.makeDetector(a); if (a === 1) dir = new V3(0.5, 0.3, -1.4); if (a === 2) { obj.rotation.z = 0.5; dir = new V3(1, 0.4, -1); } if (a === 3) dir = new V3(0.4, 0.8, -1.2); }
     else if (kind === 'pw') { obj = this.makeFlask(a, 1.6); dir = new V3(0.6, 0.35, -1.2); }
     else { // partes do personagem (Tropeira): mochila, luvas, calçados, pernas
@@ -1435,7 +1545,7 @@ const Render = {
     const key = 'c|' + kind + '|' + a + '|' + JSON.stringify([st.hammer, st.attrs, st.gear, st.lightOn, (st.pw || []).map(p => p.id)]);
     if (this.thumbCache[key]) return this.thumbCache[key];
     const ch = this.buildCharacter(st).g;
-    ch.rotation.y = kind === 'bag' || kind === 'pw' || (kind === 'detector' && a >= 2) ? -2.2 : -0.55;
+    ch.rotation.y = kind === 'bag' || kind === 'pw' || (kind === 'detector' && a >= 2) || (kind === 'climb' && a >= 5) ? -2.2 : -0.55;
     if (kind === 'light' && a === 1) ch.rotation.y = 0.6;
     return (this.thumbCache[key] = this.snap(ch, new V3(0, 0.25, -1)));
   },
@@ -1498,6 +1608,7 @@ const Render = {
     this.updatePlayerLights();
     this.updateRobots(dt);
     this.updateHitFx(dt);
+    this.updateClimbFx();
     this.updateObstacleHint();
     this.stars.position.copy(this.cam.position);
     this.updateNightFx(dt);

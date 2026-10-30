@@ -4,10 +4,14 @@
 'use strict';
 
 const CITY_R = 22; // raio da cidade em metros
+// valões: cada região (menos a primeira) é uma cava em 10 degraus, cada uma mais funda que a anterior
+const PIT_REGIONS = [1, 2, 3, 4, 5];
+const PIT_LANE = 7;          // largura da rampa lateral (regiões 2 a 5; a 6 não tem rampa)
+const smooth01 = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const NPCS = [
   { id: 'ferreiro', name: 'Seu Bento, o Ferreiro', role: 'Evolui o martelo',              shop: 'MARTELOS',  color: '#c0502a', ang: -112.5 },
   { id: 'tropeira', name: 'Dona Cida, a Tropeira', role: 'Mineração, mochila, movimento e pulo', shop: 'MELHORIAS', color: '#3f7a4a', ang: -67.5 },
-  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte, lanternas e robôs', shop: 'ITENS',     color: '#2a7a9a', ang: -22.5 },
+  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte, luz, escalada e robôs', shop: 'ITENS',     color: '#2a7a9a', ang: -22.5 },
   { id: 'armazem',  name: 'Seu Lauro, do Armazém', role: 'Compra tudo automaticamente',   shop: 'VENDAS',    color: '#a07a2a', ang: 45 },
   { id: 'botica',   name: 'Zé da Botica',          role: 'Vende power-ups',               shop: 'POWER-UPS', color: '#7a3fa0', ang: 135 },
 ];
@@ -36,6 +40,7 @@ const World = {
       R.ux = Math.cos(a); R.uy = Math.sin(a);       // direção
       R.vx = -R.uy; R.vy = R.ux;                    // perpendicular
       R.res = RESOURCES.filter(r => r.region === R.id && !r.special);
+      this.pitSetup(R);
       for (let k = 0; k < 10; k++) {
         const d0 = R.dMin + (R.dMax - R.dMin) * k / 10;
         const d1 = R.dMin + (R.dMax - R.dMin) * (k + 1) / 10;
@@ -43,7 +48,7 @@ const World = {
         const level = (R.era - 1) * 10 + k + 1;
         const sub = { R, k, d0, d1, w, level, nodes: [], harvest: 0, spawnPts: [] };
         // obstáculo no fim dos trechos ímpares (atalho por cima com pulo)
-        if (k % 2 === 1) {
+        if (k % 2 === 1 && !PIT_REGIONS.includes(R.id)) {
           const idx = (k - 1) / 2; // 0..4
           const h = R.jMin + (R.jMax - R.jMin) * idx / 4;
           const thick = R.obstacle === 'penhasco' ? 4 : R.obstacle === 'bancada' ? 3 : 1.6;
@@ -62,7 +67,7 @@ const World = {
     this.buildMountains(rand);
     this.fitObstacles();
     // remove pontos de spawn dentro de obstáculos e nas montanhas (montanha só tem recurso raro)
-    for (const s of this.subs) if (!s.mountain) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p - o.pc) < o.len / 2 + 2) && this.mountainH(pt.x, pt.y) < 2);
+    for (const s of this.subs) if (!s.mountain) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p - o.pc) < o.len / 2 + 2) && this.mountainH(pt.x, pt.y) < 2 && this.pitSpawnOk(s.R, pt));
     for (const s of this.subs) for (let i = 0; i < s.maxNodes; i++) this.spawn(s);
   },
 
@@ -202,7 +207,7 @@ const World = {
     }
   },
   // salvar e restaurar as pedras do mapa
-  WORLD_V: 1,
+  WORLD_V: 2,
   serialize() {
     const nodes = [];
     for (const n of this.nodes) { if (n.res.wild) continue; const s = this.subs.indexOf(n.sub); nodes.push([s, n.sub.spawnPts.indexOf(n.pt), n.res.id, n.size, n.rare, Math.round(n.hp)]); }
@@ -278,6 +283,56 @@ const World = {
     return null;
   },
 
+  // ---------- valões ----------
+  pitSetup(R) {
+    const L = R.dMax - R.dMin;
+    R.pitL = L;
+    if (R.id === 0) { R.pit = null; return; }
+    if (!PIT_REGIONS.includes(R.id)) { R.pit = null; return; }
+    const steps = [], cum = [0]; // cum[k] = profundidade do degrau k (k = 0..9)
+    for (let i = 0; i < 10; i++) steps.push(R.jMin + (R.jMax - R.jMin) * i / 9);
+    let acc = 0; for (let i = 0; i < 10; i++) { acc += steps[i]; cum[i] = acc; }
+    R.pit = { steps, cum, total: acc, ramp: R.id < 5 };
+  },
+  pitHalf(R, d) { return (40 + Math.min(Math.max(d, R.dMin), R.dMax) * 0.12) / 2; },
+  pitSpawnOk(R, pt) {
+    if (!R.pit) return true;
+    const L = R.pitL, half = this.pitHalf(R, pt.d);
+    for (let k = 0; k <= 10; k++) { const b = R.dMin + L * k / 10; if (Math.abs(pt.d - b) < 3) return false; }
+    if (Math.abs(pt.p) > half - 3) return false;
+    if (R.pit.ramp && pt.p > half - PIT_LANE - 2.5) return false;
+    return true;
+  },
+  pitAt(x, y) {
+    for (const R of REGIONS) {
+      if (R.ux === undefined) continue;
+      const d = x * R.ux + y * R.uy;
+      if (d < R.dMin - 3 || d > R.dMax + 3) continue;
+      const p = x * R.vx + y * R.vy, half = this.pitHalf(R, d);
+      if (Math.abs(p) > half + 2) continue;
+      if (R.id === 0) { // primeira região: plana, só descendo um pouquinho no fim
+        const t = (d - R.dMin) / R.pitL; if (t < 0.7) return { depth: 0, inside: 0 };
+        const k = smooth01(half + 1, half - 2, Math.abs(p)) * smooth01(R.dMax + 2, R.dMax - 2, d);
+        return { depth: (t - 0.7) / 0.3 * 1.2 * k, inside: k * 0.5 };
+      }
+      const P = R.pit; if (!P) continue;
+      const across = smooth01(half + 0.6, half - 0.2, Math.abs(p));
+      const along = smooth01(R.dMin - 0.6, R.dMin + 0.1, d) * smooth01(R.dMax + 0.6, R.dMax - 0.1, d);
+      const inside = across * along; if (inside <= 0) continue;
+      // degraus com beirada reta: a queda acontece nos últimos 0,3 m antes da divisa
+      const L = R.pitL, t = Math.max(0, Math.min(9.9999, (d - R.dMin) / L * 10)), k = Math.floor(t);
+      const bNext = R.dMin + L * (k + 1) / 10;
+      let depth = P.cum[k];
+      if (k < 9) depth += P.steps[k + 1] * smooth01(bNext - 0.3, bNext, d);
+      if (P.ramp) { // rampa contínua na lateral direita
+        const u = Math.max(0, Math.min(1, (d - R.dMin) / L)), ramp = P.total * u;
+        const rb = smooth01(half - PIT_LANE - 0.3, half - PIT_LANE, p);
+        depth += (ramp - depth) * rb;
+      }
+      return { depth: depth * inside, inside, R };
+    }
+    return { depth: 0, inside: 0 };
+  },
   // relevo suave do terreno (plano na cidade)
   height(x, y) {
     const d = Math.hypot(x, y);
@@ -291,7 +346,8 @@ const World = {
     const bumps = Math.sin(x * 0.11 + Math.sin(y * 0.07) * 2) * Math.cos(y * 0.095 + Math.sin(x * 0.05)) * 0.55
                 + Math.sin(x * 0.23 - y * 0.19) * 0.18;
     const dip = Math.max(0, Math.sin(x * 0.031 + 2.1) * Math.sin(y * 0.027 - 0.4) - 0.55) * -4.5; // buracos rasos espalhados
-    return (h * amp + bumps + dip) * flat * flat + this.mountainH(x, y);
+    const pit = this.pitAt(x, y);
+    return (h * amp + bumps + dip) * flat * flat * (1 - 0.92 * pit.inside) - pit.depth + this.mountainH(x, y);
   },
 
     // cor do chão (biome)
