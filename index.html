@@ -145,6 +145,7 @@
   #inv table { width: 100%; border-collapse: collapse; } #inv td { padding: 1.5px 2px; white-space: nowrap; } #inv td:nth-child(n+2) { text-align: right; width: 40px; } #inv td:first-child { display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
   #inv .s2, #inv .s2 b { color: #8fe07a; } #inv .s1, #inv .s1 b { color: #ffd34d; } #inv .s0, #inv .s0 b { color: #ff8a7a; } #inv tr.s3 { color: var(--ink); opacity: .8; }
   #inv .up.s2 .un, #inv .up.s1 .un, #inv .up.s0 .un { color: var(--ink); }
+  #inv .nr { display: grid; grid-template-columns: 10px 1fr auto; gap: 1px 6px; align-items: baseline; padding: 3px 0; border-top: 1px solid rgba(255,255,255,.06); } #inv .nr b { font-weight: 600; } #inv .nr span { text-align: right; } #inv .nr small { grid-column: 2 / 4; opacity: .6; font-size: 10px; } #inv .nr em { font-style: normal; opacity: .85; }
   #inv .leg { margin-top: 6px; font-size: 10px; opacity: .8; display: flex; flex-wrap: wrap; gap: 2px 8px; }
   #receipt { position: fixed; left: 14px; top: 210px; width: 330px; background: rgba(20,14,8,.86); border: 1px solid #a08a3a; border-radius: 12px; padding: 10px 12px; font-size: 12px; z-index: 4; opacity: 0; transform: translateX(-20px); transition: opacity .4s, transform .4s; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
   #receipt.on { opacity: 1; transform: none; }

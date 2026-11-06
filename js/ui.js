@@ -244,21 +244,30 @@ const UI = {
       const carrying = Robots.list.reduce((a, r) => a + r.n, 0);
       html += tt("<div class=\"bagv\"><span>{0}</span>{1}</div>", Robots.list.length > 1 ? tt("🤖 {0} robôs minerando", Robots.list.length) : tt("🤖 1 robô minerando"), carrying ? tt("<small>trazendo {0}</small>", fmt(carrying)) : '');
     }
-    // só a próxima forja; as outras melhorias aparecem como aviso quando dá para comprar
+    // "Falta minerar": um material por linha, com o que ele destrava (martelo e melhorias)
     const okOf = c => { let st = S.money >= c.money ? 2 : 0; for (const m of c.mats) { const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0; st = Math.min(st, have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0); } return st; };
-    if (S.hammer < MAX_LEVEL) {
-      const c = hammerCost(S.hammer + 1), st = okOf(c);
-      let mats = '';
-      for (const m of c.mats) {
-        const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0, ms = have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0;
-        mats += `<span class="m s${ms}"><i style="background:${RES[m.id].c2}"></i>${RES[m.id].name.split(' (')[0]} ${fmt(Math.min(have, m.qty))}/${fmt(m.qty)}${bag && ms < 2 ? ` <em>+${fmt(bag)}🎒</em>` : ''}</span>`;
+    const ups = [];
+    if (S.hammer < MAX_LEVEL) ups.push({ label: tt("Martelo"), c: hammerCost(S.hammer + 1) });
+    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, c: attrCost(k, S.attrs[k] + 1) });
+    for (const g of Game.gadgetUps()) ups.push({ label: g.label, c: g.c });
+    const need = new Map(); let ready = 0;
+    for (const u of ups) {
+      if (okOf(u.c) === 2) { ready++; continue; }
+      for (const m of u.c.mats) {
+        const have = S.stock[m.id] || 0; if (have >= m.qty) continue;
+        const e = need.get(m.id) || { id: m.id, q: 0, f: [] };
+        e.q = Math.max(e.q, m.qty); if (!e.f.includes(u.label)) e.f.push(u.label); need.set(m.id, e);
       }
-      html += tt("<div class=\"ih\">Próximo martelo <kbd>I</kbd></div><div class=\"up s{0}\"><b>{1}</b><div><div class=\"un\">⚒ {2} <small>nv {3}</small></div>{4}<span class=\"m {5}\"><i class=\"coin\"></i>{6}</span></div></div>", st, ['✖', '●', '✔'][st], HAMMERS[S.hammer + 1].n, S.hammer + 1, mats, S.money >= c.money ? 's2' : 's0', fmt(c.money));
-      if (st === 1) html += tt("<div class=\"leg\"><span class=\"s1\">● Falta só entregar: volte à cidade</span></div>");
     }
-    let ready = 0;
-    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL && okOf(attrCost(k, S.attrs[k] + 1)) === 2) ready++;
-    ready += Game.gadgetUps().filter(g => okOf(g.c) === 2).length;
+    const list = [...need.values()].map(e => { const bag = S.bag[e.id] || 0, have = S.stock[e.id] || 0; return Object.assign(e, { have, bag, st: have + bag >= e.q ? 1 : 0 }); }).sort((x, y) => x.st - y.st);
+    if (list.length) {
+      html += tt("<div class=\"ih\">Falta minerar <kbd>I</kbd></div>");
+      for (const e of list.slice(0, 6)) {
+        html += `<div class="nr s${e.st}"><i style="background:${RES[e.id].c2}"></i><b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)}/${fmt(e.q)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span><small>${e.f.slice(0, 2).join(', ')}${e.f.length > 2 ? '…' : ''}</small></div>`;
+      }
+      if (list.length > 6) html += tt("<div class=\"leg\"><span>+{0} materiais (Tab)</span></div>", list.length - 6);
+      if (list.every(e => e.st === 1)) html += tt("<div class=\"leg\"><span class=\"s1\">● Falta só entregar: volte à cidade</span></div>");
+    }
     if (ready) html += tt("<div class=\"leg\"><span class=\"s2\">{0}</span></div>", ready > 1 ? tt("✔ {0} melhorias prontas para comprar", ready) : tt("✔ 1 melhoria pronta para comprar"));
     if (html !== this.invHtml) { el.innerHTML = html; this.invHtml = html; }
   },

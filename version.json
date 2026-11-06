@@ -1,10 +1,8 @@
 {
-  "version": "3.3.0",
+  "version": "3.3.1",
   "date": "2026-11-06",
   "notes": [
-    "4 idiomas: Português, English, Español e Türkçe (escolha na tela inicial e no menu de pausa)",
-    "Telas mais limpas: HUD, loja, armazém, mochila, ajuda e missões com menos informação repetida",
-    "Atalho N/U e modos de venda com textos mais curtos"
+    "Painel lateral 'Falta minerar': mostra o nome de cada material que falta e para qual melhoria serve"
   ],
   "files": [
     {
@@ -17,7 +15,7 @@
     },
     {
       "path": "index.html",
-      "size": 30703
+      "size": 31058
     },
     {
       "path": "js/audio.js",
@@ -41,15 +39,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 51983
+      "size": 51812
     },
     {
       "path": "js/lang/es.js",
-      "size": 53805
+      "size": 53629
     },
     {
       "path": "js/lang/tr.js",
-      "size": 53295
+      "size": 53119
     },
     {
       "path": "js/missions.js",
@@ -69,7 +67,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 33484
+      "size": 33941
     },
     {
       "path": "js/updater.js",
@@ -93,7 +91,7 @@
     },
     {
       "path": "version.json",
-      "size": 1347
+      "size": 1728
     }
   ]
 }
