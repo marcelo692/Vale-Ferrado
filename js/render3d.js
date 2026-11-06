@@ -995,7 +995,7 @@ const Render = {
     const hr = 0.028 + L * 0.0006;
     for (let i = 0; i < (tier >= 3 ? Math.min(4, tier - 1) : 0); i++) { const bd = mesh(new THREE.TorusGeometry(hr + 0.004, 0.012, 5, 10), mat(PAL.t, glowOn ? { emissive: PAL.glow, emissiveIntensity: 0.25 } : {}), false); bd.rotation.x = Math.PI / 2; bd.position.y = len * 0.78 - i * len * 0.12; g.add(bd); }
     if (tier >= 2) { const pm = mesh(new THREE.SphereGeometry(hr * 1.7, 8, 6), mat(PAL.t, { shininess: 90 }), false); pm.position.y = 0.02; g.add(pm); }
-    const head = new THREE.Group(); head.position.y = len; head.rotation.y = Math.PI / 2; // a curva da picareta aparece de perfil para quem segura
+    const head = new THREE.Group(); head.position.y = len; // eixo da cabeça = direção do golpe: as pontas ficam viradas para a pedra
     const half = hl * 0.72, arch = hl * 0.3, depth = hw * 1.15, thk = hw * 1.5, N = 9;
     const k0 = L - [31, 35, 38, 41, 45, 48, 51, 56, 58][tier], hc = new THREE.Color(PAL.h).offsetHSL(0, 0.015 * k0, 0.014 * k0).getStyle();
     const hm = mat(hc, Object.assign({ shininess: 80, specular: '#999' }, tier >= 8 ? { emissive: '#5a1a00', emissiveIntensity: 0.4 } : {}));

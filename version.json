@@ -1,8 +1,8 @@
 {
-  "version": "3.3.3",
+  "version": "3.3.4",
   "date": "2026-11-06",
   "notes": [
-    "Martelos 31 a 59 viram picaretas: cada faixa mais enfeitada, com brilho e partículas que crescem até o Martelo do Vale"
+    "Picaretas com as pontas viradas para a pedra no golpe (orientação corrigida)"
   ],
   "files": [
     {
@@ -59,7 +59,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 159180
+      "size": 159169
     },
     {
       "path": "js/robots.js",
@@ -91,7 +91,7 @@
     },
     {
       "path": "version.json",
-      "size": 1691
+      "size": 1589
     }
   ]
 }
