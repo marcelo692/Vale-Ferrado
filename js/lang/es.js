@@ -452,6 +452,8 @@ I18N.es = {
 "Ovo de Dragão": "Huevo de Dragón",
 "choca no Martelo 60": "eclosiona con el Martillo 60",
 "Mineração · mochila · movimento · pulo": "Minería · mochila · movimiento · salto",
+"Picareta 61": "Pico 61",
+"o que vem depois do 60": "lo que viene después del 60",
 "níveis {0}–{1}": "niveles {0}–{1}",
 "Nv ": "Nv ",
 " km": " km",

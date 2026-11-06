@@ -33,7 +33,7 @@ function newState() {
 
 const Game = {
   S: null,
-  P: { x: 0, y: 6, z: 0, vz: 0, face: 0, swing: 0, moving: false, walkT: 0, yaw: 0, pitch: -0.08, stamina: 1, tired: false, sprint: false },
+  P: { x: 0, y: 6, z: 0, vz: 0, face: 0, swing: 0, moving: false, walkT: 0, yaw: 0, pitch: -0.08, stamina: 1, tired: false, sprint: false, vx: 0, vy: 0, bobAmp: 0 },
   keys: {}, mouse: { x: 0, y: 0, down: false, wx: 0, wy: 0 },
   timers: [], fx: [], floats: [],
   target: null, mineT: 0, inCity: true, wasInCity: true, saveT: 0, fullWarnT: 0,
@@ -152,7 +152,8 @@ const Game = {
   },
   jump() {
     if (this.ladder) { this.ladder = null; this.P.vz = 4; this.P.z += 0.01; return; }
-    if (this.onGround()) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()) * 1.04; this.P.z += 0.001; this.P.peak = this.P.z; Snd.jump(); }
+    if (this.onGround() || (this.coyote > 0 && this.P.vz <= 0 && !this.travel && !this.hook)) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()) * 1.04; this.P.z += 0.001; this.P.peak = this.P.z; this.coyote = 0; this.jumpBuf = 0; Snd.jump(); }
+    else if (!this.travel) this.jumpBuf = 0.12;
   },
 
   // golpe por clique: mais rápido, mas gasta fôlego
@@ -518,25 +519,30 @@ const Game = {
       P.sprint = wantSprint && !P.tired && P.stamina > 0;
       if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast(tt("Você está cansado! Espere o fôlego voltar."), 'warn'); Snd.tired(); } }
       else if (this.S.time - (this.lastClickT || -9) > 1.2) { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
-      if (len) {
-        mx /= len; my /= len;
-        const sp = this.speed() * (ride ? ride.mult : 1) * (P.sprint ? 1.75 : 1) * (P.tired && !ride ? 0.8 : 1) * climb;
+      // aceleração suave: arranca e para em ~0,1 s (sem "liga/desliga" seco); no ar o controle é mais mole
+      let sp = 0;
+      if (len) { mx /= len; my /= len; sp = this.speed() * (ride ? ride.mult : 1) * (P.sprint ? 1.75 : 1) * (P.tired && !ride ? 0.8 : 1) * climb; }
+      const tau = (len ? 0.075 : 0.055) * (this.onGround() ? 1 : 2.4), kv = 1 - Math.exp(-dt / tau);
+      P.vx += (mx * sp - P.vx) * kv; P.vy += (my * sp - P.vy) * kv;
+      const vs = Math.hypot(P.vx, P.vy);
+      if (vs > 0.03) {
         // passos pequenos para não atravessar obstáculos em alta velocidade
-        const steps = Math.max(1, Math.ceil(sp * dt / 0.4));
-        for (let i = 0; i < steps; i++) { this.moveBy(mx * sp * dt / steps, 0); this.moveBy(0, my * sp * dt / steps); }
-        P.face = Math.atan2(my, mx);
-        P.walkT += dt * sp;
+        const steps = Math.max(1, Math.ceil(vs * dt / 0.4));
+        for (let i = 0; i < steps; i++) { this.moveBy(P.vx * dt / steps, 0); this.moveBy(0, P.vy * dt / steps); }
+        if (len) P.face = Math.atan2(my, mx);
+        P.walkT += dt * vs;
         // passos
-        if (this.onGround() && (!ride || this.S.gear.ride === 1)) {
-          this.stepAcc = (this.stepAcc || 0) + sp * dt;
+        if (len && this.onGround() && (!ride || this.S.gear.ride === 1)) {
+          this.stepAcc = (this.stepAcc || 0) + vs * dt;
           const stride = ride ? 2.4 : P.sprint ? 1.9 : 1.5;
           if (this.stepAcc >= stride) { this.stepAcc = 0; Snd.step(this.surface(), P.sprint); }
         }
-      }
+      } else { P.vx = P.vy = 0; }
       // limite do mundo
       const R = Math.hypot(P.x, P.y), LIM = 4300;
       if (R > LIM) { P.x *= LIM / R; P.y *= LIM / R; if (!this.limT || S.time - this.limT > 5) { this.limT = S.time; UI.toast(tt("Daqui pra frente só há montanhas. Volte para o vale.")); } }
-    } else { P.moving = false; P.sprint = false; }
+    } else { P.moving = false; P.sprint = false; P.vx = P.vy = 0; }
+    P.bobAmp += ((P.moving ? 1 : 0) - P.bobAmp) * Math.min(1, dt * 9);
 
     // pulo
     // pulo e queda: dá para subir em cima de troncos, muros e pedras e andar por cima deles
@@ -544,9 +550,15 @@ const Game = {
     if (support > 0 && !this.onObs) { this.onObs = true; this.S.stats.hops++; } else if (support <= 0) this.onObs = false;
     if (this.travel || this.hook || this.ladder) { /* voando de volta ou escalando */ }
     else if (P.z > support + 0.001 || P.vz > 0) {
-      P.vz -= GRAV * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
-      if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); }
+      P.vz -= GRAV * (P.vz < 0 ? 1.25 : 1) * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
+      if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); if (fall > 0.35) this.landDip = Math.min(0.3, 0.04 + fall * 0.045); }
     } else { P.z = support; P.vz = 0; }
+
+    this.landDip = (this.landDip || 0) * Math.exp(-dt * 9);
+    // pulo mais perdoador: 0,1 s de tolerância ao sair de uma borda e 0,12 s de pulo antecipado
+    this.coyote = this.onGround() ? 0.1 : Math.max(0, (this.coyote || 0) - dt);
+    this.jumpBuf = Math.max(0, (this.jumpBuf || 0) - dt);
+    if (this.jumpBuf > 0 && this.onGround() && !this.travel) { this.jumpBuf = 0; this.jump(); }
 
     // cidade e venda automática
     this.inCity = Math.hypot(P.x, P.y) < CITY_R;

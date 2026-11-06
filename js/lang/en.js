@@ -452,6 +452,8 @@ I18N.en = {
 "Ovo de Dragão": "Dragon Egg",
 "choca no Martelo 60": "hatches at Hammer 60",
 "Mineração · mochila · movimento · pulo": "Mining · bag · movement · jump",
+"Picareta 61": "Pickaxe 61",
+"o que vem depois do 60": "what comes after 60",
 "níveis {0}–{1}": "levels {0}–{1}",
 "Nv ": "Lv ",
 " km": " km",

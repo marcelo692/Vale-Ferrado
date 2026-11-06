@@ -1,8 +1,11 @@
 {
-  "version": "3.3.4",
+  "version": "3.4.0",
   "date": "2026-11-06",
   "notes": [
-    "Picaretas com as pontas viradas para a pedra no golpe (orientação corrigida)"
+    "Movimento mais natural: aceleração suave, pulo com tolerância (coyote time e pulo antecipado), queda mais firme e leve impacto da câmera ao pousar",
+    "Vila mais bonita: fonte em dois andares com jatos, trilhas de pedra, bandeirolas, canteiros e bancos, ninho e brasas no ovo",
+    "Picareta 61 em exibição perto da fonte, soltando faíscas",
+    "Tela de título com a vila ao fundo"
   ],
   "files": [
     {
@@ -15,7 +18,7 @@
     },
     {
       "path": "index.html",
-      "size": 31058
+      "size": 31880
     },
     {
       "path": "js/audio.js",
@@ -31,7 +34,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 49884
+      "size": 51012
     },
     {
       "path": "js/i18n.js",
@@ -39,15 +42,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 51812
+      "size": 51890
     },
     {
       "path": "js/lang/es.js",
-      "size": 53629
+      "size": 53713
     },
     {
       "path": "js/lang/tr.js",
-      "size": 53119
+      "size": 53194
     },
     {
       "path": "js/missions.js",
@@ -59,7 +62,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 159169
+      "size": 170249
     },
     {
       "path": "js/robots.js",
@@ -91,7 +94,7 @@
     },
     {
       "path": "version.json",
-      "size": 1589
+      "size": 1547
     }
   ]
 }

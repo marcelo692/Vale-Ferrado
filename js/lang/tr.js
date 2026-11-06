@@ -452,6 +452,8 @@ I18N.tr = {
 "Ovo de Dragão": "Ejderha Yumurtası",
 "choca no Martelo 60": "Çekiç 60'ta çatlar",
 "Mineração · mochila · movimento · pulo": "Madencilik · çanta · hareket · zıplama",
+"Picareta 61": "Kazma 61",
+"o que vem depois do 60": "60'tan sonra gelen",
 "níveis {0}–{1}": "seviyeler {0}–{1}",
 "Nv ": "Sv ",
 " km": " km",

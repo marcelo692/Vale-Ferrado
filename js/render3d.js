@@ -505,6 +505,105 @@ const Render = {
       this.city.add(g); this.npcObjs.push(g);
     }
     this.houses = new THREE.Group(); this.city.add(this.houses); this.houseEra = -1;
+    this.buildCityDeco();
+  },
+  // ---------- enfeites da vila: fonte, trilhas de pedra, bandeirolas, canteiros, bancos e a picareta 61 ----------
+  buildCityDeco() {
+    const C = this.city, T = () => performance.now() / 1000, gtex = this.getGlowTex();
+    const stone = '#8a8070', light = '#b9ad98';
+    // piso: anéis de pedra clara em volta da fonte e trilhas até cada barraca
+    for (const [r0, r1, col] of [[4.1, 4.5, light], [7.4, 7.65, '#6f6659']]) { const ring = mesh(new THREE.RingGeometry(r0, r1, 48).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: col }), false); ring.position.y = 0.055; C.add(ring); }
+    for (const n of NPCS) {
+      const a = Math.atan2(n.y, n.x), d = Math.hypot(n.x, n.y), len = d - 4.6 - 2.2;
+      const path = mesh(new THREE.BoxGeometry(len, 0.02, 1.2), new THREE.MeshLambertMaterial({ color: '#a2977f' }), false);
+      path.position.set(Math.cos(a) * (4.6 + len / 2), 0.056, Math.sin(a) * (4.6 + len / 2)); path.rotation.y = -a; C.add(path);
+    }
+    // fonte em dois andares com borda de pedra e jatos d'água
+    const rim = mesh(new THREE.TorusGeometry(2.7, 0.2, 6, 20).rotateX(Math.PI / 2), mat('#a09680')); rim.position.y = 0.72; C.add(rim);
+    const step = mesh(new THREE.CylinderGeometry(3.5, 3.7, 0.3, 16), mat('#7a7062')); step.position.y = 0.15; C.add(step);
+    const bowl = mesh(new THREE.CylinderGeometry(1.05, 0.7, 0.35, 12), mat('#a09680')); bowl.position.y = 1.55; C.add(bowl);
+    const bw = mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.06, 12), new THREE.MeshPhongMaterial({ color: '#4a95b5', shininess: 90 }), false); bw.position.y = 1.72; C.add(bw);
+    const NJ = 5, ND = 10, jp = new Float32Array(NJ * ND * 3), jc = new Float32Array(NJ * ND * 3), jg = new THREE.BufferGeometry();
+    jg.setAttribute('position', new THREE.BufferAttribute(jp, 3)); jg.setAttribute('color', new THREE.BufferAttribute(jc, 3));
+    const jets = new THREE.Points(jg, new THREE.PointsMaterial({ map: gtex, size: 0.2, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    jets.frustumCulled = false; C.add(jets);
+    jets.onBeforeRender = () => {
+      const t = T();
+      for (let j = 0; j < NJ; j++) for (let k = 0; k < ND; k++) {
+        const u = ((t * 0.55 + k / ND) % 1), a = j / NJ * Math.PI * 2 + 0.3, r = 0.35 + u * 1.7, y = 2.0 + 1.6 * u - 4.1 * u * u * 1.0, i = (j * ND + k) * 3, f = Math.max(0, y) > 0.7 ? 1 : 0;
+        jp[i] = Math.cos(a) * r; jp[i + 1] = Math.max(0.75, y); jp[i + 2] = Math.sin(a) * r;
+        const fade = f * Math.sin(u * Math.PI); jc[i] = 0.6 * fade; jc[i + 1] = 0.85 * fade; jc[i + 2] = 1 * fade;
+      }
+      jg.attributes.position.needsUpdate = true; jg.attributes.color.needsUpdate = true;
+    };
+    // ninho com gravetos e brilho de brasas em volta do ovo
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const tw = mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.55, 4), mat('#5a3f2a'), false); tw.position.set(Math.cos(a) * 0.72, 2.3, Math.sin(a) * 0.72); tw.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); C.add(tw); }
+    const NE = 14, ep = new Float32Array(NE * 3), ec = new Float32Array(NE * 3), eg = new THREE.BufferGeometry();
+    eg.setAttribute('position', new THREE.BufferAttribute(ep, 3)); eg.setAttribute('color', new THREE.BufferAttribute(ec, 3));
+    const embers = new THREE.Points(eg, new THREE.PointsMaterial({ map: gtex, size: 0.13, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    embers.frustumCulled = false; embers.position.y = 2.6; C.add(embers);
+    embers.onBeforeRender = () => {
+      const t = T(), L = Game.S.hammer, pw = L >= 50 ? 1 : L >= 40 ? 0.75 : L >= 20 ? 0.5 : 0.25;
+      for (let i = 0; i < NE; i++) { const u = (t * 0.25 + i / NE) % 1, a = i * 2.4 + t * 0.6, r = 0.55 + 0.3 * Math.sin(i + t); ep[i * 3] = Math.cos(a) * r; ep[i * 3 + 1] = u * 2.4; ep[i * 3 + 2] = Math.sin(a) * r; const f = Math.sin(u * Math.PI) * pw; ec[i * 3] = 1 * f; ec[i * 3 + 1] = 0.55 * f; ec[i * 3 + 2] = 0.2 * f; }
+      eg.attributes.position.needsUpdate = true; eg.attributes.color.needsUpdate = true;
+    };
+    // bandeirolas ligando as barracas
+    const sorted = NPCS.map(n => ({ x: n.x + Math.cos(n.ang * Math.PI / 180) * 1.4, y: n.y + Math.sin(n.ang * Math.PI / 180) * 1.4, ang: Math.atan2(n.y, n.x) })).sort((p, q) => p.ang - q.ang);
+    const cols = ['#d8483c', '#f0b030', '#3a9ad0', '#58b05a', '#e8dcc0', '#a05ac0'], flags = [];
+    const fg = new THREE.BufferGeometry(); const tri = new Float32Array([-0.12, 0, 0, 0.12, 0, 0, 0, -0.27, 0]); fg.setAttribute('position', new THREE.BufferAttribute(tri, 3)); fg.computeVertexNormals();
+    const NF = sorted.length * 11, fm = new THREE.InstancedMesh(fg, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), NF), dm = new THREE.Object3D(); let fi = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      const A = sorted[i], B = sorted[(i + 1) % sorted.length], pts = [];
+      for (let k = 0; k <= 22; k++) { const u = k / 22; pts.push(new THREE.Vector3(A.x + (B.x - A.x) * u, 3.55 - Math.sin(u * Math.PI) * 0.7, A.y + (B.y - A.y) * u)); }
+      const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#4a3420' })); C.add(ln);
+      for (let k = 0; k < 11; k++) { const p = pts[1 + k * 2], q = pts[Math.min(22, 2 + k * 2)]; dm.position.copy(p); dm.lookAt(q.x, p.y, q.z); dm.rotateY(Math.PI / 2); dm.scale.setScalar(1); dm.updateMatrix(); fm.setMatrixAt(fi, dm.matrix); fm.setColorAt(fi, new THREE.Color(cols[(i + k) % cols.length])); fi++; }
+    }
+    fm.instanceMatrix.needsUpdate = true; fm.instanceColor.needsUpdate = true; C.add(fm);
+    // canteiros de flores e bancos nos vãos entre as barracas (longe das saídas para as regiões)
+    const fcols = ['#e8506a', '#f5c542', '#f0f0f0', '#b06ad8', '#ff8a3d'];
+    for (let i = 0; i < sorted.length; i++) {
+      const A = sorted[i], B = sorted[(i + 1) % sorted.length]; let am = (A.ang + (B.ang + (i === sorted.length - 1 ? Math.PI * 2 : 0))) / 2;
+      if (REGIONS.some(R => Math.abs(Math.atan2(Math.sin(am - R.ang * Math.PI / 180), Math.cos(am - R.ang * Math.PI / 180))) < 0.3)) continue;
+      const g = new THREE.Group(); g.position.set(Math.cos(am) * 12.2, 0, Math.sin(am) * 12.2); g.rotation.y = -am + Math.PI / 2;
+      const box = mesh(new THREE.BoxGeometry(2.6, 0.45, 0.8), mat('#6b4a2e')); box.position.y = 0.25; g.add(box);
+      const soil = mesh(new THREE.BoxGeometry(2.45, 0.08, 0.65), mat('#3d2b1c'), false); soil.position.y = 0.5; g.add(soil);
+      for (let k = 0; k < 9; k++) { const fl = mesh(new THREE.IcosahedronGeometry(0.11, 0), mat(fcols[(i + k) % fcols.length], { emissive: fcols[(i + k) % fcols.length], emissiveIntensity: 0.15 }), false); fl.position.set(-1.05 + k * 0.26, 0.68 + (k % 3) * 0.05, ((k * 7) % 5 - 2) * 0.1); g.add(fl); const st = mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 3), mat('#3f7a3a'), false); st.position.set(fl.position.x, 0.58, fl.position.z); g.add(st); }
+      const bench = new THREE.Group(); bench.position.set(0, 0, -1.5);
+      const seat = mesh(new THREE.BoxGeometry(2.2, 0.1, 0.5), mat('#7a5a3a')); seat.position.y = 0.5; bench.add(seat); const back = mesh(new THREE.BoxGeometry(2.2, 0.4, 0.07), mat('#7a5a3a')); back.position.set(0, 0.8, -0.22); bench.add(back);
+      for (const sx of [-0.95, 0.95]) { const lg = mesh(new THREE.BoxGeometry(0.1, 0.5, 0.45), mat('#4a3420')); lg.position.set(sx, 0.25, 0); bench.add(lg); }
+      bench.rotation.y = Math.PI; g.add(bench); C.add(g);
+    }
+    this.buildPick61();
+  },
+  // picareta 61: relíquia à mostra perto da fonte, soltando faíscas
+  buildPick61() {
+    const C = this.city, gtex = this.getGlowTex();
+    // lugar: no meio do maior vão entre barracas, entre a fonte e as barracas
+    const angs = NPCS.map(n => Math.atan2(n.y, n.x)).sort((a, b) => a - b); let best = 0, ba = 0;
+    for (let i = 0; i < angs.length; i++) { const a = angs[i], b = i === angs.length - 1 ? angs[0] + Math.PI * 2 : angs[i + 1], gap = b - a; if (gap > best && !REGIONS.some(R => Math.abs(Math.atan2(Math.sin((a + gap / 2) - R.ang * Math.PI / 180), Math.cos((a + gap / 2) - R.ang * Math.PI / 180))) < 0.3)) { best = gap; ba = a + gap / 2; } }
+    const g = new THREE.Group(); g.position.set(Math.cos(ba) * 6.2, 0, Math.sin(ba) * 6.2);
+    const base = mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.35, 8), mat('#6f6659')); base.position.y = 0.18; g.add(base);
+    const ped = mesh(new THREE.CylinderGeometry(0.55, 0.8, 1.1, 8), mat('#8a8070')); ped.position.y = 0.9; g.add(ped);
+    const cap = mesh(new THREE.CylinderGeometry(0.85, 0.6, 0.18, 8), mat('#b9ad98')); cap.position.y = 1.5; g.add(cap);
+    const pick = this.makeHammer(61); pick.scale.setScalar(1.25); pick.rotation.set(0, 0, -0.5); pick.position.y = 1.75;
+    const hold = new THREE.Group(); hold.add(pick); hold.position.y = 0; g.add(hold);
+    // chuva de faíscas dos dois bicos
+    const NS = 46, sp = new Float32Array(NS * 3), sc = new Float32Array(NS * 3), sg = new THREE.BufferGeometry(), seed = Array.from({ length: NS }, () => ({ a: Math.random() * 6.28, s: 0.5 + Math.random() * 0.9, r: Math.random(), v: 0.8 + Math.random() * 1.6, side: Math.random() < 0.5 ? -1 : 1 }));
+    sg.setAttribute('position', new THREE.BufferAttribute(sp, 3)); sg.setAttribute('color', new THREE.BufferAttribute(sc, 3));
+    const sparks = new THREE.Points(sg, new THREE.PointsMaterial({ map: gtex, size: 0.14, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    sparks.frustumCulled = false; g.add(sparks);
+    const hv = new THREE.Vector3();
+    sparks.onBeforeRender = () => {
+      const t = performance.now() / 1000; hold.updateMatrixWorld(true); pick.userData.head.getWorldPosition(hv); g.worldToLocal(hv);
+      for (let i = 0; i < NS; i++) { const q = seed[i], u = ((t * q.s * 0.9) + q.r) % 1, life = u * 1.1, hx = Math.cos(hold.rotation.y) * q.side * 0.9, hz = -Math.sin(hold.rotation.y) * q.side * 0.9;
+        sp[i * 3] = hv.x + hx + Math.cos(q.a) * q.v * life * 0.9; sp[i * 3 + 1] = hv.y + q.v * life * 1.6 - 5.2 * life * life; sp[i * 3 + 2] = hv.z + hz + Math.sin(q.a) * q.v * life * 0.9;
+        const f = Math.max(0, 1 - u) * Math.min(1, u * 10); sc[i * 3] = 1 * f; sc[i * 3 + 1] = (0.6 + 0.3 * q.r) * f; sc[i * 3 + 2] = 0.2 * f; }
+      hold.position.y = Math.sin(t * 1.4) * 0.12; hold.rotation.y = t * 0.5;
+      sg.attributes.position.needsUpdate = true; sg.attributes.color.needsUpdate = true;
+    };
+    const lab = labelSprite(tt("Picareta 61"), tt("o que vem depois do 60"), '#ffe27a', 0.7); lab.position.y = 6.2; g.add(lab);
+    const lt = new THREE.PointLight('#ffcf6a', 0.9, 9, 2); lt.position.y = 3; g.add(lt);
+    C.add(g); this.pick61 = g;
   },
   shopIcon(id) {
     const g = new THREE.Group();
@@ -977,8 +1076,8 @@ const Render = {
   },
   // ---------- picaretas (martelos 31 a 59): cada faixa fica mais enfeitada, com brilho e partículas crescentes ----------
   makePick(L, g, handle, len, hw, hl) {
-    const p = (L - 31) / 28, tier = L <= 34 ? 0 : L <= 37 ? 1 : L <= 40 ? 2 : L <= 44 ? 3 : L <= 47 ? 4 : L <= 50 ? 5 : L <= 55 ? 6 : L <= 57 ? 7 : 8;
-    const gem = hammerLook(L).head;
+    const p = Math.min(1, (L - 31) / 28), tier = L >= 61 ? 9 : L <= 34 ? 0 : L <= 37 ? 1 : L <= 40 ? 2 : L <= 44 ? 3 : L <= 47 ? 4 : L <= 50 ? 5 : L <= 55 ? 6 : L <= 57 ? 7 : 8;
+    const gem = L >= 61 ? '#ffe27a' : hammerLook(L).head;
     const PAL = [
       { h: '#8e949c', t: '#c4cad0', glow: null },
       { h: '#5f6a76', t: '#c9d3dd', glow: '#bfe6ff' },
@@ -989,6 +1088,7 @@ const Render = {
       { h: '#33363f', t: '#e8ecf4', glow: gem },
       { h: '#cfd6e2', t: '#ffffff', glow: gem },
       { h: '#2a2224', t: '#ff8a3d', glow: '#ff6a2a' },
+      { h: '#f2ead2', t: '#ffd34d', glow: '#ffe27a' },
     ][tier];
     const gcol = new THREE.Color(PAL.glow || '#ffffff'), glowOn = !!PAL.glow;
     handle.material = mat(L >= 41 ? '#2a2230' : '#5a3f2a');
@@ -997,7 +1097,7 @@ const Render = {
     if (tier >= 2) { const pm = mesh(new THREE.SphereGeometry(hr * 1.7, 8, 6), mat(PAL.t, { shininess: 90 }), false); pm.position.y = 0.02; g.add(pm); }
     const head = new THREE.Group(); head.position.y = len; // eixo da cabeça = direção do golpe: as pontas ficam viradas para a pedra
     const half = hl * 0.72, arch = hl * 0.3, depth = hw * 1.15, thk = hw * 1.5, N = 9;
-    const k0 = L - [31, 35, 38, 41, 45, 48, 51, 56, 58][tier], hc = new THREE.Color(PAL.h).offsetHSL(0, 0.015 * k0, 0.014 * k0).getStyle();
+    const k0 = L - [31, 35, 38, 41, 45, 48, 51, 56, 58, 61][tier], hc = new THREE.Color(PAL.h).offsetHSL(0, 0.015 * k0, 0.014 * k0).getStyle();
     const hm = mat(hc, Object.assign({ shininess: 80, specular: '#999' }, tier >= 8 ? { emissive: '#5a1a00', emissiveIntensity: 0.4 } : {}));
     const P = t => [t * half, arch * (1 - t * t)];
     for (let i = 0; i < N; i++) {
@@ -1005,13 +1105,13 @@ const Render = {
       const sl = Math.hypot(x1 - x0, y1 - y0), th = thk * (1 - 0.72 * Math.pow(Math.abs(tm), 1.3)) + 0.015, dp = depth * (1 - 0.35 * Math.abs(tm));
       const seg = mesh(new THREE.BoxGeometry(sl * 1.06, th, dp), hm, false); seg.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0); seg.rotation.z = Math.atan2(y1 - y0, x1 - x0); head.add(seg);
       if (tier === 8 && i % 2 === 0) for (const sd of [-1, 1]) { const v = mesh(new THREE.BoxGeometry(sl * 0.7, th * 0.22, 0.01), new THREE.MeshBasicMaterial({ color: '#ff7a2e' }), false); v.position.set(seg.position.x, seg.position.y, sd * (dp / 2 + 0.003)); v.rotation.z = seg.rotation.z; head.add(v); }
-      if (tier >= 4 && tier <= 5 && Math.abs(tm) < 0.5) for (const sd of [-1, 1]) { const rn = mesh(new THREE.BoxGeometry(sl * 0.35, th * 0.3, 0.01), new THREE.MeshBasicMaterial({ color: PAL.glow }), false); rn.position.set(seg.position.x, seg.position.y, sd * (dp / 2 + 0.003)); rn.rotation.z = seg.rotation.z; head.add(rn); }
+      if ((tier === 4 || tier === 5 || tier === 9) && Math.abs(tm) < 0.5) for (const sd of [-1, 1]) { const rn = mesh(new THREE.BoxGeometry(sl * 0.35, th * 0.3, 0.01), new THREE.MeshBasicMaterial({ color: PAL.glow }), false); rn.position.set(seg.position.x, seg.position.y, sd * (dp / 2 + 0.003)); rn.rotation.z = seg.rotation.z; head.add(rn); }
     }
     for (const sd of [-1, 1]) { const [tx, ty] = P(sd); const tip = mesh(new THREE.ConeGeometry(thk * 0.3, hl * 0.28, 5), mat(PAL.t, Object.assign({ shininess: 110, specular: '#fff' }, tier >= 4 ? { emissive: PAL.glow || '#fff', emissiveIntensity: 0.3 } : {})), false); tip.rotation.z = -sd * (Math.PI / 2 + 0.55); tip.position.set(tx + sd * hl * 0.1, ty - hl * 0.1, 0); head.add(tip); }
     const sock = mesh(new THREE.BoxGeometry(hw * 1.5, thk * 1.2, depth * 1.45), mat(PAL.t, { shininess: 90, specular: '#fff' }), false); sock.position.y = arch * 0.82; head.add(sock);
     const col = mesh(new THREE.CylinderGeometry(hr * 2.0, hr * 1.6, 0.06, 8), mat(PAL.t, { shininess: 90 }), false); col.position.y = -0.02; head.add(col);
-    if (tier >= 5) for (let i = 0; i < (tier >= 7 ? 3 : 1); i++) { const x = (i - (tier >= 7 ? 1 : 0)) * half * 0.38, [, y] = P(x / half); const sp = mesh(new THREE.ConeGeometry(thk * 0.2, thk * 0.9, 4), mat(PAL.t, { emissive: PAL.glow, emissiveIntensity: 0.5 }), false); sp.position.set(x, y + thk * 0.75, 0); head.add(sp); }
-    if (tier === 6 || tier === 7) {
+    if (tier >= 5) for (let i = 0; i < (tier === 9 ? 5 : tier >= 7 ? 3 : 1); i++) { const x = (i - (tier === 9 ? 2 : tier >= 7 ? 1 : 0)) * half * 0.38, [, y] = P(x / half); const sp = mesh(new THREE.ConeGeometry(thk * 0.2, thk * 0.9, 4), mat(PAL.t, { emissive: PAL.glow, emissiveIntensity: 0.5 }), false); sp.position.set(x, y + thk * 0.75, 0); head.add(sp); }
+    if (tier === 6 || tier === 7 || tier === 9) {
       const gm = () => mat(gem, { emissive: gem, emissiveIntensity: 0.9, shininess: 150, specular: '#ffffff', transparent: true, opacity: 0.92 });
       const g0 = mesh(new THREE.OctahedronGeometry(thk * 0.85, 0), gm(), false); g0.scale.set(0.8, 1.1, 0.8); g0.position.set(0, arch + thk * 0.55, 0); head.add(g0);
       for (const sd of [-1, 1]) { const g1 = mesh(new THREE.OctahedronGeometry(thk * 0.42, 0), gm(), false); const [gx, gy] = P(sd * 0.62); g1.position.set(gx, gy + thk * 0.35, 0); head.add(g1); }
@@ -1043,9 +1143,9 @@ const Render = {
       head.add(pts);
     }
     if (tier >= 7) {
-      const orbit = new THREE.Group(), cnt = tier === 8 ? 5 : 3; orbit.position.y = arch * 0.7; head.add(orbit);
+      const orbit = new THREE.Group(), cnt = tier === 9 ? 8 : tier === 8 ? 5 : 3; orbit.position.y = arch * 0.7; head.add(orbit);
       for (let i = 0; i < cnt; i++) {
-        const c = i % 2 ? '#ffffff' : (PAL.glow || '#fff'), sh = mesh(new THREE.OctahedronGeometry(0.035 + p * 0.03, 0), new THREE.MeshBasicMaterial({ color: c }), false);
+        const c = tier === 9 ? ['#ff6a6a', '#ffd34d', '#7af0ff', '#c06af0'][i % 4] : i % 2 ? '#ffffff' : (PAL.glow || '#fff'), sh = mesh(new THREE.OctahedronGeometry(0.035 + p * 0.03, 0), new THREE.MeshBasicMaterial({ color: c }), false);
         const a = i / cnt * Math.PI * 2; sh.position.set(Math.cos(a) * hl * 0.95, Math.sin(a * 2) * 0.05, Math.sin(a) * hl * 0.95); orbit.add(sh);
         if (i === 0) sh.onBeforeRender = () => { orbit.rotation.y = performance.now() / 1000 * 2.6; };
       }
@@ -1058,7 +1158,7 @@ const Render = {
     const len = 0.5 + L * 0.02, hw = 0.07 + L * 0.004, hl = 0.18 + L * 0.011;
     const emi = look.glow ? { emissive: look.glow, emissiveIntensity: 0.35 } : {};
     const handle = mesh(new THREE.CylinderGeometry(0.022 + L * 0.0006, 0.028 + L * 0.0006, len, 6), mat(look.handle), false); handle.position.y = len / 2; g.add(handle);
-    if (L >= 31 && L <= 59) return this.makePick(L, g, handle, len, hw, hl);
+    if ((L >= 31 && L <= 59) || L === 61) return this.makePick(L, g, handle, len, hw, hl);
     let head;
     if (look.type === 'wood' && L <= 3) head = mesh(new THREE.CylinderGeometry(0.035 + L * 0.008, 0.03, 0.18 + L * 0.03, 6), mat(look.head), false), head.position.y = len + 0.05;
     else if (look.type === 'wood') { head = mesh(new THREE.CylinderGeometry(hw * 1.1, hw * 1.1, hl, 8), mat(look.head), false); head.rotation.z = Math.PI / 2; head.position.y = len; }
@@ -1713,13 +1813,13 @@ const Render = {
     this.updateNearGround(); this.updateGrass(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
-    const bob = P.moving && P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) : 0;
+    const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;
     const shake = Game.shake * 0.012;
     this.cam.rotation.set(P.pitch + (Math.random() - 0.5) * shake, P.yaw + (Math.random() - 0.5) * shake, 0);
     const rh = this.rideH(), ridingNow = !!Game.ride();
     let fwd = FP_FWD;
     if (this.view === 'fp') { const feet = gh + P.z; for (let i = 0; i < 4 && fwd > 0; i++) { const cx = P.x - Math.sin(P.yaw) * (fwd + 0.3), cz = P.y - Math.cos(P.yaw) * (fwd + 0.3); if (World.height(cx, cz) > feet + 0.05) fwd -= 0.1; else break; } fwd = Math.max(0, fwd); }
-    if (this.view === 'fp') this.cam.position.set(P.x - Math.sin(P.yaw) * fwd, gh + P.z + EYE + rh + (ridingNow ? bob * 0.2 : bob), P.y - Math.cos(P.yaw) * fwd);
+    if (this.view === 'fp') this.cam.position.set(P.x - Math.sin(P.yaw) * fwd, gh + P.z + EYE + rh + (ridingNow ? bob * 0.2 : bob) - (Game.landDip || 0), P.y - Math.cos(P.yaw) * fwd);
     else {
       const bs = this.gear().bag.size, back = 4 + bs * 2.2, fx = Math.sin(P.yaw) * Math.cos(P.pitch), fz = Math.cos(P.yaw) * Math.cos(P.pitch);
       const cx = P.x + fx * back + Math.cos(P.yaw) * 0.7, cz = P.y + fz * back - Math.sin(P.yaw) * 0.7; // câmera sobre o ombro
