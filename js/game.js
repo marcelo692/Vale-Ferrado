@@ -47,6 +47,7 @@ const Game = {
     this.fixSoldSpecials();
     Missions.init();
     if (this.S.world) World.restore(this.S.world);
+    World.setupSeal();
     // robôs trabalhando com o jogo fechado (metade do ritmo, até 8 horas)
     const S = this.S;
     if ((S.robots || 0) > 0 && lastSeen && (S.robotTime || 0) > 60 && S.robotValue > 0) {
@@ -185,7 +186,7 @@ const Game = {
   },
   interact() {
     const n = this.npcNear();
-    if (n) UI.openNpc(n.id);
+    if (n) UI.openNpc(n.id); else if (this.pickNear()) this.takePick61();
   },
 
   // ---------- power-ups ----------
@@ -573,7 +574,7 @@ const Game = {
     this.clickCD = Math.max(0, (this.clickCD || 0) - dt);
     this.swingAnim = Math.max(0, (this.swingAnim || 0) - dt);
     if (this.mouse.down) this.mouse.holdT = (this.mouse.holdT || 0) + dt;
-    const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear());
+    const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear() && !this.pickNear());
     const mining = !UI.open && !this.travel && this.target && holding && this.onGround();
     if (mining) {
       this.mineT += dt;
@@ -615,7 +616,11 @@ const Game = {
 
   hit(n, mult = 1, click = false) {
     // regra do nível: pedra muito acima do martelo não quebra; até 10 acima, demora mais
-    const rule = n.res.wild ? { mult: 1, blocked: false } : levelRule(n.res.ideal, this.S.hammer);
+    if (n.res.sealed && this.S.hammer < 61) {
+      if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("🔒 A Pedra Selada só quebra com o Martelo 61."), 'warn'); }
+      Snd.denied(); Snd.hit('scrap', 1, false); this.shake = Math.min(1, this.shake + 0.1); this.mineT = 0; return;
+    }
+    const rule = n.res.wild || n.res.sealed ? { mult: 1, blocked: false } : levelRule(n.res.ideal, this.S.hammer);
     if (rule.blocked) {
       if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("🔒 {0} é nível {1}: precisa do Martelo {2} ou melhor.", n.res.name, n.res.ideal, n.res.ideal - LEVEL_LOCK), 'warn'); }
       Snd.denied(); Snd.hit('scrap', 1, false); this.shake = Math.min(1, this.shake + 0.1); this.mineT = 0; return;
@@ -624,17 +629,18 @@ const Game = {
       if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("O Geodo de Poção abre com 1 Cintilha. Minere pedras para achar Cintilhas."), 'warn'); }
       Snd.denied(); this.mineT = 0; return;
     }
-    if (this.free() <= 0 && !n.res.wild) {
+    if (this.free() <= 0 && !n.res.wild && !n.res.sealed) {
       if (this.fullWarnT <= 0) { UI.toast(tt("Mochila cheia! Volte à cidade para vender."), 'warn'); this.fullWarnT = 4; Snd.warn(); }
       this.mineT = 0; return;
     }
     const dmg = this.force() * mult / rule.mult;
     n.hp -= dmg; n.hitT = 0.15;
     Render.hitFx(n, { dmg, click, broke: n.hp <= 0 });
-    Snd.hit(n.res.kind, this.S.hammer, n.rare > 1);
+    Snd.hit(n.res.sealed ? 'crystal' : n.res.kind, Math.min(60, this.S.hammer), n.rare > 1);
     this.shake = Math.min(1, this.shake + 0.15 + Math.min(0.4, this.S.hammer / 120));
     this.fxBurst(n.x, n.y, n.res.c2, 4 + Math.min(10, Math.floor(this.S.hammer / 6)), 0.8);
     if (this.mult('force') > 1) this.fxBurst(n.x, n.y, '#ff8a3d', 3, 0.6);
+    if (n.hp <= 0 && n.res.sealed) { this.breakSeal(n); return; }
     if (n.hp <= 0 && n.res.wild) { this.breakWild(n); return; }
     if (n.hp <= 0) {
       // chance de achar uma Cintilha dentro da pedra
@@ -675,6 +681,32 @@ const Game = {
     World.breakNode(n); if (this.target === n) this.target = null;
     this.save();
   },
+  // a Pedra Selada da Zona 7 quebrou: a porta do dragão se abre uma fresta (segredo do jogo)
+  breakSeal(n) {
+    const S = this.S;
+    this.fxBurst(n.x, n.y, '#ffd34d', 60, 2.2); this.fxBurst(n.x, n.y, '#c06af0', 40, 2.6); Snd.breakNode('crystal', 3);
+    S.seal = 1; S.stats.seal = 1; this.gotCint(n.x, n.y, 30); this.shake = 1;
+    World.breakNode(n); if (this.target === n) this.target = null;
+    Render.openSeal(true);
+    setTimeout(() => { UI.toast(tt("🐉 A porta se entreabriu… do outro lado, algo respira bem devagar. O dragão ainda dorme. Volte quando o ovo chocar."), 'level'); Snd.levelUp(); }, 900);
+    Platform.happy(); this.save();
+  },
+  // Picareta 61 no pedestal da vila: só quem completou o Martelo 60 pode pegar
+  pickNear() {
+    const g = Render.pick61; if (!g || !g.visible || !this.inCity) return false;
+    return Math.hypot(g.position.x - this.P.x, g.position.z - this.P.y) < 3.6;
+  },
+  takePick61() {
+    const S = this.S;
+    if (S.hammer < 60) { UI.toast(tt("🔒 A Picareta 61 está lacrada. Só quem completar o Martelo do Vale (nível 60) consegue tocá-la."), 'warn'); Snd.denied(); return; }
+    if (S.hammer > 60) return;
+    S.hammer = 61; Snd.forge(); Snd.levelUp(); this.mark('martelo61'); this.shake = 1;
+    this.fxBurst(this.P.x, this.P.y, '#ffe27a', 50, 1.8);
+    Render.pick61.visible = false; Render.pedestalLit = true;
+    UI.toast(tt("✦ Você pegou a Picareta 61! Uma coluna de luz acendeu no Sudeste. Siga-a até a Zona 7."), 'level');
+    if (!S.seen[61]) setTimeout(() => UI.story(61), 500);
+    this.save();
+  },
   buyOlho() {
     const L = (this.S.olho || 0) + 1; if (L >= OLHO.length || this.S.money < OLHO[L]) return;
     this.S.money -= OLHO[L]; this.S.olho = L; Snd.levelUp();
@@ -699,6 +731,7 @@ const Game = {
   moveBy(dx, dy) {
     const P = this.P;
     const nx = P.x + dx, ny = P.y + dy;
+    for (const o of World.solids) if (Math.hypot(nx - o.x, ny - o.y) < o.r + 0.4) return;
     for (const o of World.obstacles) {
       if (P.z >= o.h * 0.9) continue; // está acima do obstáculo: pode passar (ou andar por cima)
       if (this.inObstacle(o, nx, ny)) return; // bloqueado

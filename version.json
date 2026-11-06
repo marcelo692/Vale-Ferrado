@@ -1,11 +1,11 @@
 {
-  "version": "3.4.0",
+  "version": "3.5.0",
   "date": "2026-11-06",
   "notes": [
-    "Movimento mais natural: aceleração suave, pulo com tolerância (coyote time e pulo antecipado), queda mais firme e leve impacto da câmera ao pousar",
-    "Vila mais bonita: fonte em dois andares com jatos, trilhas de pedra, bandeirolas, canteiros e bancos, ninho e brasas no ovo",
-    "Picareta 61 em exibição perto da fonte, soltando faíscas",
-    "Tela de título com a vila ao fundo"
+    "Estradas de terra da vila até a metade do caminho das minas 2 a 6, com placa no fim",
+    "Impacto da picareta com cor e brasas próprias em cada faixa (31 a 61)",
+    "Segredo: Picareta 61 no pedestal da vila e a Zona 7 com a Pedra Selada, a porta do dragão e inscrições rúnicas nas 4 línguas",
+    "Placas de rua com texto que cabe na tabuleta"
   ],
   "files": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "path": "index.html",
-      "size": 31880
+      "size": 31916
     },
     {
       "path": "js/audio.js",
@@ -30,11 +30,11 @@
     },
     {
       "path": "js/data.js",
-      "size": 24670
+      "size": 25307
     },
     {
       "path": "js/game.js",
-      "size": 51012
+      "size": 53235
     },
     {
       "path": "js/i18n.js",
@@ -42,19 +42,19 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 51890
+      "size": 54067
     },
     {
       "path": "js/lang/es.js",
-      "size": 53713
+      "size": 55892
     },
     {
       "path": "js/lang/tr.js",
-      "size": 53194
+      "size": 55381
     },
     {
       "path": "js/missions.js",
-      "size": 16637
+      "size": 16956
     },
     {
       "path": "js/platform.js",
@@ -62,7 +62,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 170249
+      "size": 177487
     },
     {
       "path": "js/robots.js",
@@ -70,7 +70,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 33941
+      "size": 34102
     },
     {
       "path": "js/updater.js",
@@ -82,7 +82,11 @@
     },
     {
       "path": "js/world.js",
-      "size": 19802
+      "size": 20958
+    },
+    {
+      "path": "js/zone7.js",
+      "size": 22258
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -94,7 +98,7 @@
     },
     {
       "path": "version.json",
-      "size": 1547
+      "size": 1860
     }
   ]
 }

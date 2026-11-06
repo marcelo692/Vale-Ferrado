@@ -109,6 +109,8 @@ const Missions = {
   // missão em destaque (mostrada no HUD e usada pela seta)
   current() {
     const S = Game.S;
+    // segredo do fim do jogo: a Picareta 61 leva até a Zona 7
+    if (S.hammer >= 61 && !S.seal) return { t: tt("Vá até a Zona 7, a Sudeste, e rompa a Pedra Selada"), cur: 0, max: 1, reward: 0, target: { x: Z7.at(-8, 0).x, y: Z7.at(-8, 0).y, label: tt("Zona 7"), always: true } };
     if (S.mi < MISSION_CHAIN.length) { const m = MISSION_CHAIN[S.mi]; return { n: S.mi + 1, of: MISSION_CHAIN.length, t: m.t, d: m.d, cur: Math.max(0, Math.min(m.max, m.cur(S.mb))), max: m.max, reward: m.reward, target: m.target() }; }
     const m = S.rot[0]; if (!m) return null;
     const T = ROT_TYPES[m.type];
@@ -170,7 +172,7 @@ const Missions = {
     const c = this.current();
     if (!c || UI.open) { el.style.display = 'none'; return; }
     el.style.display = 'block';
-    el.innerHTML = `<div class="mh">📜 ${c.n ? tt("Missão {0}/{1}", c.n, c.of) : tt("Missão")} <kbd>J</kbd><span>+${fmt(c.reward)}</span></div><div class="mt">${c.t}</div>${c.max > 1 ? `<i class="mpb"><em style="width:${c.cur / c.max * 100}%"></em></i><small>${fmt(c.cur)} / ${fmt(c.max)}</small>` : ''}`;
+    el.innerHTML = `<div class="mh">📜 ${c.n ? tt("Missão {0}/{1}", c.n, c.of) : tt("Missão")} <kbd>J</kbd>${c.reward ? `<span>+${fmt(c.reward)}</span>` : ''}</div><div class="mt">${c.t}</div>${c.max > 1 ? `<i class="mpb"><em style="width:${c.cur / c.max * 100}%"></em></i><small>${fmt(c.cur)} / ${fmt(c.max)}</small>` : ''}`;
   },
   // para onde a seta aponta
   // a seta é o detector: sem detector (ou desligado) não aparece; só acha recursos dentro do alcance dele
@@ -185,7 +187,7 @@ const Missions = {
       if (!sel.includes(o)) continue;
       let t = null;
       if (o === 'achados') { const w = near(n => n.res.wild && (n.res.id === 'veiocint' || (S.cint || 0) >= 1)); if (w) t = { x: w.x, y: w.y, label: '✦ ' + w.res.name }; }
-      else if (o === 'missao') { const c = this.current(); t = c && c.target; if (t && t.label !== tt('Vila') && !NPCS.some(n => n.name === t.label)) t = inRange(t); }
+      else if (o === 'missao') { const c = this.current(); t = c && c.target; if (t && !t.always && t.label !== tt('Vila') && !NPCS.some(n => n.name === t.label)) t = inRange(t); }
       else if (o === 'falta') { const miss = Game.missingList().filter(m => !levelRule(RES[m.id].ideal, S.hammer).blocked).map(m => m.id); const n = near(n => miss.includes(n.res.id)); if (n) t = { x: n.x, y: n.y, label: n.res.name + tt(" (falta)") }; }
       else if (o === 'recurso' && S.detRes) { const n = near(n => n.res.id === S.detRes); if (n) t = { x: n.x, y: n.y, label: n.res.name }; }
       else if (o === 'veios') { const n = near(n => n.rare > 1 && !levelRule(n.res.ideal, S.hammer).blocked); if (n) t = { x: n.x, y: n.y, label: (n.rare === 10 ? '💎 ' : '✨ ') + n.res.name }; }

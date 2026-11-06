@@ -350,8 +350,9 @@ const UI = {
     $('pws').innerHTML = pw; $('pws').style.display = pw ? 'flex' : 'none';
     // dica NPC
     const npc = G.npcNear();
-    $('npchint').textContent = npc && !this.open ? tt("[E] Falar com {0}", npc.name) : '';
-    $('npchint').style.display = npc && !this.open ? 'block' : 'none';
+    const pk = !npc && G.pickNear(), hint = npc ? tt("[E] Falar com {0}", npc.name) : pk ? (S.hammer >= 60 ? tt("[E] Pegar a Picareta 61") : tt("[E] Tocar a Picareta 61 (lacrada)")) : '';
+    $('npchint').textContent = hint && !this.open ? hint : '';
+    $('npchint').style.display = hint && !this.open ? 'block' : 'none';
     // atualiza só as lojas dos NPCs (as outras janelas não são lojas)
     if (['ferreiro', 'tropeira', 'botica', 'armazem'].includes(this.open) && Math.random() < 0.05) this.renderPanel();
     // relógio

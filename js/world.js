@@ -4,6 +4,11 @@
 'use strict';
 
 const CITY_R = 22; // raio da cidade em metros
+// Zona 7: a zona que não existe (segredo do fim do jogo), a sudeste, depois da Serra
+const Z7 = { ang: 45, d: 2600, flatR: 75 };
+Z7.ux = Math.cos(Z7.ang * Math.PI / 180); Z7.uy = Math.sin(Z7.ang * Math.PI / 180); Z7.vx = -Z7.uy; Z7.vy = Z7.ux; Z7.x = Z7.ux * Z7.d; Z7.y = Z7.uy * Z7.d;
+Z7.at = (a, b) => ({ x: Z7.x + Z7.ux * a + Z7.vx * b, y: Z7.y + Z7.uy * a + Z7.vy * b }); // a: para longe da cidade, b: para o lado
+Z7.WALL_A = 32; // a muralha da porta fica 32 m além do centro
 // valões: cada região (menos a primeira) é uma cava em 10 degraus, cada uma mais funda que a anterior
 const PIT_REGIONS = [1, 2, 3, 4, 5];
 const PIT_RW = 6;            // largura das rampas no meio de cada degrau (regiões 2 a 5; a 6 não tem rampa)
@@ -185,6 +190,16 @@ const World = {
     this.pending.push({ t: delay, s: si });
   },
 
+  // paredes da Zona 7 (círculos de colisão) e a Pedra Selada
+  solids: [],
+  SEAL_SUB: { wild: true, nodes: [], spawnPts: [], harvest: 0 },
+  setupSeal() {
+    this.nodes = this.nodes.filter(n => !n.res.sealed); this.SEAL_SUB.nodes = [];
+    if (Game.S.seal) return;
+    const p = Z7.at(14, 0), hp = SEAL.hard;
+    const node = { x: p.x, y: p.y, pt: { used: true }, sub: this.SEAL_SUB, res: SEAL, size: 2, rare: 1, hp, maxHp: hp, r: 4.2, seed: 7.7, hitT: 0, born: 0 };
+    this.SEAL_SUB.nodes.push(node); this.nodes.push(node);
+  },
   rescue: {},
   // ---------- achados espalhados pelo mapa: Veio de Cintilha e Geodo de Poção ----------
   WILD_SUB: { wild: true, nodes: [], spawnPts: [], harvest: 0 },
@@ -210,7 +225,7 @@ const World = {
   WORLD_V: 2,
   serialize() {
     const nodes = [];
-    for (const n of this.nodes) { if (n.res.wild) continue; const s = this.subs.indexOf(n.sub); nodes.push([s, n.sub.spawnPts.indexOf(n.pt), n.res.id, n.size, n.rare, Math.round(n.hp)]); }
+    for (const n of this.nodes) { if (n.res.wild || n.res.sealed) continue; const s = this.subs.indexOf(n.sub); nodes.push([s, n.sub.spawnPts.indexOf(n.pt), n.res.id, n.size, n.rare, Math.round(n.hp)]); }
     return { v: this.WORLD_V, nodes, pending: this.pending.map(p => [Math.round(p.t), p.s, p.f || 0, p.rescue ? 1 : 0]) };
   },
   restore(w) {
@@ -341,7 +356,8 @@ const World = {
   // relevo suave do terreno (plano na cidade)
   height(x, y) {
     const d = Math.hypot(x, y);
-    const flat = Math.min(1, Math.max(0, (d - CITY_R - 4) / 30));
+    let flat = Math.min(1, Math.max(0, (d - CITY_R - 4) / 30));
+    if (d > Z7.d - 140) flat = Math.min(flat, smooth01(Z7.flatR * 0.6, Z7.flatR * 1.5, Math.hypot(x - Z7.x, y - Z7.y)));
     if (flat <= 0) return 0;
     const amp = Math.min(5, 1.2 + d / 700);
     const h = Math.sin(x * 0.021 + 1.3) * Math.cos(y * 0.017 - 0.7) * 0.9

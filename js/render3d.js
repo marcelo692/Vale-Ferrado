@@ -15,10 +15,13 @@ function canvasTex(w, h, draw, repeat) {
   t.anisotropy = 4;
   return t;
 }
+// estrada: região 1 vai até a mina; das outras, só até a metade do caminho
+function roadEnd(R) { return R.id === 0 ? R.dMin + 10 : R.dMin * 0.5; }
+function roadSway(R, d) { return Math.sin(d / 23 + R.id) * 2.5; }
 function labelSprite(text, sub, color = '#f5e6c8', scale = 1) {
   const tex = canvasTex(512, 128, (g, w, h) => {
     g.fillStyle = 'rgba(20,14,8,0.72)'; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 18); g.fill();
-    g.textAlign = 'center'; g.fillStyle = color; g.font = '700 46px Georgia, serif'; g.fillText(text, w / 2, sub ? 62 : 80);
+    g.textAlign = 'center'; g.fillStyle = color; let fs = 46; g.font = `700 ${fs}px Georgia, serif`; while (g.measureText(text).width > w - 44 && fs > 20) { fs -= 2; g.font = `700 ${fs}px Georgia, serif`; } g.fillText(text, w / 2, sub ? 62 : 80);
     if (sub) { g.font = '30px system-ui, sans-serif'; g.fillStyle = '#d8c8a8'; g.fillText(sub, w / 2, 104); }
   });
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, fog: true }));
@@ -79,6 +82,7 @@ const Render = {
     this.buildSky();
     this.buildGround();
     this.buildCity();
+    this.buildZone7();
     this.buildRoadsAndRiver();
     this.buildObstacles();
     this.buildPitWalls();
@@ -377,7 +381,7 @@ const Render = {
     // estradas
     for (const R of REGIONS) {
       const l = World.local(R, x, y);
-      if (l.d > 0 && l.d < R.dMin + 10) { const w = Math.sin(l.d / 23 + R.id) * 2.5; if (Math.abs(l.p - w) < 1.9) { out.set('#8a7454'); out.offsetHSL(0, 0, n); return out; } }
+      if (l.d > 0 && l.d < roadEnd(R)) { const w = roadSway(R, l.d); if (Math.abs(l.p - w) < 1.9) { out.set('#8a7454'); out.offsetHSL(0, 0, n); return out; } }
     }
     const g = World.groundAt(x, y);
     if (g) {
@@ -401,6 +405,7 @@ const Render = {
       if (m.H > 45 && t > 0.72) out.lerp(this._snow || (this._snow = new THREE.Color('#f2f4f8')), Math.min(1, (t - 0.72) * 5));
     }
     out.offsetHSL(0, 0, n);
+    if (d > Z7.d - 110) { const dz = Math.hypot(x - Z7.x, y - Z7.y); if (dz < 85) out.lerp(this._z7c || (this._z7c = new THREE.Color('#5c566a')), 1 - smooth01(34, 82, dz)); }
     return out;
   },
   buildGround() {
@@ -649,6 +654,49 @@ const Render = {
     }
   },
 
+  // estradas de terra visíveis de longe: das minas 2 a 6, saem da cidade e vão até a metade do caminho
+  buildMineRoads() {
+    const tex = canvasTex(128, 256, (g, w, h) => {
+      const gr = g.createLinearGradient(0, 0, w, 0);
+      gr.addColorStop(0, 'rgba(138,116,84,0)'); gr.addColorStop(0.12, 'rgba(138,116,84,.85)'); gr.addColorStop(0.5, 'rgba(150,126,92,1)'); gr.addColorStop(0.88, 'rgba(138,116,84,.85)'); gr.addColorStop(1, 'rgba(138,116,84,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      const r = rng(5);
+      g.fillStyle = 'rgba(70,52,34,.35)'; g.fillRect(w * 0.27, 0, 9, h); g.fillRect(w * 0.66, 0, 9, h); // sulcos de carroça
+      for (let i = 0; i < 260; i++) { g.fillStyle = r() < 0.5 ? 'rgba(60,44,30,.28)' : 'rgba(205,185,150,.25)'; const x = w * (0.1 + r() * 0.8); g.fillRect(x, r() * h, 1 + r() * 3, 1 + r() * 3); }
+    });
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    const m = new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    const stone = new THREE.MeshLambertMaterial({ color: '#8a857a', flatShading: true });
+    this.mineRoads = [];
+    for (const R of REGIONS) {
+      if (R.id === 0) continue; // a primeira mina é colada na cidade
+      const d0 = CITY_R + 2, d1 = roadEnd(R), step = 4, pos = [], uv = [], idx = [];
+      const C = d => { const sw = roadSway(R, d); return [R.ux * d + R.vx * sw, R.uy * d + R.vy * sw]; };
+      let i = 0;
+      for (let d = d0; d <= d1 + 0.01; d += step, i++) {
+        const [cx, cy] = C(d), [ax, ay] = C(d - 1.5), [bx, by] = C(d + 1.5);
+        let tx = bx - ax, ty = by - ay; const l = Math.hypot(tx, ty); tx /= l; ty /= l;
+        const taper = d > d1 - 36 ? 0.35 + 0.65 * (d1 - d) / 36 : 1, hw = 2.3 * taper, nx = -ty * hw, ny = tx * hw;
+        pos.push(cx + nx, World.height(cx + nx, cy + ny) + 0.1, cy + ny, cx - nx, World.height(cx - nx, cy - ny) + 0.1, cy - ny);
+        uv.push(0, d / 7, 1, d / 7);
+        if (d + step <= d1 + 0.01) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+      }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+      const road = new THREE.Mesh(geo, m); road.receiveShadow = true; road.renderOrder = -1; road.frustumCulled = false; this.scene.add(road); this.mineRoads.push(road);
+      // marcos de pedra ao longo do caminho (um por trecho de ~25%)
+      for (let k = 1; k <= 3; k++) {
+        const d = d0 + (d1 - d0) * k / 4, [cx, cy] = C(d), side = k % 2 ? 1 : -1, x = cx + R.vx * 3.1 * side, y = cy + R.vy * 3.1 * side;
+        const mk = new THREE.Group(); mk.position.set(x, World.height(x, y), y); mk.rotation.y = d;
+        const base = mesh(new THREE.BoxGeometry(0.55, 0.9, 0.4), stone); base.position.y = 0.45; mk.add(base);
+        const cap = mesh(new THREE.DodecahedronGeometry(0.32, 0), stone); cap.position.y = 1.0; mk.add(cap);
+        this.scene.add(mk);
+      }
+      // placa no fim da estrada
+      const [ex, ey] = C(d1 - 4), sx = ex + R.vx * 3, sy = ey + R.vy * 3, h = World.height(sx, sy);
+      const post = mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.4, 6), mat('#4a3420')); post.position.set(sx, h + 1.2, sy); this.scene.add(post);
+      const lab = labelSprite(`${R.dir} → ${R.name}`, tt("mais {0} m adiante", Math.round(R.dMin - d1)), '#f5e6c8', 1.1); lab.position.set(sx, h + 2.9, sy); this.scene.add(lab);
+    }
+  },
   buildRoadsAndRiver() {
     // placas nas saídas da cidade
     for (const R of REGIONS) {
@@ -656,6 +704,7 @@ const Render = {
       const post = mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.4, 6), mat('#4a3420')); post.position.set(x, h + 1.2, y); this.scene.add(post);
       const lab = labelSprite(`${R.dir} → ${R.name}`, tt("níveis {0}–{1}", (R.era - 1) * 10 + 1, R.era * 10)); lab.position.set(x, h + 2.7, y); this.scene.add(lab);
     }
+    this.buildMineRoads();
     // riacho no Leste
     const R = REGIONS[1], pts = [];
     for (let d = R.dMin - 10; d <= R.dMax + 10; d += 3) { const p = Math.sin(d / 37) * 30 + Math.sin(d / 13) * 6; pts.push([R.ux * d + R.vx * p, R.uy * d + R.vy * p]); }
@@ -939,6 +988,8 @@ const Render = {
     } else if (kind === 'clay') {
       const c = mesh(jitterGeo(new THREE.IcosahedronGeometry(s, 1), s * 0.12, n.seed), mat(res.c, { shininess: 30 })); c.scale.y = 0.5; c.position.y = s * 0.22; g.add(c);
       const c2 = mesh(jitterGeo(new THREE.IcosahedronGeometry(s * 0.45, 0), s * 0.08, n.seed + 3), mat(res.c2, { shininess: 30 })); c2.scale.y = 0.6; c2.position.set(s * 0.55, s * 0.12, s * 0.35); g.add(c2);
+    } else if (kind === 'sealed') {
+      this.buildSealRock(g, s, n);
     } else if (kind === 'wild') {
       if (res.id === 'veiocint') {
         const base = rock('#3a4a5a', s * 0.9, n.seed); base.position.y = s * 0.35; base.scale.y = 0.6; g.add(base);
@@ -1003,6 +1054,8 @@ const Render = {
   },
   syncNodes() {
     this.missT = (this.missT || 0) - 1; if (this.missT <= 0) { this.missT = 20; Game.missCache = Game.missingList(); }
+    if (this.pick61) this.pick61.visible = !(Game.S.hammer >= 61);
+    if (this.z7s && (!this.z7s.init || this.z7s.target !== (Game.S.seal ? 1 : 0))) this.openSeal(!!Game.S.seal);
     const P = Game.P, seen = new Set();
     for (const n of World.nodes) {
       const dx = n.x - P.x, dy = n.y - P.y;
@@ -1019,7 +1072,7 @@ const Render = {
       if (m.userData.spin) m.userData.spin.rotation.y += 0.02;
       if (m.userData.pulse) m.userData.pulse.scale.setScalar(1 + Math.sin(this.t * 3) * 0.08);
       // etiqueta com nível e valor para recursos por perto
-      const d2 = dx * dx + dy * dy, near = d2 < 22 * 22 && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false && !n.res.wild;
+      const d2 = dx * dx + dy * dy, near = d2 < 22 * 22 && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false && !n.res.wild && !n.res.sealed;
       if (near) {
         const need = (Game.missCache || []).some(x => x.id === n.res.id);
         if (!m.userData.badge) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: true, transparent: true, fog: false, sizeAttenuation: false })); sp.scale.set(0.2, 0.056, 1); sp.renderOrder = 4; m.userData.badge = sp; this.scene.add(sp); }
@@ -1319,6 +1372,23 @@ const Render = {
     this.wave = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#bff8ff', transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
     this.scene.add(this.wave); this.waveT = 0; this.hitLightT = 0;
   },
+  // estilo do impacto por faixa de picareta (cor, brasas, onda); martelos < 31 mantêm o estilo clássico
+  impactStyle(L, look) {
+    if (L < 31) return { a: '#ffb24a', b: '#ff7a2e', c: '#ff7a2e', w: '#ffe2a0', gr: 9, spread: 1, life: 1, glow: 1, wave: false, waveK: 1 };
+    const T = [
+      { a: '#dfe3e8', b: '#ffffff', c: '#9aa2ab', w: '#e6eaee', gr: 11, spread: 0.9, life: 0.8, glow: 0.7, wave: false, waveK: 0.8 },
+      { a: '#bfe6ff', b: '#ffffff', c: '#7ac8ff', w: '#bfe6ff', gr: 9, spread: 1, life: 1, glow: 0.9, wave: false, waveK: 0.9 },
+      { a: '#ffffff', b: '#e8f2ff', c: '#cfe0ff', w: '#ffffff', gr: 8, spread: 1.1, life: 1.05, glow: 1, wave: true, waveK: 1 },
+      { a: '#ffa63a', b: '#ff7a2e', c: '#ffe08a', w: '#ffb060', gr: 4, spread: 1, life: 1.5, glow: 1.1, wave: true, waveK: 1 },
+      { a: '#ffd34d', b: '#fff1a8', c: '#ffb000', w: '#ffe27a', gr: 3, spread: 1.1, life: 1.6, glow: 1.2, wave: true, waveK: 1.1 },
+      { a: '#5ad7ff', b: '#bff8ff', c: '#ffffff', w: '#7ae3ff', gr: 6, spread: 1.2, life: 1.2, glow: 1.2, wave: true, waveK: 1.2 },
+      { a: look.head, b: '#ffffff', c: look.head, w: look.head, gr: 5, spread: 1.2, life: 1.3, glow: 1.3, wave: true, waveK: 1.3 },
+      { a: look.head, b: '#ffffff', c: '#ffffff', w: '#ffffff', gr: 2, spread: 1.3, life: 1.6, glow: 1.4, wave: true, waveK: 1.5 },
+      { a: '#ff6a2a', b: '#ffb04a', c: '#c06af0', w: '#ff8a3d', gr: -1.5, spread: 1.3, life: 2, glow: 1.5, wave: true, waveK: 1.6 },
+    ];
+    const tier = L >= 61 ? 9 : L <= 34 ? 0 : L <= 37 ? 1 : L <= 40 ? 2 : L <= 44 ? 3 : L <= 47 ? 4 : L <= 50 ? 5 : L <= 55 ? 6 : L <= 57 ? 7 : 8;
+    return tier === 9 ? { a: '#ffe27a', b: '#ffffff', c: '#7af0ff', w: '#ffe27a', gr: -2.5, spread: 1.5, life: 2.2, glow: 1.8, wave: true, waveK: 2 } : T[tier];
+  },
   hitFx(n, o) {
     if (!this.chips) return;
     const L = Game.S.hammer, A = this.anim;
@@ -1332,7 +1402,8 @@ const Render = {
     const chipCols = [n.res.c, n.res.c2, n.res.c].map(c => new THREE.Color(c));
     const fs = this.fxScale || 1, nChips = Math.round((4 + L * 0.45) * power * fs), nSparks = Math.round((L < 6 ? 0 : 6 + L * 1.25) * power * fs);
     const look = hammerLook(L);
-    const sc = new THREE.Color(L >= 51 ? look.head : L >= 31 ? '#ffd27a' : '#ffb24a'), sc2 = new THREE.Color(L >= 51 ? '#ffffff' : '#ff7a2e'), sc3 = new THREE.Color(L >= 58 ? '#c06af0' : sc2);
+    const IS = this.impactStyle(L, look), sc = new THREE.Color(IS.a), sc2 = new THREE.Color(IS.b), sc3 = new THREE.Color(IS.c);
+    const rainbow = L >= 61 ? ['#ff6a6a', '#ffd34d', '#7af0ff', '#c06af0'].map(c => new THREE.Color(c)) : null;
     let made = 0;
     for (let i = 0; i < 220 && made < nChips; i++) {
       const d = this.chipD[i]; if (d.t > 0) continue; made++;
@@ -1346,11 +1417,11 @@ const Render = {
       const d = this.spD[i]; if (d.t > 0) continue; made++;
       const a = Math.random() * Math.PI * 2, el = Math.random() * 1.2, sp = 3 + Math.random() * (2.5 + L / 12);
       d.t0 = d.t = 0.3 + Math.random() * 0.45;
-      Object.assign(d, { x: ix, y: iz, z: iy, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp + 1.2, vz: Math.sin(a) * Math.cos(el) * sp, c: Math.random() < 0.25 ? sc2 : Math.random() < 0.2 ? sc3 : sc });
+      d.t0 = d.t *= IS.life; Object.assign(d, { x: ix, y: iz, z: iy, vx: Math.cos(a) * Math.cos(el) * sp * IS.spread, vy: Math.sin(el) * sp * IS.spread + 1.2, vz: Math.sin(a) * Math.cos(el) * sp * IS.spread, gr: IS.gr, c: rainbow ? rainbow[Math.floor(Math.random() * 4)] : Math.random() < 0.25 ? sc2 : Math.random() < 0.2 ? sc3 : sc });
     }
     // clarão, onda de choque e tremida
-    if (L >= 10) { this.hitLight.position.set(ix, iz + 0.3, iy); this.hitLight.color.copy(sc); this.hitLightT = 0.14; this.hitLightPow = 0.5 + L / 45 * power; this.vmFlash.color.copy(sc); this.vmFlash.intensity = 0.8 + L / 40; }
-    if (L >= 50 || (fin && L >= 35) || (o.broke && L >= 30)) { this.waveT = 0.45; this.wave.position.set(ix, World.height(ix, iy) + 0.08, iy); this.wave.material.color.set(L >= 51 ? look.head : '#ffe2a0'); this.waveSize = 1 + L / 40 * power; }
+    if (L >= 10) { this.hitLight.position.set(ix, iz + 0.3, iy); this.hitLight.color.copy(sc); this.hitLightT = 0.14; this.hitLightPow = (0.5 + L / 45 * power) * IS.glow; this.vmFlash.color.copy(sc); this.vmFlash.intensity = 0.8 + L / 40; }
+    if (L >= 50 || IS.wave && (fin || o.broke) || (fin && L >= 35) || (o.broke && L >= 30)) { this.waveT = 0.45; this.wave.position.set(ix, World.height(ix, iy) + 0.08, iy); this.wave.material.color.set(IS.w); this.waveSize = (1 + L / 40 * power) * IS.waveK; }
     Game.shake = Math.min(1, Game.shake + 0.05 * power + L / 400);
     // número do dano
     Game.floats.push({ x: n.x + (Math.random() - 0.5) * 0.8, y: n.y - 0.2, txt: '-' + fmt(Math.round(o.dmg)), c: fin ? '#ffd34d' : '#ffffff', t: 0.8, cls: 'dmg' });
@@ -1374,7 +1445,7 @@ const Render = {
     for (let i = 0; i < this.hfN; i++) {
       const d = this.spD[i], j = i * 3;
       if (d.t > 0) {
-        anyS = true; d.t -= dt; d.vy -= 9 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
+        anyS = true; d.t -= dt; d.vy -= (d.gr === undefined ? 9 : d.gr) * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
         const f = Math.max(0, d.t / d.t0);
         this.spPos[j] = d.x; this.spPos[j + 1] = d.t > 0 ? d.y : -999; this.spPos[j + 2] = d.z;
         const ff = f * 0.85; this.spCol[j] = d.c.r * ff; this.spCol[j + 1] = d.c.g * ff; this.spCol[j + 2] = d.c.b * ff;
@@ -1882,6 +1953,7 @@ const Render = {
     const col = R.blocked ? '#ff6a5a' : time <= 10 ? '#7fd36a' : time <= 60 ? '#ffd34d' : '#ff6a5a';
     cross.className = 'on';
     el.style.display = 'block';
+    if (n.res.sealed) { el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:#ffd34d;color:#ffd34d\">Martelo 61</em><b>🔒 {0}</b></div><div class=\"hp\"><i style=\"width:{1}%;background:#ffd34d\"></i></div><span>{2}</span>", n.res.name, Math.max(0, n.hp / n.maxHp * 100), Game.S.hammer >= 61 ? tt("Golpeie sem parar: o selo vai ceder.") : tt("Precisa do Martelo 61 para quebrar")); return; }
     if (n.res.wild) { el.innerHTML = tt("<div class=\"tl\"><b>✦ {0}</b></div><div class=\"hp\"><i style=\"width:{1}%;background:#9ff3ff\"></i></div><span>{2} · some em {3}</span>", n.res.name, Math.max(0, n.hp / n.maxHp * 100), n.res.id === 'veiocint' ? tt("Rende de 3 a 6 Cintilhas · qualquer martelo quebra") : tt("Abre com 1 Cintilha e solta uma poção"), fmtTime(Math.max(0, 240 - (Game.S.time - n.born)))); return; }
     el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:{0};color:{1}\">Nv {2}</em><b>{3}{4}{5}</b></div>\n      <div class=\"hp\"><i style=\"width:{6}%;background:{7}\"></i></div>\n      {8}\n      <div class=\"val\"><i class=\"coin\"></i>{9} cada · rende {10} = <b>{11}</b> · ≈ {12}/min</div>\n      {13}", tc, tc, I.lvl, n.res.name, n.size === 2 ? tt(" · grande") : n.size === 0.5 ? tt(" · pequena") : '', n.rare === 10 ? tt(" · 💎 cristalizada") : n.rare === 3 ? tt(" · ✨ veio rico") : '', Math.max(0, n.hp / n.maxHp * 100), col, R.blocked ? tt("<span style=\"color:{0}\">🔒 Precisa do Martelo {1} para quebrar</span>", col, I.lvl - LEVEL_LOCK) : tt("<span style=\"color:{0}\">{1} golpes · {2}{3}</span>", col, fmt(hits), fmtTime(time), R.mult > 1 ? tt(" · <b>×{0} mais lento</b> (pedra acima do seu martelo)", R.mult < 10 ? R.mult.toFixed(1).replace('.', DEC) : Math.round(R.mult)) : ''), fmt(I.value), I.units, fmt(I.total), fmt(Math.round(I.perMin)), I.need ? tt("<div class=\"need\">⭐ Precisa para evolução · faltam {0}</div>", fmt(I.need.falta)) : '');
   },
@@ -1903,6 +1975,7 @@ const Render = {
       c.fillStyle = '#fff'; c.font = '700 18px system-ui'; c.textAlign = 'center'; c.fillText(R.era, lab[0], lab[1] + 6);
     }
     for (const n of World.WILD_SUB.nodes) { const p = map(n.x, n.y); c.fillStyle = n.res.id === 'veiocint' ? '#7af0ff' : '#c08aff'; c.strokeStyle = '#000'; c.lineWidth = 2; c.font = '800 22px system-ui'; c.textAlign = 'center'; c.strokeText('✦', p[0], p[1] + 8); c.fillText('✦', p[0], p[1] + 8); }
+    if (Game.S.hammer >= 61 && !Game.S.seal) { const p = map(Z7.x, Z7.y), k = 12 + Math.sin(this.t * 4) * 3; c.strokeStyle = '#ffd34d'; c.lineWidth = 3; c.beginPath(); c.arc(p[0], p[1], k, 0, Math.PI * 2); c.stroke(); c.fillStyle = '#ffd34d'; c.strokeStyle = '#000'; c.font = '800 20px system-ui'; c.textAlign = 'center'; c.lineWidth = 3; c.strokeText('7', p[0], p[1] + 7); c.fillText('7', p[0], p[1] + 7); }
     for (const m of World.mountains) { const p = map(m.x, m.y), s2 = 5 + m.H / 14; c.fillStyle = m.special ? m.special.c2 : '#a89a88'; c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(p[0], p[1] - s2); c.lineTo(p[0] + s2, p[1] + s2 * 0.7); c.lineTo(p[0] - s2, p[1] + s2 * 0.7); c.closePath(); c.fill(); c.stroke(); }
     if (World.veio) { const R = REGIONS[RES[World.veio.res].region]; const p = map(R.ux * (R.dMin + R.dMax) / 2, R.uy * (R.dMin + R.dMax) / 2); c.strokeStyle = '#ffd34d'; c.lineWidth = 4; c.beginPath(); c.arc(p[0], p[1], 16 + Math.sin(this.t * 5) * 4, 0, Math.PI * 2); c.stroke(); }
     c.fillStyle = '#d8c8a8'; c.beginPath(); c.arc(cx, cy, 7, 0, Math.PI * 2); c.fill();

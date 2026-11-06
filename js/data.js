@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '3.4.0';
+const GAME_VERSION = '3.5.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -65,7 +65,7 @@ const SPECIALS = [
 RESOURCES.push(...SPECIALS);
 const RES = {};
 // escada de tamanho dos minérios: pequeno 1x, médio 2x, grande e especial 3x de altura (largura cresce metade)
-function oreMul(n) { const M = n.res.wild ? 1 : (n.res.special || n.size >= 2) ? 3 : n.size >= 1 ? 2 : 1; return { M, W: 1 + (M - 1) * 0.5 }; }
+function oreMul(n) { const M = (n.res.wild || n.res.sealed) ? 1 : (n.res.special || n.size >= 2) ? 3 : n.size >= 1 ? 2 : 1; return { M, W: 1 + (M - 1) * 0.5 }; }
 RESOURCES.forEach(r => { r.value = Math.max(1, Math.round(r.special ? r.hard * 2 : r.hard / 2)); RES[r.id] = r; });
 // martelos que exigem o recurso raro da montanha (5 unidades)
 const SPECIAL_AT = { 20: 'pedravento', 30: 'ambar', 40: 'ferroceleste', 50: 'obsidiana', 60: 'coracao' };
@@ -134,6 +134,7 @@ const HAMMERS = [
   { n: tt("Fragmento de meteorito"),              f: 633000,  mat: ['diamante'] },
   { n: tt("Martelo de ferro meteórico"),          f: 800000,  mat: ['meteoro'] },
   { n: tt("Martelo do Vale"),                     f: 1000000, mat: ['nucleo'] },
+  { n: tt("Picareta Rúnica"),                     f: 1400000, mat: [] }, // nível 61: segredo da Zona 7 (não entra na forja)
 ];
 const MAX_LEVEL = 60;
 
@@ -241,6 +242,9 @@ const WILDS = [
   { id: 'geodo',    name: tt("Geodo de Poção"),   kind: 'wild', wild: true, c: '#6a4a8a', c2: '#d9b3ff', value: 0, hard: 1, ideal: 0, region: -1 },
 ];
 for (const w of WILDS) RES[w.id] = w;
+// a Pedra Selada da Zona 7 (segredo): só quebra com a Picareta 61
+const SEAL = { id: 'selada', name: tt("Pedra Selada"), kind: 'sealed', sealed: true, c: '#2a1e3a', c2: '#ffd34d', value: 0, hard: 78000000, ideal: 61, region: -1 };
+RES[SEAL.id] = SEAL;
 function powerPrice(id, hammerLvl) {
   const base = 15 * Math.pow(1.31, hammerLvl - 1);
   return Math.round(base * (id === 'elixir' ? 2 : 1));
@@ -255,6 +259,7 @@ const STORY = {
   30: { t: tt("O martelo do avô"), s: tt("Entre as ruínas da vila você encontra a cabeça do martelo do seu avô. Seu Bento chora ao ver o martelo restaurado. Na cabeça, gravado: \"Oeste. Galeria 7.\"") },
   40: { t: tt("A Mina Velha reabre"), s: tt("Você abre caminho até a Galeria 7. As vigas não quebraram sozinhas: foram cortadas. Alguém queria a mina fechada. Rastros levam à Pedreira Funda, a Noroeste.") },
   50: { t: tt("Vale Ferrado industrial"), s: tt("Máquinas voltam a rugir e a cidade cresce. Na Pedreira Funda você acha mapas antigos marcando uma cratera na Serra dos Cristais, a Nordeste.") },
+  61: { t: tt("A Picareta Rúnica"), s: tt("Ao tocar a picareta, as runas do pedestal se acendem e uma coluna de luz sobe no Sudeste, onde o mapa não marca nada. Algo que ninguém chama de zona está esperando por você: a Zona 7.") },
   60: { t: tt("O Martelo do Vale"), s: tt("No fundo da cratera estava o núcleo estelar que o avô protegeu, escondendo a mina de quem queria saqueá-la. Com o Martelo do Vale, você reconstrói o que ele não conseguiu. Vale Ferrado vive de novo.") },
 };
 
