@@ -6,7 +6,7 @@ const Updater = {
 };
 const Backup = {
   init() { document.querySelectorAll('[onclick*="Backup.restoreFromFile"]').forEach(e => { e.style.display = 'none'; }); },
-  manual() { Game.save(); UI.toast('💾 Progresso salvo.'); },
-  statusText() { return 'O progresso é salvo automaticamente neste navegador.'; },
+  manual() { Game.save(); UI.toast(tt('💾 Progresso salvo.')); },
+  statusText() { return tt('O progresso é salvo automaticamente neste navegador.'); },
   restoreFromFile() {},
 };

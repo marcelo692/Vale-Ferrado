@@ -20,11 +20,11 @@ const UI = {
   matLine(m) {
     const have = Game.S.stock[m.id] || 0, inBag = Game.S.bag[m.id] || 0;
     const ok = have >= m.qty;
-    return `<li class="${ok ? 'ok' : 'no'}"><span class="dot" style="background:${RES[m.id].c2}"></span>${RES[m.id].name}: <b>${fmt(Math.min(have, m.qty))}/${fmt(m.qty)}</b>${inBag ? ` <i>(+${inBag} na mochila)</i>` : ''}</li>`;
+    return `<li class="${ok ? 'ok' : 'no'}"><span class="dot" style="background:${RES[m.id].c2}"></span>${RES[m.id].name}: <b>${fmt(Math.min(have, m.qty))}/${fmt(m.qty)}</b>${inBag ? tt(" <i>(+{0} na mochila)</i>", inBag) : ''}</li>`;
   },
   costHtml(c) {
     const okM = Game.S.money >= c.money;
-    return `<ul class="cost"><li class="${okM ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(c.money)}</b></li>${c.mats.map(m => this.matLine(m)).join('')}</ul>`;
+    return tt("<ul class=\"cost\"><li class=\"{0}\"><i class=\"coin\"></i>Moedas: <b>{1}</b></li>{2}</ul>", okM ? 'ok' : 'no', fmt(c.money), c.mats.map(m => this.matLine(m)).join(''));
   },
 
   freeMouse() { if (document.pointerLockElement) document.exitPointerLock(); },
@@ -39,7 +39,7 @@ const UI = {
   pics(kind, a, both) {
     try {
       if (!both) return `<div class="pics one"><figure><img src="${Render.itemImg(kind, a)}" alt=""></figure></div>`;
-      return `<div class="pics"><figure><img src="${Render.itemImg(kind, a)}" alt=""><figcaption>Item</figcaption></figure><figure><img src="${Render.charImg(kind, a)}" alt=""><figcaption>Em você</figcaption></figure></div>`;
+      return tt("<div class=\"pics\"><figure><img src=\"{0}\" alt=\"\"><figcaption>Item</figcaption></figure><figure><img src=\"{1}\" alt=\"\"><figcaption>Em você</figcaption></figure></div>", Render.itemImg(kind, a), Render.charImg(kind, a));
     } catch (e) { return ''; }
   },
   openNpc(id) {
@@ -58,27 +58,26 @@ const UI = {
 
     if (id === 'ferreiro') {
       const L = S.hammer;
-      h += `<div class="cur"><span class="lv">Nível ${L}</span><h3>${HAMMERS[L].n}</h3><p>Força ${fmt(HAMMERS[L].f)}</p></div>`;
+      h += tt("<div class=\"cur\"><span class=\"lv\">Nível {0}</span><h3>{1}</h3><p>Força {2}</p></div>", L, HAMMERS[L].n, fmt(HAMMERS[L].f));
       if (L < MAX_LEVEL) {
         const c = hammerCost(L + 1);
-        h += `<div class="card big">${this.pics('hammer', L + 1, true)}<span class="lv">Próximo · nível ${L + 1}</span><h3>${HAMMERS[L + 1].n}</h3><p>Força ${fmt(HAMMERS[L].f)} → <b>${fmt(HAMMERS[L + 1].f)}</b></p>${this.costHtml(c)}${SPECIAL_AT[L + 1] ? `<p class="rare">⛰ ${RES[SPECIAL_AT[L + 1]].name} só existe perto do topo das montanhas da região ${REGIONS[RES[SPECIAL_AT[L + 1]].region].name}</p>` : ''}
-          <button class="buy" ${Game.canPay(c) ? '' : 'disabled'} onclick="Game.buyHammer();UI.renderPanel()">Forjar</button></div>`;
-        h += `<h4>Pela frente</h4><ol class="road" start="${L + 2}">`;
-        for (let i = L + 2; i <= Math.min(MAX_LEVEL, L + 4); i++) h += `<li>${HAMMERS[i].n} <i>força ${fmt(HAMMERS[i].f)}</i></li>`;
+        h += tt("<div class=\"card big\">{0}<span class=\"lv\">Próximo · nível {1}</span><h3>{2}</h3><p>Força {3} → <b>{4}</b></p>{5}{6}\n          <button class=\"buy\" {7} onclick=\"Game.buyHammer();UI.renderPanel()\">Forjar</button></div>", this.pics('hammer', L + 1, true), L + 1, HAMMERS[L + 1].n, fmt(HAMMERS[L].f), fmt(HAMMERS[L + 1].f), this.costHtml(c), SPECIAL_AT[L + 1] ? tt("<p class=\"rare\">⛰ {0} só existe perto do topo das montanhas da região {1}</p>", RES[SPECIAL_AT[L + 1]].name, REGIONS[RES[SPECIAL_AT[L + 1]].region].name) : '', Game.canPay(c) ? '' : 'disabled');
+        h += tt("<h4>Pela frente</h4><ol class=\"road\" start=\"{0}\">", L + 2);
+        for (let i = L + 2; i <= Math.min(MAX_LEVEL, L + 4); i++) h += tt("<li>{0} <i>força {1}</i></li>", HAMMERS[i].n, fmt(HAMMERS[i].f));
         h += `</ol>`;
-      } else h += `<p class="done">Você tem o Martelo do Vale. Não existe nada mais forte.</p>`;
-      h += `<p class="hint">Os materiais saem do depósito.</p>`;
+      } else h += tt("<p class=\"done\">Você tem o Martelo do Vale. Não existe nada mais forte.</p>");
+      h += tt("<p class=\"hint\">Os materiais saem do depósito.</p>");
     }
 
     if (id === 'tropeira') {
       h += `<div class="grid">`;
       for (const k in ATTRS) {
         const L = S.attrs[k];
-        h += `<div class="card">${this.pics(k, Math.min(MAX_LEVEL, L + 1))}<span class="lv">${ATTRS[k].part} · nível ${L}</span><h3>${ATTRS[k].name}</h3>`;
+        h += tt("<div class=\"card\">{0}<span class=\"lv\">{1} · nível {2}</span><h3>{3}</h3>", this.pics(k, Math.min(MAX_LEVEL, L + 1)), ATTRS[k].part, L, ATTRS[k].name);
         if (L < MAX_LEVEL) {
           const c = attrCost(k, L + 1);
-          h += `<p>${attrLabel(k, L)} → <b>${attrLabel(k, L + 1)}</b></p>${this.costHtml(c)}<button class="buy" ${Game.canPay(c) ? '' : 'disabled'} onclick="Game.buyAttr('${k}');UI.renderPanel()">Melhorar</button>`;
-        } else h += `<p class="done">${attrLabel(k, L)} (máximo)</p>`;
+          h += tt("<p>{0} → <b>{1}</b></p>{2}<button class=\"buy\" {3} onclick=\"Game.buyAttr('{4}');UI.renderPanel()\">Melhorar</button>", attrLabel(k, L), attrLabel(k, L + 1), this.costHtml(c), Game.canPay(c) ? '' : 'disabled', k);
+        } else h += tt("<p class=\"done\">{0} (máximo)</p>", attrLabel(k, L));
         h += `</div>`;
       }
       h += `</div>`;
@@ -86,64 +85,57 @@ const UI = {
 
     if (id === 'botica') {
       const tier = eraOf(S.hammer);
-      h += `<p class="free">Espaço livre na mochila: <b>${fmt(Game.free())}</b> de ${fmt(Game.capacity())} · ✦ Cintilhas: <b>${fmt(S.cint || 0)}</b></p><div class="grid">`;
+      h += tt("<p class=\"free\">Espaço livre na mochila: <b>{0}</b> de {1} · ✦ Cintilhas: <b>{2}</b></p><div class=\"grid\">", fmt(Game.free()), fmt(Game.capacity()), fmt(S.cint || 0));
       for (const pid in POWERUPS) {
         const P = POWERUPS[pid], price = powerPrice(pid, S.hammer);
         const owned = S.pw.filter(p => p.id === pid).length;
         const ci = powerCint(pid, S.hammer), ok = S.money >= price && (S.cint || 0) >= ci && Game.free() >= P.slots;
-        h += `<div class="card">${this.pics('pw', pid)}<span class="lv" style="color:${P.color}">Tecla ${P.key} · na mochila: ${owned}</span><h3>${P.name} ${ROMAN[tier]}</h3>
-          <p>+${Math.round(powerBonus(pid, tier) * 100)}% ${P.desc} por ${P.dur / 60} min · ocupa ${P.slots} espaços</p>
-          <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(price)}</b></li><li class="${(S.cint || 0) >= ci ? 'ok' : 'no'}">✦ Cintilhas: <b>${ci}</b></li></ul>
-          <button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyPower('${pid}');UI.renderPanel()">Comprar</button></div>`;
+        h += tt("<div class=\"card\">{0}<span class=\"lv\" style=\"color:{1}\">Tecla {2} · na mochila: {3}</span><h3>{4} {5}</h3>\n          <p>+{6}% {7} por {8} min · ocupa {9} espaços</p>\n          <ul class=\"cost\"><li class=\"{10}\"><i class=\"coin\"></i>Moedas: <b>{11}</b></li><li class=\"{12}\">✦ Cintilhas: <b>{13}</b></li></ul>\n          <button class=\"buy\" {14} onclick=\"Game.buyPower('{15}');UI.renderPanel()\">Comprar</button></div>", this.pics('pw', pid), P.color, P.key, owned, P.name, ROMAN[tier], Math.round(powerBonus(pid, tier) * 100), P.desc, P.dur / 60, P.slots, S.money >= price ? 'ok' : 'no', fmt(price), (S.cint || 0) >= ci ? 'ok' : 'no', ci, ok ? '' : 'disabled', pid);
       }
       const oL = S.olho || 0, oN = oL + 1;
-      h += `<div class="card"><span class="lv">Nível ${oL} de ${OLHO.length - 1}</span><h3>👁 Olho de Garimpeiro</h3><p>Chance de achar Cintilha nas pedras: <b>${(cintChance(oL) * 100).toFixed(1).replace('.', ',')}%</b>${oN < OLHO.length ? ` → <b>${(cintChance(oN) * 100).toFixed(1).replace('.', ',')}%</b>` : ''}</p>
-        ${oN < OLHO.length ? `<ul class="cost"><li class="${S.money >= OLHO[oN] ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(OLHO[oN])}</b></li></ul><button class="buy" ${S.money >= OLHO[oN] ? '' : 'disabled'} onclick="Game.buyOlho();UI.renderPanel()">Melhorar</button>` : '<button class="buy" disabled>Nível máximo</button>'}</div>`;
-      h += `</div><p class="hint">Cintilhas saem das pedras, dos robôs e dos Veios de Cintilha. Teclas 1, 2 e 3 ativam; os efeitos se somam.</p>`;
+      h += tt("<div class=\"card\"><span class=\"lv\">Nível {0} de {1}</span><h3>👁 Olho de Garimpeiro</h3><p>Chance de achar Cintilha nas pedras: <b>{2}%</b>{3}</p>\n        {4}</div>", oL, OLHO.length - 1, (cintChance(oL) * 100).toFixed(1).replace('.', DEC), oN < OLHO.length ? ` → <b>${(cintChance(oN) * 100).toFixed(1).replace('.', DEC)}%</b>` : '', oN < OLHO.length ? tt("<ul class=\"cost\"><li class=\"{0}\"><i class=\"coin\"></i>Moedas: <b>{1}</b></li></ul><button class=\"buy\" {2} onclick=\"Game.buyOlho();UI.renderPanel()\">Melhorar</button>", S.money >= OLHO[oN] ? 'ok' : 'no', fmt(OLHO[oN]), S.money >= OLHO[oN] ? '' : 'disabled') : tt("<button class=\"buy\" disabled>Nível máximo</button>"));
+      h += tt("</div><p class=\"hint\">Cintilhas saem das pedras, dos robôs e dos Veios de Cintilha. Teclas 1, 2 e 3 ativam; os efeitos se somam.</p>");
     }
 
     if (id === 'bazar') {
-      h += `<p class="free">Seu dinheiro: <b><i class="coin"></i>${fmt(S.money)}</b></p>`;
+      h += tt("<p class=\"free\">Seu dinheiro: <b><i class=\"coin\"></i>{0}</b></p>", fmt(S.money));
       for (const type in GADGETS) {
         const T = GADGETS[type], have = S.gear[type];
         h += `<h4>${T.title} <span class="kbd">${T.key}</span></h4><p class="hint" style="margin:0 0 8px">${T.desc}</p><div class="grid">`;
         for (let lv = Math.max(1, have || 1); lv < T.levels.length; lv++) {
           const G = T.levels[lv], owned = have >= lv, ok = !owned && Game.canPay({ money: G.price, mats: G.mats || [] });
-          h += `<div class="card ${have === lv ? 'eq' : ''}">${this.pics(type, lv)}<span class="lv">Nível ${lv}</span><h3>${G.n}</h3><p>${G.info}</p>
-            ${owned ? `<ul class="cost"><li class="ok"><i class="coin"></i>Moedas: <b>${fmt(G.price)}</b></li></ul>` : this.costHtml({ money: G.price, mats: G.mats || [] })}${G.mats ? '<p class="rare">⛰ Recurso raro das montanhas</p>' : ''}
-            ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você tem</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
+          h += tt("<div class=\"card {0}\">{1}<span class=\"lv\">Nível {2}</span><h3>{3}</h3><p>{4}</p>\n            {5}{6}\n            {7}</div>", have === lv ? 'eq' : '', this.pics(type, lv), lv, G.n, G.info, owned ? tt("<ul class=\"cost\"><li class=\"ok\"><i class=\"coin\"></i>Moedas: <b>{0}</b></li></ul>", fmt(G.price)) : this.costHtml({ money: G.price, mats: G.mats || [] }), G.mats ? tt("<p class=\"rare\">⛰ Recurso raro das montanhas</p>") : '', have === lv ? tt("<button class=\"buy\" disabled>Equipado</button>") : owned ? tt("<button class=\"buy\" disabled>Você tem</button>") : tt("<button class=\"buy\" {0} onclick=\"Game.buyGadget('{1}',{2});UI.renderPanel()\">Comprar</button>", ok ? '' : 'disabled', type, lv));
         }
         h += `</div>`;
-        if (type === 'detector' && have) h += `<div class="row" style="margin-top:10px"><button class="buy alt" onclick="UI.detectorPanel()">🧭 Escolher o que a seta procura</button></div>`;
+        if (type === 'detector' && have) h += tt("<div class=\"row\" style=\"margin-top:10px\"><button class=\"buy alt\" onclick=\"UI.detectorPanel()\">🧭 Escolher o que a seta procura</button></div>");
       }
       // robôs auto-mineradores
       const nR = S.robots || 0;
-      h += `<h4>🤖 Robôs auto-mineradores</h4><p class="hint" style="margin:0 0 8px">Mineram sozinhos o que falta para suas evoluções e entregam no depósito. Evoluem com o seu martelo.</p><div class="grid">`;
+      h += tt("<h4>🤖 Robôs auto-mineradores</h4><p class=\"hint\" style=\"margin:0 0 8px\">Mineram sozinhos o que falta para suas evoluções e entregam no depósito. Evoluem com o seu martelo.</p><div class=\"grid\">");
       let pr = '';
-      try { pr = `<div class="pics"><figure><img src="${Render.robotImg(1)}" alt=""><figcaption>Robô</figcaption></figure><figure><img src="${Render.robotImg(Math.min(ROBOT_MAX, nR + 1))}" alt=""><figcaption>Sua equipe</figcaption></figure></div>`; } catch (e) {}
+      try { pr = tt("<div class=\"pics\"><figure><img src=\"{0}\" alt=\"\"><figcaption>Robô</figcaption></figure><figure><img src=\"{1}\" alt=\"\"><figcaption>Sua equipe</figcaption></figure></div>", Render.robotImg(1), Render.robotImg(Math.min(ROBOT_MAX, nR + 1))); } catch (e) {}
       if (nR < ROBOT_MAX) {
         const price = robotPrice(nR), ok = S.money >= price;
-        h += `<div class="card">${pr}<span class="lv">Robô ${nR + 1} de ${ROBOT_MAX}</span><h3>${ROBOT_NAMES[nR]}</h3><p>Força ${fmt(Robots.force())} por golpe · ${fmt(Robots.speed())} m/s · carrega ${fmt(Robots.cap())}</p>${this.costHtml({ money: price, mats: [] })}<button class="buy" ${ok ? '' : 'disabled'} onclick="Robots.buy();UI.renderPanel()">Comprar</button></div>`;
-      } else h += `<div class="card eq">${pr}<span class="lv">Equipe completa</span><h3>${ROBOT_MAX} robôs</h3><p>Você tem todos os robôs.</p></div>`;
+        h += tt("<div class=\"card\">{0}<span class=\"lv\">Robô {1} de {2}</span><h3>{3}</h3><p>Força {4} por golpe · {5} m/s · carrega {6}</p>{7}<button class=\"buy\" {8} onclick=\"Robots.buy();UI.renderPanel()\">Comprar</button></div>", pr, nR + 1, ROBOT_MAX, ROBOT_NAMES[nR], fmt(Robots.force()), fmt(Robots.speed()), fmt(Robots.cap()), this.costHtml({ money: price, mats: [] }), ok ? '' : 'disabled');
+      } else h += tt("<div class=\"card eq\">{0}<span class=\"lv\">Equipe completa</span><h3>{1} robôs</h3><p>Você tem todos os robôs.</p></div>", pr, ROBOT_MAX);
       h += `</div>`;
       if (nR) {
         Robots.sync();
-        h += `<p class="free" style="margin-top:10px">Sua equipe: ${Robots.list.map(r => `<b>${r.name}</b>`).join(', ')} · já trouxeram ${fmt(S.robotTotal || 0)} recursos</p>`;
+        h += tt("<p class=\"free\" style=\"margin-top:10px\">Sua equipe: {0} · já trouxeram {1} recursos</p>", Robots.list.map(r => `<b>${r.name}</b>`).join(', '), fmt(S.robotTotal || 0));
       }
     }
 
     if (id === 'armazem') {
       const ids = Object.keys(S.stock).filter(k => S.stock[k] > 0);
       const mode = Game.sellMode();
-      h += `<p>Ao chegar na vila, as missões pegam o que precisam. O resto:</p><div class="row" style="flex-wrap:wrap">${Object.keys(SELL_MODES).map(m => `<button class="buy ${m === mode ? '' : 'alt'}" onclick="Game.S.sellMode='${m}';Game.save();UI.renderPanel()">${{ sobra: '🏠 Guardar o que falta', guardar: '📦 Guardar tudo', vender: '💰 Vender tudo' }[m]}</button>`).join('')}</div><p class="hint" style="text-align:center">Tecla N troca o modo em qualquer lugar.</p>`;
+      h += tt("<p>Ao chegar na vila, as missões pegam o que precisam. O resto:</p><div class=\"row\" style=\"flex-wrap:wrap\">{0}</div><p class=\"hint\" style=\"text-align:center\">Tecla N troca o modo em qualquer lugar.</p>", Object.keys(SELL_MODES).map(m => `<button class="buy ${m === mode ? '' : 'alt'}" onclick="Game.S.sellMode='${m}';Game.save();UI.renderPanel()">${{ sobra: tt("🏠 Guardar o que falta"), guardar: tt("📦 Guardar tudo"), vender: tt("💰 Vender tudo") }[m]}</button>`).join(''));
       const sv = Object.keys(S.stock).reduce((a, k) => a + (S.stock[k] || 0) * RES[k].value, 0);
-      if (sv) h += `<div class="row"><button class="buy" onclick="Game.sellAllStock();UI.renderPanel()">💰 Vender o depósito (${fmt(sv)})</button></div>`;
+      if (sv) h += tt("<div class=\"row\"><button class=\"buy\" onclick=\"Game.sellAllStock();UI.renderPanel()\">💰 Vender o depósito ({0})</button></div>", fmt(sv));
 
-      if ((S.receipts || []).length) h += `<h4>Última entrega</h4><div class="receipt-in">${this.receiptHtml(S.receipts[0])}</div>`;
+      if ((S.receipts || []).length) h += tt("<h4>Última entrega</h4><div class=\"receipt-in\">{0}</div>", this.receiptHtml(S.receipts[0]));
       if (ids.length) {
-        h += `<h4>Depósito</h4><ul class="stock">${ids.map(k => `<li><span class="dot" style="background:${RES[k].c2}"></span>${RES[k].name}<b>${fmt(S.stock[k])}</b><i>${fmt(RES[k].value)} cada</i></li>`).join('')}</ul>
-          <button class="buy alt" onclick="UI.sellStock()">Vender só o que sobra</button>`;
-      } else h += `<p class="hint">Depósito vazio.</p>`;
+        h += tt("<h4>Depósito</h4><ul class=\"stock\">{0}</ul>\n          <button class=\"buy alt\" onclick=\"UI.sellStock()\">Vender só o que sobra</button>", ids.map(k => `<li><span class="dot" style="background:${RES[k].c2}"></span>${RES[k].name}<b>${fmt(S.stock[k])}</b><i>${fmt(RES[k].value)} cada</i></li>`).join(''));
+      } else h += tt("<p class=\"hint\">Depósito vazio.</p>");
     }
     h += `</div></div>`;
     $('panel').innerHTML = h;
@@ -156,7 +148,7 @@ const UI = {
       if (extra > 0) { earned += extra * RES[k].value; Game.S.stock[k] -= extra; }
     }
     Game.S.money += earned; Game.S.earned += earned;
-    this.toast(earned ? `Excedente vendido por ${fmt(earned)} moedas.` : 'Nada sobrando: tudo no depósito ainda vai ser usado.', 'money');
+    this.toast(earned ? tt("Excedente vendido por {0} moedas.", fmt(earned)) : tt("Nada sobrando: tudo no depósito ainda vai ser usado."), 'money');
     Game.save(); this.renderPanel();
   },
 
@@ -166,7 +158,7 @@ const UI = {
     this.freeMouse(); Snd.story();
     this.open = 'story';
     $('panel').classList.remove('hidden');
-    $('panel').innerHTML = `<div class="story"><span class="lv">${L === 1 ? 'Prólogo' : 'Marco · nível ' + L}</span><h2>${st.t}</h2><p>${st.s}</p><button class="buy" onclick="UI.close()">Continuar</button></div>`;
+    $('panel').innerHTML = tt("<div class=\"story\"><span class=\"lv\">{0}</span><h2>{1}</h2><p>{2}</p><button class=\"buy\" onclick=\"UI.close()\">Continuar</button></div>", L === 1 ? tt("Prólogo") : tt("Marco · nível ") + L, st.t, st.s);
   },
 
   soundPanel() {
@@ -174,29 +166,26 @@ const UI = {
     this.open = 'sound';
     $('panel').classList.remove('hidden');
     const row = (k, label) => `<label class="vol"><span>${label}</span><input type="range" min="0" max="100" value="${Math.round(Snd.vol[k] * 100)}" oninput="Snd.set('${k}', this.value/100); this.nextElementSibling.textContent=this.value+'%'"><b>${Math.round(Snd.vol[k] * 100)}%</b></label>`;
-    $('panel').innerHTML = `<div class="story"><h2>Som</h2>
-      ${row('master', 'Volume geral')}${row('music', 'Música')}${row('sfx', 'Efeitos (martelo, passos, moedas)')}${row('amb', 'Ambiente (vento, pássaros, grilos)')}
-      <label class="vol mute"><input type="checkbox" ${Snd.muted ? 'checked' : ''} onchange="Snd.muted=this.checked;Snd.apply();Snd.saveCfg()"> <span>Silenciar tudo (tecla M)</span></label>
-      <div class="row"><button class="buy alt" onclick="Snd.hit('ore', Game.S.hammer); Snd.coins(500)">Testar efeitos</button><button class="buy" onclick="UI.close()">Voltar ao jogo</button></div></div>`;
+    $('panel').innerHTML = tt("<div class=\"story\"><h2>Som</h2>\n      {0}{1}{2}{3}\n      <label class=\"vol mute\"><input type=\"checkbox\" {4} onchange=\"Snd.muted=this.checked;Snd.apply();Snd.saveCfg()\"> <span>Silenciar tudo (tecla M)</span></label>\n      <div class=\"row\"><button class=\"buy alt\" onclick=\"Snd.hit('ore', Game.S.hammer); Snd.coins(500)\">Testar efeitos</button><button class=\"buy\" onclick=\"UI.close()\">Voltar ao jogo</button></div></div>", row('master', tt("Volume geral")), row('music', tt("Música")), row('sfx', tt("Efeitos (martelo, passos, moedas)")), row('amb', tt("Ambiente (vento, pássaros, grilos)")), Snd.muted ? 'checked' : '');
   },
   offlinePanel() {
     const o = Game.offline; if (!o) return; Game.offline = null;
     this.freeMouse(); this.open = 'offline'; Snd.coins(o.gain);
-    $('panel').innerHTML = `<div class="story"><h2>🤖 Bem-vindo de volta!</h2><p>Enquanto você estava fora (${fmtTime(o.away)}), ${o.robots === 1 ? 'seu robô continuou' : `seus ${o.robots} robôs continuaram`} trabalhando.</p><p style="font-size:22px">+<i class="coin"></i><b>${fmt(o.gain)}</b> moedas</p><p class="hint">Com o jogo fechado eles rendem metade do normal, por até 8 horas.</p><div class="row"><button class="buy" onclick="UI.close();Game.lock()">Continuar</button></div></div>`;
+    $('panel').innerHTML = tt("<div class=\"story\"><h2>🤖 Bem-vindo de volta!</h2><p>Enquanto você estava fora ({0}), {1}.</p><p style=\"font-size:22px\">+<i class=\"coin\"></i><b>{2}</b> moedas</p><p class=\"hint\">Com o jogo fechado eles rendem metade do normal, por até 8 horas.</p><div class=\"row\"><button class=\"buy\" onclick=\"UI.close();Game.lock()\">Continuar</button></div></div>", fmtTime(o.away), o.robots === 1 ? tt("seu robô continuou trabalhando") : tt("seus {0} robôs continuaram trabalhando", o.robots), fmt(o.gain));
     $('panel').classList.remove('hidden');
   },
   // menu do detector (segurar G): até 3 coisas para a seta procurar
   detectorPanel() {
     const S = Game.S; this.freeMouse(); this.open = 'detector'; Snd.open();
-    if (!S.gear.detector) { $('panel').innerHTML = `<div class="story"><h2>🧭 Detector</h2><p>Você ainda não tem detector. Sem ele a seta não aparece. O Tonho do Bazar vende (barraca ITENS).</p><div class="row"><button class="buy" onclick="UI.close()">Fechar</button></div></div>`; $('panel').classList.remove('hidden'); return; }
+    if (!S.gear.detector) { $('panel').innerHTML = tt("<div class=\"story\"><h2>🧭 Detector</h2><p>Você ainda não tem detector. Sem ele a seta não aparece. O Tonho do Bazar vende (barraca ITENS).</p><div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Fechar</button></div></div>"); $('panel').classList.remove('hidden'); return; }
     const sel = S.detSel || (S.detSel = DET_DEFAULT.slice()), G = GADGETS.detector.levels[S.gear.detector];
-    let h = `<div class="story"><h2>🧭 O que a seta procura</h2><p class="hint">${G.n} · alcance ${fmt(G.range)} m. Marque até 3. Ela aponta para o primeiro que encontrar, nesta ordem. Com a mochila cheia ela sempre aponta para a vila.</p><div class="detopts">`;
+    let h = tt("<div class=\"story\"><h2>🧭 O que a seta procura</h2><p class=\"hint\">{0} · alcance {1} m. Marque até 3. Ela aponta para o primeiro que encontrar, nesta ordem. Com a mochila cheia ela sempre aponta para a vila.</p><div class=\"detopts\">", G.n, fmt(G.range));
     for (const o of DET_ORDER) {
       const on = sel.includes(o), dis = !on && sel.length >= 3;
       h += `<label class="${dis ? 'dis' : ''}"><input type="checkbox" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''} onchange="UI.detToggle('${o}', this.checked)"> ${DET_OPTIONS[o]}</label>`;
-      if (o === 'recurso' && on) h += `<select onchange="Game.S.detRes=this.value;Game.save()" style="margin:0 0 6px 28px">${RESOURCES.filter(r => !levelRule(r.ideal, S.hammer).blocked || r.special).map(r => `<option value="${r.id}" ${r.id === S.detRes ? 'selected' : ''}>${r.name} (nível ${r.ideal})</option>`).join('')}</select>`;
+      if (o === 'recurso' && on) h += `<select onchange="Game.S.detRes=this.value;Game.save()" style="margin:0 0 6px 28px">${RESOURCES.filter(r => !levelRule(r.ideal, S.hammer).blocked || r.special).map(r => tt("<option value=\"{0}\" {1}>{2} (nível {3})</option>", r.id, r.id === S.detRes ? 'selected' : '', r.name, r.ideal)).join('')}</select>`;
     }
-    h += `</div><div class="row"><button class="buy alt" onclick="Game.toggleDetector();UI.detectorPanel()">${S.detOn ? 'Desligar a seta' : 'Ligar a seta'}</button><button class="buy" onclick="UI.close()">Pronto</button></div><p class="hint">Toque em G para ligar/desligar · segure G (ou T) para abrir este menu</p></div>`;
+    h += tt("</div><div class=\"row\"><button class=\"buy alt\" onclick=\"Game.toggleDetector();UI.detectorPanel()\">{0}</button><button class=\"buy\" onclick=\"UI.close()\">Pronto</button></div><p class=\"hint\">Toque em G para ligar/desligar · segure G (ou T) para abrir este menu</p></div>", S.detOn ? tt("Desligar a seta") : tt("Ligar a seta"));
     $('panel').innerHTML = h; $('panel').classList.remove('hidden');
   },
   detToggle(o, on) {
@@ -209,38 +198,23 @@ const UI = {
   bagPanel() {
     const S = Game.S; this.freeMouse(); this.open = 'bag'; Snd.open();
     const need = Game.needs(), sneed = Game.specialNeed(), by = Game.needsBy(), ids = Object.keys(S.bag);
-    let h = `<div class="story"><h2>🎒 Mochila</h2><p class="hint">${fmt(Game.used())} de ${fmt(Game.capacity())} espaços usados.</p>`;
+    let h = tt("<div class=\"story\"><h2>🎒 Mochila</h2><p class=\"hint\">{0} de {1} espaços usados.</p>", fmt(Game.used()), fmt(Game.capacity()));
     if (ids.length) {
       const bv = Game.bagValue();
-      h += `<table class="bagt"><tr><th>Recurso</th><th>Qtd</th><th>Cada</th><th>Vai pro depósito</th></tr>`;
+      h += tt("<table class=\"bagt\"><tr><th>Recurso</th><th>Qtd</th><th>Cada</th><th>Vai pro depósito</th></tr>");
       for (const id of ids) { const q = S.bag[id], k = Math.min(Game.keepWant(id, need, sneed), Game.keepCap(id, q)); h += `<tr><td><span class="dot" style="background:${RES[id].c2}"></span> ${RES[id].name}${by[id] ? `<br><small style="opacity:.6">${by[id].join(', ')}</small>` : ''}</td><td>${fmt(q)}</td><td>${fmt(RES[id].value)}</td><td>${k ? fmt(k) : '—'}</td></tr>`; }
-      h += `</table><p>Ao entrar na vila você recebe <b><i class="coin"></i>${fmt(bv.money)}</b>${bv.kept ? ` e ${fmt(bv.kept)} vão para o depósito` : ''}.</p>`;
-    } else h += `<p>A mochila está vazia. Saia da vila e minere!</p>`;
-    if (S.pw.length) { const c = {}; S.pw.forEach(p => c[p.id] = (c[p.id] || 0) + 1); h += `<h4>Power-ups</h4><p>${Object.keys(c).map(id => `${POWERUPS[id].name} ×${c[id]} (tecla ${POWERUPS[id].key})`).join(' · ')}</p>`; }
-    h += `<h4>Atributos</h4><div class="mst">${Object.keys(ATTRS).map(k => `<span>${ATTRS[k].name} (nível ${S.attrs[k]})</span><b>${k === 'bag' ? fmt(Game.capacity()) + ' espaços' : attrLabel(k, S.attrs[k])}</b>`).join('')}<span>Clique rápido</span><b>×${Game.clickMult()}</b></div>`;
-    h += `<div class="row"><button class="buy" onclick="UI.close()">Fechar</button></div></div>`;
+      h += tt("</table><p>Ao entrar na vila você recebe <b><i class=\"coin\"></i>{0}</b>{1}.</p>", fmt(bv.money), bv.kept ? tt(" e {0} vão para o depósito", fmt(bv.kept)) : '');
+    } else h += tt("<p>A mochila está vazia. Saia da vila e minere!</p>");
+    if (S.pw.length) { const c = {}; S.pw.forEach(p => c[p.id] = (c[p.id] || 0) + 1); h += tt("<h4>Power-ups</h4><p>{0}</p>", Object.keys(c).map(id => tt("{0} ×{1} (tecla {2})", POWERUPS[id].name, c[id], POWERUPS[id].key)).join(' · ')); }
+    h += tt("<h4>Atributos</h4><div class=\"mst\">{0}<span>Clique rápido</span><b>×{1}</b></div>", Object.keys(ATTRS).map(k => tt("<span>{0} (nível {1})</span><b>{2}</b>", ATTRS[k].name, S.attrs[k], k === 'bag' ? fmt(Game.capacity()) + tt(" espaços") : attrLabel(k, S.attrs[k]))).join(''), Game.clickMult());
+    h += tt("<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Fechar</button></div></div>");
     $('panel').innerHTML = h; $('panel').classList.remove('hidden');
   },
   help() {
     this.freeMouse();
     this.open = 'help';
     $('panel').classList.remove('hidden');
-    $('panel').innerHTML = `<div class="story"><h2>Como jogar</h2>
-      <ul class="help">
-        <li><b>W A S D</b> andar · <b>Shift</b> correr (gasta fôlego) · <b>Espaço</b> pular · <b>V</b> câmera</li>
-        <li><b>Segurar o botão esquerdo</b> numa pedra: minerar · <b>clicar várias vezes</b>: golpes mais rápidos (gasta fôlego)</li>
-        <li><b>E</b> perto de um NPC: abrir a loja · <b>J</b> missões · <b>Tab</b> mochila</li>
-        <li><b>1 2 3</b> power-ups · <b>R</b> transporte · <b>L</b> luz · <b>G</b> seta do detector (segure para escolher)</li>
-        <li><b>H</b> voltar à cidade voando (martelo 20+) · <b>N</b> o que fazer ao chegar na vila · <b>U</b> vender o depósito</li>
-        <li><b>Q Z X</b> gancho, escada, cama elástica · <b>Espaço no ar</b> jetpack (itens de escalada do Tonho)</li>
-        <li><b>M</b> som · <b>Esc</b> soltar o mouse e abrir o menu</li>
-      </ul>
-      <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra o que sobra. Gaste no Ferreiro (martelo), na Tropeira (melhorias) e na Botica (power-ups).</p>
-      <p>A informação embaixo da mira mostra o tempo de cada pedra: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
-      ${Object.keys(Game.S.ms || {}).length ? `<h4>Seus tempos</h4><div class="mst">${Object.entries(Game.S.ms).sort((a, b) => a[1] - b[1]).map(([k, t]) => `<span>${k.replace(/^martelo/, 'Martelo ').replace(/^missao/, 'Missão ').replace(/^robo/, 'Robô ').replace('venda1', 'Primeira venda')}</span><b>${fmtTime(t)}</b>`).join('')}</div>` : ''}
-      <h4>Progresso</h4><p class="hint" style="margin-top:0">Salva sozinho. ${Backup.statusText()}</p>
-      <div class="row" style="flex-wrap:wrap"><button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button><button class="buy alt" onclick="UI.exportSave()">Exportar</button><button class="buy alt" onclick="document.getElementById('impfile').click()">Importar</button><button class="buy alt" onclick="Backup.restoreFromFile()">📂 Da pasta</button><input type="file" id="impfile" accept=".json" style="display:none" onchange="UI.importSave(this.files[0])"></div>
-      <div class="row" style="margin-top:12px"><button class="buy" onclick="UI.close()">Voltar ao jogo</button><button class="buy alt" onclick="if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()">Recomeçar do zero</button></div><p class="hint" style="text-align:center">Vale Ferrado v${GAME_VERSION}</p></div>`;
+    $('panel').innerHTML = tt("<div class=\"story\"><h2>Como jogar</h2>\n      <ul class=\"help\">\n        <li><b>W A S D</b> andar · <b>Shift</b> correr (gasta fôlego) · <b>Espaço</b> pular · <b>V</b> câmera</li>\n        <li><b>Segurar o botão esquerdo</b> numa pedra: minerar · <b>clicar várias vezes</b>: golpes mais rápidos (gasta fôlego)</li>\n        <li><b>E</b> perto de um NPC: abrir a loja · <b>J</b> missões · <b>Tab</b> mochila</li>\n        <li><b>1 2 3</b> power-ups · <b>R</b> transporte · <b>L</b> luz · <b>G</b> seta do detector (segure para escolher)</li>\n        <li><b>H</b> voltar à cidade voando (martelo 20+) · <b>N</b> o que fazer ao chegar na vila · <b>U</b> vender o depósito</li>\n        <li><b>Q Z X</b> gancho, escada, cama elástica · <b>Espaço no ar</b> jetpack (itens de escalada do Tonho)</li>\n        <li><b>M</b> som · <b>Esc</b> soltar o mouse e abrir o menu</li>\n      </ul>\n      <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra o que sobra. Gaste no Ferreiro (martelo), na Tropeira (melhorias) e na Botica (power-ups).</p>\n      <p>A informação embaixo da mira mostra o tempo de cada pedra: <b style=\"color:#7fd36a\">verde</b> vale a pena, <b style=\"color:#ffd34d\">amarelo</b> é lento, <b style=\"color:#ff6a5a\">vermelho</b> não compensa.</p>\n      {0}\n      <h4>Progresso</h4><p class=\"hint\" style=\"margin-top:0\">Salva sozinho. {1}</p>\n      <div class=\"row\" style=\"flex-wrap:wrap\"><button class=\"buy alt\" onclick=\"Backup.manual()\">💾 Salvar agora</button><button class=\"buy alt\" onclick=\"UI.exportSave()\">Exportar</button><button class=\"buy alt\" onclick=\"document.getElementById('impfile').click()\">Importar</button><button class=\"buy alt\" onclick=\"Backup.restoreFromFile()\">📂 Da pasta</button><input type=\"file\" id=\"impfile\" accept=\".json\" style=\"display:none\" onchange=\"UI.importSave(this.files[0])\"></div>\n      <div class=\"row\" style=\"margin-top:12px\"><button class=\"buy\" onclick=\"UI.close()\">Voltar ao jogo</button><button class=\"buy alt\" onclick=\"if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()\">Recomeçar do zero</button></div><p class=\"hint\" style=\"text-align:center\">Vale Ferrado v{2}</p></div>", Object.keys(Game.S.ms || {}).length ? tt("<h4>Seus tempos</h4><div class=\"mst\">{0}</div>", Object.entries(Game.S.ms).sort((a, b) => a[1] - b[1]).map(([k, t]) => `<span>${k.replace(/^martelo/, tt("Martelo ")).replace(/^missao/, tt("Missão ")).replace(/^robo/, tt("Robô ")).replace('venda1', tt("Primeira venda"))}</span><b>${fmtTime(t)}</b>`).join('')) : '', Backup.statusText(), GAME_VERSION);
   },
   exportSave() {
     Game.save();
@@ -253,9 +227,9 @@ const UI = {
     file.text().then(t => {
       const d = JSON.parse(t);
       if (!d || !d.hammer) throw new Error();
-      if (!confirm(`Carregar progresso com martelo nível ${d.hammer} e ${fmt(d.money || 0)} moedas? O progresso atual será substituído.`)) return;
+      if (!confirm(tt("Carregar progresso com martelo nível {0} e {1} moedas? O progresso atual será substituído.", d.hammer, fmt(d.money || 0)))) return;
       localStorage.setItem(SAVE_KEY, JSON.stringify(d)); location.reload();
-    }).catch(() => this.toast('Arquivo de progresso inválido.', 'warn'));
+    }).catch(() => this.toast(tt("Arquivo de progresso inválido."), 'warn'));
   },
 
   // ---------- tabela lateral: próximas evoluções e materiais guardados ----------
@@ -265,10 +239,10 @@ const UI = {
     el.style.display = 'block';
     const rows = [];
     const bv = Game.bagValue();
-    let html = Object.keys(S.bag).length ? `<div class="bagv"><span>🎒 Mochila vale</span><b><i class="coin"></i>${fmt(bv.money)}</b>${bv.mission ? `<small>📜 ${fmt(bv.mission)} para a missão</small>` : ''}</div>` : '';
+    let html = Object.keys(S.bag).length ? tt("<div class=\"bagv\"><span>🎒 Mochila vale</span><b><i class=\"coin\"></i>{0}</b>{1}</div>", fmt(bv.money), bv.mission ? tt("<small>📜 {0} para a missão</small>", fmt(bv.mission)) : '') : '';
     if (Robots.list.length) {
       const carrying = Robots.list.reduce((a, r) => a + r.n, 0);
-      html += `<div class="bagv"><span>🤖 ${Robots.list.length} robô${Robots.list.length > 1 ? 's' : ''} minerando</span>${carrying ? `<small>trazendo ${fmt(carrying)}</small>` : ''}</div>`;
+      html += tt("<div class=\"bagv\"><span>{0}</span>{1}</div>", Robots.list.length > 1 ? tt("🤖 {0} robôs minerando", Robots.list.length) : tt("🤖 1 robô minerando"), carrying ? tt("<small>trazendo {0}</small>", fmt(carrying)) : '');
     }
     // só a próxima forja; as outras melhorias aparecem como aviso quando dá para comprar
     const okOf = c => { let st = S.money >= c.money ? 2 : 0; for (const m of c.mats) { const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0; st = Math.min(st, have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0); } return st; };
@@ -279,28 +253,28 @@ const UI = {
         const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0, ms = have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0;
         mats += `<span class="m s${ms}"><i style="background:${RES[m.id].c2}"></i>${RES[m.id].name.split(' (')[0]} ${fmt(Math.min(have, m.qty))}/${fmt(m.qty)}${bag && ms < 2 ? ` <em>+${fmt(bag)}🎒</em>` : ''}</span>`;
       }
-      html += `<div class="ih">Próximo martelo <kbd>I</kbd></div><div class="up s${st}"><b>${['✖', '●', '✔'][st]}</b><div><div class="un">⚒ ${HAMMERS[S.hammer + 1].n} <small>nv ${S.hammer + 1}</small></div>${mats}<span class="m ${S.money >= c.money ? 's2' : 's0'}"><i class="coin"></i>${fmt(c.money)}</span></div></div>`;
-      if (st === 1) html += `<div class="leg"><span class="s1">● Falta só entregar: volte à cidade</span></div>`;
+      html += tt("<div class=\"ih\">Próximo martelo <kbd>I</kbd></div><div class=\"up s{0}\"><b>{1}</b><div><div class=\"un\">⚒ {2} <small>nv {3}</small></div>{4}<span class=\"m {5}\"><i class=\"coin\"></i>{6}</span></div></div>", st, ['✖', '●', '✔'][st], HAMMERS[S.hammer + 1].n, S.hammer + 1, mats, S.money >= c.money ? 's2' : 's0', fmt(c.money));
+      if (st === 1) html += tt("<div class=\"leg\"><span class=\"s1\">● Falta só entregar: volte à cidade</span></div>");
     }
     let ready = 0;
     for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL && okOf(attrCost(k, S.attrs[k] + 1)) === 2) ready++;
     ready += Game.gadgetUps().filter(g => okOf(g.c) === 2).length;
-    if (ready) html += `<div class="leg"><span class="s2">✔ ${ready} melhoria${ready > 1 ? 's' : ''} pronta${ready > 1 ? 's' : ''} para comprar</span></div>`;
+    if (ready) html += tt("<div class=\"leg\"><span class=\"s2\">{0}</span></div>", ready > 1 ? tt("✔ {0} melhorias prontas para comprar", ready) : tt("✔ 1 melhoria pronta para comprar"));
     if (html !== this.invHtml) { el.innerHTML = html; this.invHtml = html; }
   },
   // ---------- recibo do Seu Lauro (o que foi guardado e o que foi vendido) ----------
   receiptHtml(r, full) {
-    let h = `<table><tr><th>Material</th><th>Trouxe</th><th>🏠 Guardou</th><th>Vendeu</th></tr>`;
+    let h = tt("<table><tr><th>Material</th><th>Trouxe</th><th>🏠 Guardou</th><th>Vendeu</th></tr>");
     for (const l of r.lines) {
       h += `<tr><td><i style="background:${RES[l.id].c2}"></i>${RES[l.id].name.split(' (')[0]}</td><td>${fmt(l.q)}</td><td class="${l.k ? 'k' : ''}">${l.k ? fmt(l.k) : '—'}</td><td class="${l.sq ? 'v' : ''}">${l.sq ? fmt(l.sq) + ' <small>= ' + fmt(l.money) + '</small>' : '—'}</td></tr>`;
     }
     const took = r.took ? Object.keys(r.took) : [];
-    h += `</table>${took.length ? `<div class="tot"><span>📜 Missão: ${took.map(id => fmt(r.took[id]) + ' ' + RES[id].name).join(', ')}</span></div>` : ''}<div class="tot"><span>🏠 ${fmt(r.kept)} guardados</span><span><i class="coin"></i>+${fmt(r.earned)} moedas</span></div>`;
+    h += tt("</table>{0}<div class=\"tot\"><span>🏠 {1} guardados</span><span><i class=\"coin\"></i>+{2} moedas</span></div>", took.length ? tt("<div class=\"tot\"><span>📜 Missão: {0}</span></div>", took.map(id => fmt(r.took[id]) + ' ' + RES[id].name).join(', ')) : '', fmt(r.kept), fmt(r.earned));
     return h;
   },
   showReceipt(r) {
     const el = $('receipt');
-    el.innerHTML = `<div class="rh">Entrega no Armazém</div>${this.receiptHtml(r)}`;
+    el.innerHTML = tt("<div class=\"rh\">Entrega no Armazém</div>{0}", this.receiptHtml(r));
     el.classList.add('on');
     clearTimeout(this.rcT); this.rcT = setTimeout(() => el.classList.remove('on'), 9000 + r.lines.length * 1200);
   },
@@ -309,16 +283,16 @@ const UI = {
     el.style.display = 'none'; return; // a bússola virou a seta do detector
     if (!d) { el.style.display = 'none'; return; }
     el.style.display = 'flex';
-    if (d.done) { el.innerHTML = `<div class="dial off"><i></i></div><div><b>AUTO · tudo pronto</b><span>Nada faltando para as próximas evoluções</span></div>`; return; }
-    const R = RES[d.res], tag = d.auto ? `<em class="auto">AUTO</em>` : `<em class="man">MANUAL</em>`;
-    const falta = d.auto && d.falta ? ` · faltam ${fmt(d.falta)}` : '';
-    if (d.none) { el.innerHTML = `<div class="dial off"><i></i></div><div><b>${tag}${R.name.split(' (')[0]}</b><span>Sem sinal${falta}${d.auto ? ' · fora do alcance' : ' · <kbd>T</kbd> troca'}</span></div>`; return; }
+    if (d.done) { el.innerHTML = tt("<div class=\"dial off\"><i></i></div><div><b>AUTO · tudo pronto</b><span>Nada faltando para as próximas evoluções</span></div>"); return; }
+    const R = RES[d.res], tag = d.auto ? tt("<em class=\"auto\">AUTO</em>") : tt("<em class=\"man\">MANUAL</em>");
+    const falta = d.auto && d.falta ? tt(" · faltam {0}", fmt(d.falta)) : '';
+    if (d.none) { el.innerHTML = tt("<div class=\"dial off\"><i></i></div><div><b>{0}{1}</b><span>Sem sinal{2}{3}</span></div>", tag, R.name.split(' (')[0], falta, d.auto ? tt(" · fora do alcance") : tt(" · <kbd>T</kbd> troca")); return; }
     const P = Game.P, fx = -Math.sin(P.yaw), fy = -Math.cos(P.yaw), rx = Math.cos(P.yaw), ry = -Math.sin(P.yaw);
     const dx = Math.cos(d.bearing), dy = Math.sin(d.bearing);
     const ang = Math.atan2(dx * rx + dy * ry, dx * fx + dy * fy) * 180 / Math.PI;
     const bars = Math.max(1, Math.ceil(d.strength * 5));
-    const dist = d.dist < 15 ? 'aqui perto!' : d.lv === 1 ? (d.dist < 40 ? 'perto' : 'um pouco longe') : '~' + fmt(Math.round(d.dist / (d.lv === 2 ? 25 : 50)) * (d.lv === 2 ? 25 : 50)) + ' m';
-    const more = d.auto && d.count > 1 ? ` · +${d.count - 1} na lista` : '';
+    const dist = d.dist < 15 ? tt("aqui perto!") : d.lv === 1 ? (d.dist < 40 ? 'perto' : tt("um pouco longe")) : '~' + fmt(Math.round(d.dist / (d.lv === 2 ? 25 : 50)) * (d.lv === 2 ? 25 : 50)) + ' m';
+    const more = d.auto && d.count > 1 ? tt(" · +{0} na lista", d.count - 1) : '';
     el.innerHTML = `<div class="dial" style="--s:${d.strength}"><i style="transform:rotate(${ang}deg)"></i></div><div><b>${tag}${R.name.split(' (')[0]}</b><span>${dist} · ${'▮'.repeat(bars)}${'▯'.repeat(5 - bars)}${falta}${more}</span></div>`;
     // bipe que acelera conforme você se aproxima
     this.beepT = (this.beepT || 0) - 0.1;
@@ -338,23 +312,23 @@ const UI = {
     this.hudT -= dt; if (this.hudT > 0) return; this.hudT = 0.1;
     const S = Game.S, G = Game;
     $('money').textContent = fmt(S.money);
-    $('cint').textContent = '✦ ' + fmt(S.cint || 0) + ' Cintilha' + ((S.cint || 0) === 1 ? '' : 's');
+    $('cint').textContent = (S.cint || 0) === 1 ? tt("✦ {0} Cintilha", fmt(S.cint || 0)) : tt("✦ {0} Cintilhas", fmt(S.cint || 0));
     $('hname').textContent = HAMMERS[S.hammer].n;
-    $('hlv').textContent = 'Martelo nv ' + S.hammer + ' · força ' + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');
+    $('hlv').textContent = tt("Martelo nv {0} · força ", S.hammer) + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');
     const used = G.used(), cap = G.capacity();
     const st = $('stam'); st.style.width = (G.P.stamina * 100) + '%'; st.className = G.P.tired ? 'tired' : G.P.sprint ? 'run' : '';
     $('fuelwrap').style.display = (S.gear.climb || 0) >= 5 && (G.fuel !== undefined && G.fuel < 0.999 || G.jetting) ? 'block' : 'none'; if (G.fuel !== undefined) $('fuel').style.width = G.fuel * 100 + '%';
     $('stamwrap').style.opacity = G.P.stamina < 0.999 || G.P.sprint ? 1 : 0.35;
-    $('bagtxt').textContent = `Mochila ${fmt(used)} / ${fmt(cap)}`;
+    $('bagtxt').textContent = tt("Mochila {0} / {1}", fmt(used), fmt(cap));
     $('bagfill').style.width = Math.min(100, used / cap * 100) + '%';
     $('bagfill').className = used >= cap ? 'full' : used / cap > 0.8 ? 'warn' : '';
     // local
     const sub = World.subAt(G.P.x, G.P.y);
     let loc;
-    if (G.inCity) loc = '<b>Vale Ferrado</b>';
-    else if (sub) loc = `<b>${sub.R.name}</b> · <i>martelo ${sub.level}</i>`;
-    else loc = `<b>Campos de Vale Ferrado</b> · ${Math.round(Math.hypot(G.P.x, G.P.y))} m`;
-    if (World.veio) loc += `<br><span class="veio">⛏ Veio de ${RES[World.veio.res].name} aflorado: ${Math.ceil(World.veio.t)} s</span>`;
+    if (G.inCity) loc = tt("<b>Vale Ferrado</b>");
+    else if (sub) loc = tt("<b>{0}</b> · <i>martelo {1}</i>", sub.R.name, sub.level);
+    else loc = tt("<b>Campos de Vale Ferrado</b> · {0} m", Math.round(Math.hypot(G.P.x, G.P.y)));
+    if (World.veio) loc += tt("<br><span class=\"veio\">⛏ Veio de {0} aflorado: {1} s</span>", RES[World.veio.res].name, Math.ceil(World.veio.t));
     $('loc').innerHTML = loc;
     // power-ups
     let pw = '';
@@ -367,7 +341,7 @@ const UI = {
     $('pws').innerHTML = pw; $('pws').style.display = pw ? 'flex' : 'none';
     // dica NPC
     const npc = G.npcNear();
-    $('npchint').textContent = npc && !this.open ? `[E] Falar com ${npc.name}` : '';
+    $('npchint').textContent = npc && !this.open ? tt("[E] Falar com {0}", npc.name) : '';
     $('npchint').style.display = npc && !this.open ? 'block' : 'none';
     // atualiza só as lojas dos NPCs (as outras janelas não são lojas)
     if (['ferreiro', 'tropeira', 'botica', 'armazem'].includes(this.open) && Math.random() < 0.05) this.renderPanel();
@@ -388,10 +362,10 @@ const UI = {
       if (ok) { const c = G.recallCost(); $('recallc').innerHTML = `<i class="coin"></i>${fmt(c)}`; rb.classList.toggle('off', S.money < c); }
       $('travelbar').style.display = G.travel ? 'block' : 'none';
       if (G.travel) $('travelp').style.width = Math.min(100, G.travel.t / G.travel.dur * 100) + '%'; }
-    { const sm = $('sellmode'); sm.style.display = G.inCity || Object.keys(S.bag).length ? '' : 'none'; sm.innerHTML = `${{ sobra: '🏠', guardar: '📦', vender: '💰' }[G.sellMode()]} Na vila: ${SELL_MODES[G.sellMode()]} <kbd>N</kbd>`;
+    { const sm = $('sellmode'); sm.style.display = G.inCity || Object.keys(S.bag).length ? '' : 'none'; sm.innerHTML = tt("{0} Na vila: {1} <kbd>N</kbd>", { sobra: '🏠', guardar: '📦', vender: '💰' }[G.sellMode()], SELL_MODES[G.sellMode()]);
       const cb = $('citybar'), sv = G.inCity && !this.open ? Object.keys(S.stock).reduce((a, k) => a + (S.stock[k] || 0) * RES[k].value, 0) : 0;
-      if (G.unloadT !== undefined && !this.open) { cb.style.display = 'block'; cb.innerHTML = `Entregando a mochila…`; }
-      else if (sv) { cb.style.display = 'block'; cb.innerHTML = `<button onclick="Game.sellAllStock()">💰 Vender o depósito · ${fmt(sv)} <kbd>U</kbd></button>`; }
+      if (G.unloadT !== undefined && !this.open) { cb.style.display = 'block'; cb.innerHTML = tt("Entregando a mochila…"); }
+      else if (sv) { cb.style.display = 'block'; cb.innerHTML = tt("<button onclick=\"Game.sellAllStock()\">💰 Vender o depósito · {0} <kbd>U</kbd></button>", fmt(sv)); }
       else cb.style.display = 'none'; }
     $('climb').style.display = Game.P.climbing && Game.P.moving && !this.open ? 'block' : 'none';
   },

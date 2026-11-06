@@ -103,7 +103,7 @@ const Game = {
       if (k === ' ') this.jump();
       if (k === 'e') this.interact();
       if (k === 'v') Render.toggleView();
-      if (k === 'b') { this.S.showBadges = this.S.showBadges === false; UI.toast(this.S.showBadges === false ? 'Etiquetas dos recursos escondidas (B mostra)' : 'Etiquetas dos recursos visíveis'); }
+      if (k === 'b') { this.S.showBadges = this.S.showBadges === false; UI.toast(this.S.showBadges === false ? tt("Etiquetas dos recursos escondidas (B mostra)") : tt("Etiquetas dos recursos visíveis")); }
       if (k === 'i') { this.S.showInv = !this.S.showInv; Snd.toggle(this.S.showInv); }
       if (k === 'r') this.toggleRide();
       if (k === 'l') this.toggleLight();
@@ -112,7 +112,7 @@ const Game = {
       if (k === 'n') this.cycleSellMode();
       if (k === 'u' && this.inCity) this.sellAllStock();
       if (k === 'k' && e.ctrlKey === false) { Backup.manual(); }
-      if (k === 'm') { const on = Snd.toggleMute(); UI.toast(on ? 'Som ligado' : 'Som desligado'); }
+      if (k === 'm') { const on = Snd.toggleMute(); UI.toast(on ? tt("Som ligado") : tt("Som desligado")); }
       if (k === '1') this.activate('tonico');
       if (k === '2') this.activate('cafe');
       if (k === '3') this.activate('elixir');
@@ -161,7 +161,7 @@ const Game = {
     if (UI.open || !n || !this.onGround() || this.travel) return;
     if (this.clickCD > 0) return;
     if (P.tired || P.stamina < CLICK_COST) {
-      if (!this.noBreathT || this.S.time - this.noBreathT > 3) { this.noBreathT = this.S.time; UI.toast('Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar.', 'warn'); Snd.denied(); }
+      if (!this.noBreathT || this.S.time - this.noBreathT > 3) { this.noBreathT = this.S.time; UI.toast(tt("Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar."), 'warn'); Snd.denied(); }
       return;
     }
     P.stamina -= CLICK_COST; this.lastClickT = this.S.time; this.S.stats.clicks++;
@@ -190,7 +190,7 @@ const Game = {
   // ---------- power-ups ----------
   activate(id) {
     const i = this.S.pw.findIndex(p => p.id === id);
-    if (i < 0) { UI.toast(`Você não tem ${POWERUPS[id].name} na mochila. Compre no Zé da Botica.`); return; }
+    if (i < 0) { UI.toast(tt("Você não tem {0} na mochila. Compre no Zé da Botica.", POWERUPS[id].name)); return; }
     // usa o de maior nível
     let best = i; this.S.pw.forEach((p, j) => { if (p.id === id && p.tier > this.S.pw[best].tier) best = j; });
     const p = this.S.pw.splice(best, 1)[0]; this.S.stats.powers++;
@@ -198,7 +198,7 @@ const Game = {
     if (cur) { cur.left += POWERUPS[id].dur; cur.tier = Math.max(cur.tier, p.tier); }
     else this.S.active.push({ id, tier: p.tier, left: POWERUPS[id].dur });
     Snd.power(id);
-    UI.toast(`${POWERUPS[id].name} ${ROMAN[p.tier]} ativado! +${Math.round(powerBonus(id, p.tier) * 100)}%`, 'power');
+    UI.toast(tt("{0} {1} ativado! +{2}%", POWERUPS[id].name, ROMAN[p.tier], Math.round(powerBonus(id, p.tier) * 100)), 'power');
   },
 
   // ---------- economia ----------
@@ -238,15 +238,15 @@ const Game = {
   cycleSellMode() {
     const order = ['sobra', 'guardar', 'vender'], m = order[(order.indexOf(this.sellMode()) + 1) % 3];
     this.S.sellMode = m; Snd.toggle(true); if (this.unloadT !== undefined) this.unloadT = Math.max(this.unloadT, 1.2);
-    UI.toast('Na vila: ' + SELL_MODES[m]); this.save();
+    UI.toast(tt("Na vila: ") + SELL_MODES[m]); this.save();
   },
   // vende todo o depósito de uma vez (ex.: depois de guardar e tomar um power-up)
   sellAllStock() {
     const S = this.S, need = this.needs(); let money = 0, n = 0, reserved = 0;
     for (const id in S.stock) { const q = S.stock[id]; if (!q) continue; money += q * RES[id].value; n += q; reserved += Math.min(q, need[id] || 0); delete S.stock[id]; }
-    if (!n) { UI.toast('O depósito está vazio.'); return; }
+    if (!n) { UI.toast(tt("O depósito está vazio.")); return; }
     S.money += money; S.earned += money; Snd.coins(money);
-    UI.toast(`💰 Vendeu tudo do depósito: ${fmt(n)} recursos por ${fmt(money)} moedas.${reserved ? ` (${fmt(reserved)} deles iam para as evoluções)` : ''}`, 'money');
+    UI.toast(tt("💰 Vendeu tudo do depósito: {0} recursos por {1} moedas.{2}", fmt(n), fmt(money), reserved ? tt(" ({0} deles iam para as evoluções)", fmt(reserved)) : ''), 'money');
     this.save();
   },
   mark(key) { const S = this.S; if (!S.ms) S.ms = {}; if (S.ms[key] === undefined) S.ms[key] = Math.round(S.time); },
@@ -254,8 +254,8 @@ const Game = {
   needsBy() {
     const by = {};
     const add = (label, c) => c.mats.forEach(m => { (by[m.id] = by[m.id] || []).push(label); });
-    if (this.S.hammer < MAX_LEVEL) add('Martelo nv ' + (this.S.hammer + 1), hammerCost(this.S.hammer + 1));
-    for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(ATTRS[k].short + ' nv ' + (this.S.attrs[k] + 1), attrCost(k, this.S.attrs[k] + 1));
+    if (this.S.hammer < MAX_LEVEL) add(tt("Martelo nv {0}", this.S.hammer + 1), hammerCost(this.S.hammer + 1));
+    for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(ATTRS[k].short + tt(" nv ") + (this.S.attrs[k] + 1), attrCost(k, this.S.attrs[k] + 1));
     for (const g of this.gadgetUps()) add(g.label, g.c);
     return by;
   },
@@ -288,13 +288,13 @@ const Game = {
       const sq = q - k, money = sq * RES[id].value;
       if (sq > 0) { earned += money; sold += sq; }
       let why;
-      if (mode === 'guardar') why = 'modo guardar tudo';
-      else if (mode === 'vender') why = 'modo vender tudo';
-      else if (RES[id].special && sneed[id] && k > 0) why = 'recurso raro: guardei para martelos e equipamentos futuros';
-      else if (!need[id] && !(RES[id].special && sneed[id])) why = 'nenhuma evolução próxima usa';
-      else if (want === 0) why = 'o depósito já tem o suficiente';
-      else if (k < want) why = `guardei ${this.S.hammer < 6 ? 'o que veio' : '60% da carga, para sempre entrar dinheiro'}; faltam ${fmt(want - k)}`;
-      else why = 'guardei tudo que faltava';
+      if (mode === 'guardar') why = tt("modo guardar tudo");
+      else if (mode === 'vender') why = tt("modo vender tudo");
+      else if (RES[id].special && sneed[id] && k > 0) why = tt("recurso raro: guardei para martelos e equipamentos futuros");
+      else if (!need[id] && !(RES[id].special && sneed[id])) why = tt("nenhuma evolução próxima usa");
+      else if (want === 0) why = tt("o depósito já tem o suficiente");
+      else if (k < want) why = tt("guardei {0}; faltam {1}", this.S.hammer < 6 ? tt("o que veio") : tt("60% da carga, para sempre entrar dinheiro"), fmt(want - k));
+      else why = tt("guardei tudo que faltava");
       lines.push({ id, q, k, sq, money, why, for: by[id] || [] });
     }
     this.S.bag = {};
@@ -304,7 +304,7 @@ const Game = {
     this.S.receipts = [r, ...(this.S.receipts || [])].slice(0, 5);
     UI.showReceipt(r);
     if (earned) Snd.coins(earned); else if (kept) Snd.pickup();
-    if (earned) this.floats.push({ x: this.P.x, y: this.P.y - 2, txt: '+' + fmt(earned) + ' moedas', c: '#ffd34d', t: 1.6 });
+    if (earned) this.floats.push({ x: this.P.x, y: this.P.y - 2, txt: '+' + fmt(earned) + tt(" moedas"), c: '#ffd34d', t: 1.6 });
     this.save();
   },
   canPay(c) {
@@ -319,10 +319,10 @@ const Game = {
     const L = this.S.hammer + 1; if (L > MAX_LEVEL) return;
     const c = hammerCost(L); if (!this.canPay(c)) return;
     this.pay(c); this.S.hammer = L; Snd.forge(); this.mark('martelo' + L);
-    if ({ 20: 1, 40: 1, 50: 1, 60: 1 }[L]) setTimeout(() => UI.toast(L === 60 ? '🥚 O ovo de dragão está pronto para chocar! (o dragão chega numa próxima grande atualização)' : '🥚 Crack! O ovo de dragão da praça rachou mais um pouco…', 'veio'), 2500);
-    UI.toast(`Seu Bento forjou: ${HAMMERS[L].n}! Força ${fmt(HAMMERS[L].f)}.`, 'level');
+    if ({ 20: 1, 40: 1, 50: 1, 60: 1 }[L]) setTimeout(() => UI.toast(L === 60 ? tt("🥚 O ovo de dragão está pronto para chocar! (o dragão chega numa próxima grande atualização)") : tt("🥚 Crack! O ovo de dragão da praça rachou mais um pouco…"), 'veio'), 2500);
+    UI.toast(tt("Seu Bento forjou: {0}! Força {1}.", HAMMERS[L].n, fmt(HAMMERS[L].f)), 'level');
     this.fxBurst(this.P.x, this.P.y, '#ffb347', 30);
-    if (L === RECALL_LVL) setTimeout(() => UI.toast(`🏠 Novo: botão Voltar à cidade (tecla H). Te leva de volta voando rapidinho, por uma taxa pequena.`, 'level'), 1500);
+    if (L === RECALL_LVL) setTimeout(() => UI.toast(tt("🏠 Novo: botão Voltar à cidade (tecla H). Te leva de volta voando rapidinho, por uma taxa pequena."), 'level'), 1500);
     if (L % 10 === 0) Platform.happy();
     if (STORY[L] && !this.S.seen[L]) setTimeout(() => UI.story(L), 400);
     this.save();
@@ -331,15 +331,15 @@ const Game = {
     const L = this.S.attrs[key] + 1; if (L > MAX_LEVEL) return;
     const c = attrCost(key, L); if (!this.canPay(c)) return;
     this.pay(c); this.S.attrs[key] = L; Snd.levelUp();
-    UI.toast(`Dona Cida melhorou ${ATTRS[key].short}: nível ${L} (${attrLabel(key, L)}).`, 'level');
+    UI.toast(tt("Dona Cida melhorou {0}: nível {1} ({2}).", ATTRS[key].short, L, attrLabel(key, L)), 'level');
     this.fxBurst(this.P.x, this.P.y, '#7fd36a', 20);
     this.save();
   },
   buyPower(id) {
     const price = powerPrice(id, this.S.hammer), ci = powerCint(id, this.S.hammer);
     if (this.S.money < price) return;
-    if ((this.S.cint || 0) < ci) { UI.toast(`Faltam Cintilhas: ${POWERUPS[id].name} custa ${ci} ✦.`, 'warn'); return; }
-    if (this.free() < POWERUPS[id].slots) { UI.toast('Sem espaço na mochila para esse power-up.'); return; }
+    if ((this.S.cint || 0) < ci) { UI.toast(tt("Faltam Cintilhas: {0} custa {1} ✦.", POWERUPS[id].name, ci), 'warn'); return; }
+    if (this.free() < POWERUPS[id].slots) { UI.toast(tt("Sem espaço na mochila para esse power-up.")); return; }
     this.S.money -= price; this.S.cint -= ci; Snd.buy();
     this.S.pw.push({ id, tier: eraOf(this.S.hammer) });
     this.save();
@@ -350,11 +350,11 @@ const Game = {
   recall() {
     const P = this.P, S = this.S;
     if (this.travel || UI.open) return;
-    if (S.hammer < RECALL_LVL) { UI.toast(`Voltar à cidade libera no martelo nível ${RECALL_LVL}.`); return; }
+    if (S.hammer < RECALL_LVL) { UI.toast(tt("Voltar à cidade libera no martelo nível {0}.", RECALL_LVL)); return; }
     const d = Math.hypot(P.x, P.y);
-    if (d < CITY_R + 2) { UI.toast('Você já está na cidade.'); return; }
+    if (d < CITY_R + 2) { UI.toast(tt("Você já está na cidade.")); return; }
     const cost = this.recallCost();
-    if (S.money < cost) { UI.toast(`Falta dinheiro para voltar: a taxa é ${fmt(cost)} moedas.`, 'warn'); Snd.denied(); return; }
+    if (S.money < cost) { UI.toast(tt("Falta dinheiro para voltar: a taxa é {0} moedas.", fmt(cost)), 'warn'); Snd.denied(); return; }
     S.money -= cost;
     const ux = P.x / d, uy = P.y / d, ex = ux * 6, ey = uy * 6;
     this.travel = { sx: P.x, sy: P.y, ex, ey, t: 0, dur: Math.min(7, Math.max(2.2, d / 140)), yaw0: P.yaw, pitch0: P.pitch, yaw1: Math.atan2(ux, uy), dustT: 0 };
@@ -381,7 +381,7 @@ const Game = {
     T.dustT -= dt; if (T.dustT <= 0 && v > 5) { T.dustT = 0.05; this.fxBurst(P.x, P.y, '#cdbb98', 3, 0.7); }
     if (u >= 1) {
       this.travel = null; P.z = 0; P.sprint = false; P.speedNow = 0;
-      Snd.land(1.5); UI.toast('Chegou na cidade!');
+      Snd.land(1.5); UI.toast(tt("Chegou na cidade!"));
     }
   },
 
@@ -393,22 +393,22 @@ const Game = {
     if (type === 'ride') this.S.riding = true;
     if (type === 'light') this.S.lightOn = true;
     if (type === 'detector') { this.S.detOn = true; if (!this.S.detRes) this.S.detRes = this.defaultDetRes(); }
-    UI.toast(`Você comprou: ${G.n}! (tecla ${GADGETS[type].key})`, 'level');
+    UI.toast(tt("Você comprou: {0}! (tecla {1})", G.n, GADGETS[type].key), 'level');
     this.save();
   },
   ride() { return this.S.riding && this.S.gear.ride ? GADGETS.ride.levels[this.S.gear.ride] : null; },
   toggleRide() {
-    if (!this.S.gear.ride) { UI.toast('Você ainda não tem transporte. Veja o Tonho do Bazar.'); return; }
+    if (!this.S.gear.ride) { UI.toast(tt("Você ainda não tem transporte. Veja o Tonho do Bazar.")); return; }
     this.S.riding = !this.S.riding; Snd.toggle(this.S.riding);
-    UI.toast(this.S.riding ? `Em cima do ${GADGETS.ride.levels[this.S.gear.ride].n}` : 'A pé');
+    UI.toast(this.S.riding ? tt("Em cima do {0}", GADGETS.ride.levels[this.S.gear.ride].n) : tt("A pé"));
   },
   toggleLight() {
-    if (!this.S.gear.light) { UI.toast('Você ainda não tem lanterna. Veja o Tonho do Bazar.'); return; }
-    this.S.lightOn = !this.S.lightOn; Snd.toggle(this.S.lightOn); UI.toast(this.S.lightOn ? 'Luz ligada' : 'Luz desligada');
+    if (!this.S.gear.light) { UI.toast(tt("Você ainda não tem lanterna. Veja o Tonho do Bazar.")); return; }
+    this.S.lightOn = !this.S.lightOn; Snd.toggle(this.S.lightOn); UI.toast(this.S.lightOn ? tt("Luz ligada") : tt("Luz desligada"));
   },
   toggleDetector() {
-    if (!this.S.gear.detector) { UI.toast('Você ainda não tem detector. Sem ele a seta não aparece: veja o Tonho do Bazar.'); return; }
-    this.S.detOn = !this.S.detOn; Snd.toggle(this.S.detOn); UI.toast(this.S.detOn ? 'Detector ligado: a seta volta a guiar (segure G para escolher o que ela procura)' : 'Detector desligado: a seta some');
+    if (!this.S.gear.detector) { UI.toast(tt("Você ainda não tem detector. Sem ele a seta não aparece: veja o Tonho do Bazar.")); return; }
+    this.S.detOn = !this.S.detOn; Snd.toggle(this.S.detOn); UI.toast(this.S.detOn ? tt("Detector ligado: a seta volta a guiar (segure G para escolher o que ela procura)") : tt("Detector desligado: a seta some"));
   },
   defaultDetRes() {
     const L = Math.min(MAX_LEVEL, this.S.hammer + 1);
@@ -430,12 +430,12 @@ const Game = {
   },
   cycleDetector(dir) {
     if (!this.S.gear.detector) return;
-    if (dir < 0) { this.S.detAuto = true; this.detT = 0; UI.toast('Detector no automático: procura o que falta para suas evoluções'); return; }
+    if (dir < 0) { this.S.detAuto = true; this.detT = 0; UI.toast(tt("Detector no automático: procura o que falta para suas evoluções")); return; }
     const cur = this.S.detRes || this.defaultDetRes();
     const i = RESOURCES.findIndex(r => r.id === cur);
     this.S.detRes = this.S.detAuto ? cur : RESOURCES[(i + 1) % RESOURCES.length].id;
     this.S.detAuto = false; this.detT = 0;
-    UI.toast('Detector manual: ' + RES[this.S.detRes].name + ' (T troca · Shift+T volta ao automático)');
+    UI.toast(tt("Detector manual: ") + RES[this.S.detRes].name + tt(" (T troca · Shift+T volta ao automático)"));
   },
   nearestOf(id) {
     const P = this.P; let best = null, bd = Infinity;
@@ -482,9 +482,9 @@ const Game = {
     Missions.update(dt);
     const wasNight = this.isNight();
     S.clock = (S.clock + dt / DAY_LEN) % 1;
-    if (!wasNight && this.isNight()) UI.toast(S.gear.light ? 'Anoiteceu. Aperte L para ligar sua luz.' : 'Anoiteceu! O Tonho do Bazar vende lanternas.', 'veio');
-    if (wasNight && !this.isNight()) UI.toast('Amanheceu em Vale Ferrado.');
-    for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(`${POWERUPS[S.active[i].id].name} acabou.`); S.active.splice(i, 1); } }
+    if (!wasNight && this.isNight()) UI.toast(S.gear.light ? tt("Anoiteceu. Aperte L para ligar sua luz.") : tt("Anoiteceu! O Tonho do Bazar vende lanternas."), 'veio');
+    if (wasNight && !this.isNight()) UI.toast(tt("Amanheceu em Vale Ferrado."));
+    for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(tt("{0} acabou.", POWERUPS[S.active[i].id].name)); S.active.splice(i, 1); } }
 
 
     const climbing = !this.travel && this.updateClimb(dt);
@@ -513,10 +513,10 @@ const Game = {
         if (slope > 0.08) { P.climbing = true; climb = Math.max(0.2, 1 - slope * 1.4); if (ride && ride.free) climb = Math.max(climb, 0.55); }
         else if (slope < -0.25) climb = 1.1;
       }
-      if (mtn && !mtn.seen) { mtn.seen = true; UI.toast(mtn.special ? `⛰ Montanha! Perto do topo tem ${mtn.special.name}, recurso raro que só existe aqui. Na subida o Shift não funciona e você anda devagar.` : '⛰ Morro: subir é devagar e o Shift não funciona na subida.', 'veio'); }
+      if (mtn && !mtn.seen) { mtn.seen = true; UI.toast(mtn.special ? tt("⛰ Montanha! Perto do topo tem {0}, recurso raro que só existe aqui. Na subida o Shift não funciona e você anda devagar.", mtn.special.name) : tt("⛰ Morro: subir é devagar e o Shift não funciona na subida."), 'veio'); }
       const wantSprint = this.keys['shift'] && P.moving && fw > 0 && !(ride && ride.free) && !P.climbing;
       P.sprint = wantSprint && !P.tired && P.stamina > 0;
-      if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast('Você está cansado! Espere o fôlego voltar.', 'warn'); Snd.tired(); } }
+      if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast(tt("Você está cansado! Espere o fôlego voltar."), 'warn'); Snd.tired(); } }
       else if (this.S.time - (this.lastClickT || -9) > 1.2) { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
       if (len) {
         mx /= len; my /= len;
@@ -535,7 +535,7 @@ const Game = {
       }
       // limite do mundo
       const R = Math.hypot(P.x, P.y), LIM = 4300;
-      if (R > LIM) { P.x *= LIM / R; P.y *= LIM / R; if (!this.limT || S.time - this.limT > 5) { this.limT = S.time; UI.toast('Daqui pra frente só há montanhas. Volte para o vale.'); } }
+      if (R > LIM) { P.x *= LIM / R; P.y *= LIM / R; if (!this.limT || S.time - this.limT > 5) { this.limT = S.time; UI.toast(tt("Daqui pra frente só há montanhas. Volte para o vale.")); } }
     } else { P.moving = false; P.sprint = false; }
 
     // pulo
@@ -605,15 +605,15 @@ const Game = {
     // regra do nível: pedra muito acima do martelo não quebra; até 10 acima, demora mais
     const rule = n.res.wild ? { mult: 1, blocked: false } : levelRule(n.res.ideal, this.S.hammer);
     if (rule.blocked) {
-      if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(`🔒 ${n.res.name} é nível ${n.res.ideal}: precisa do Martelo ${n.res.ideal - LEVEL_LOCK} ou melhor.`, 'warn'); }
+      if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("🔒 {0} é nível {1}: precisa do Martelo {2} ou melhor.", n.res.name, n.res.ideal, n.res.ideal - LEVEL_LOCK), 'warn'); }
       Snd.denied(); Snd.hit('scrap', 1, false); this.shake = Math.min(1, this.shake + 0.1); this.mineT = 0; return;
     }
     if (n.res.id === 'geodo' && (this.S.cint || 0) < 1) {
-      if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast('O Geodo de Poção abre com 1 Cintilha. Minere pedras para achar Cintilhas.', 'warn'); }
+      if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("O Geodo de Poção abre com 1 Cintilha. Minere pedras para achar Cintilhas."), 'warn'); }
       Snd.denied(); this.mineT = 0; return;
     }
     if (this.free() <= 0 && !n.res.wild) {
-      if (this.fullWarnT <= 0) { UI.toast('Mochila cheia! Volte à cidade para vender.', 'warn'); this.fullWarnT = 4; Snd.warn(); }
+      if (this.fullWarnT <= 0) { UI.toast(tt("Mochila cheia! Volte à cidade para vender."), 'warn'); this.fullWarnT = 4; Snd.warn(); }
       this.mineT = 0; return;
     }
     const dmg = this.force() * mult / rule.mult;
@@ -632,9 +632,9 @@ const Game = {
       this.S.bag[n.res.id] = (this.S.bag[n.res.id] || 0) + got;
       this.S.stats.mined[n.res.id] = (this.S.stats.mined[n.res.id] || 0) + got; if (n.rare > 1) this.S.stats.veios++;
       let txt = `+${got} ${n.res.name}`;
-      if (n.rare === 10) txt = '💎 CRISTALIZADO! ' + txt; else if (n.rare === 3) txt = '✨ Veio rico! ' + txt;
+      if (n.rare === 10) txt = tt("💎 CRISTALIZADO! ") + txt; else if (n.rare === 3) txt = tt("✨ Veio rico! ") + txt;
       this.floats.push({ x: n.x, y: n.y - 1, txt, c: n.rare > 1 ? '#ffe27a' : '#fff', t: 1.4 });
-      if (got < units) UI.toast(`Mochila cheia: ${units - got} ${n.res.name} ficaram no chão.`, 'warn');
+      if (got < units) UI.toast(tt("Mochila cheia: {0} {1} ficaram no chão.", units - got, n.res.name), 'warn');
       this.fxBurst(n.x, n.y, n.res.c, 14, 1.4);
       Snd.breakNode(n.res.kind, n.rare); Snd.pickup();
       World.breakNode(n);
@@ -644,7 +644,7 @@ const Game = {
 
   gotCint(x, y, q) {
     this.S.cint = (this.S.cint || 0) + q; this.S.stats.cint = (this.S.stats.cint || 0) + q;
-    this.floats.push({ x, y: y - 0.6, txt: `✦ +${q} Cintilha${q > 1 ? 's' : ''}`, c: '#9ff3ff', t: 1.8 });
+    this.floats.push({ x, y: y - 0.6, txt: (q > 1 ? tt("✦ +{0} Cintilhas", q) : tt("✦ +{0} Cintilha", q)), c: '#9ff3ff', t: 1.8 });
     this.fxBurst(x, y, '#9ff3ff', 16, 1.2);
     [1568, 2093, 2637].forEach((f, i) => Snd.tone(f, 0.25, { vol: 0.07, type: 'triangle', at: i * 0.06 }));
   },
@@ -655,8 +655,8 @@ const Game = {
     else {
       S.cint -= 1;
       const ids = Object.keys(POWERUPS), id = ids[Math.floor(Math.random() * ids.length)], tier = eraOf(S.hammer);
-      if (this.free() >= POWERUPS[id].slots) { S.pw.push({ id, tier }); UI.toast(`✦ O geodo tinha ${POWERUPS[id].name} ${ROMAN[tier]}! Está na mochila (tecla ${POWERUPS[id].key}).`, 'level'); }
-      else { S.active.push({ id, tier, left: POWERUPS[id].dur }); UI.toast(`✦ O geodo tinha ${POWERUPS[id].name}! Sem espaço na mochila: ativado na hora.`, 'level'); }
+      if (this.free() >= POWERUPS[id].slots) { S.pw.push({ id, tier }); UI.toast(tt("✦ O geodo tinha {0} {1}! Está na mochila (tecla {2}).", POWERUPS[id].name, ROMAN[tier], POWERUPS[id].key), 'level'); }
+      else { S.active.push({ id, tier, left: POWERUPS[id].dur }); UI.toast(tt("✦ O geodo tinha {0}! Sem espaço na mochila: ativado na hora.", POWERUPS[id].name), 'level'); }
       Snd.power(id);
     }
     S.stats.wilds = (S.stats.wilds || 0) + 1;
@@ -666,7 +666,7 @@ const Game = {
   buyOlho() {
     const L = (this.S.olho || 0) + 1; if (L >= OLHO.length || this.S.money < OLHO[L]) return;
     this.S.money -= OLHO[L]; this.S.olho = L; Snd.levelUp();
-    UI.toast(`Olho de Garimpeiro nível ${L}: ${Math.round(cintChance(L) * 100 * 10) / 10}% de chance de Cintilha por pedra.`, 'level'); this.save();
+    UI.toast(tt("Olho de Garimpeiro nível {0}: {1}% de chance de Cintilha por pedra.", L, Math.round(cintChance(L) * 100 * 10) / 10), 'level'); this.save();
   },
   fxBurst(x, y, c, n, power = 1) {
     for (let i = 0; i < n; i++) {
@@ -722,11 +722,11 @@ const Game = {
     return { wx: P.x + fx * Math.max(0.3, wall - 0.5), wy: P.y + fy * Math.max(0.3, wall - 0.5), lx, ly, top, base: World.height(P.x, P.y), rise: top - feet, yaw: P.yaw };
   },
   useHook() {
-    if (this.climbLv() < 1) { UI.toast('Você ainda não tem a corda com gancho. Veja o Tonho do Bazar (ITENS).'); return; }
+    if (this.climbLv() < 1) { UI.toast(tt("Você ainda não tem a corda com gancho. Veja o Tonho do Bazar (ITENS).")); return; }
     if (this.hook || this.travel || this.ladder || (this.hookCD || 0) > this.S.time) return;
     const L = this.findLedge(4, 6.2);
-    if (!L) { UI.toast('Nenhuma beirada à sua frente para o gancho.'); Snd.denied(); return; }
-    if (L.tooHigh) { UI.toast(`Alto demais para o gancho (${L.rise.toFixed(1).replace('.', ',')} m; ele alcança 6 m). Use escada, cama elástica ou jetpack.`, 'warn'); Snd.denied(); return; }
+    if (!L) { UI.toast(tt("Nenhuma beirada à sua frente para o gancho.")); Snd.denied(); return; }
+    if (L.tooHigh) { UI.toast(tt("Alto demais para o gancho ({0} m; ele alcança 6 m). Use escada, cama elástica ou jetpack.", L.rise.toFixed(1).replace('.', DEC)), 'warn'); Snd.denied(); return; }
     const P = this.P, feet = World.height(P.x, P.y) + P.z;
     this.hook = { sx: P.x, sy: P.y, sz: feet, tx: L.lx, ty: L.ly, tz: L.top, t: 0, dur: 0.5 + L.rise * 0.08 };
     this.hookCD = this.S.time + 1;
@@ -734,21 +734,21 @@ const Game = {
   },
   placeLadder() {
     const lv = this.climbLv();
-    if (lv < 2) { UI.toast(lv ? 'Escadas são do Tonho do Bazar: Escada de cordas.' : 'Você ainda não tem escada. Veja o Tonho do Bazar (ITENS).'); return; }
+    if (lv < 2) { UI.toast(lv ? tt("Escadas são do Tonho do Bazar: Escada de cordas.") : tt("Você ainda não tem escada. Veja o Tonho do Bazar (ITENS).")); return; }
     const L = this.findLedge(2.5, 60);
-    if (!L || L.tooHigh || L.rise < 1) { UI.toast('Chegue de frente para uma parede para pendurar a escada.'); Snd.denied(); return; }
+    if (!L || L.tooHigh || L.rise < 1) { UI.toast(tt("Chegue de frente para uma parede para pendurar a escada.")); Snd.denied(); return; }
     const metal = lv >= 3, cap = metal ? 6 : 3, S = this.S;
     S.ladders.push({ x: L.wx, y: L.wy, yaw: L.yaw, h0: L.base, h1: L.top, tx: L.lx, ty: L.ly, metal });
     while (S.ladders.length > cap) S.ladders.shift();
-    Snd.forge(); UI.toast(`${metal ? 'Escada de metal' : 'Escada de cordas'} pendurada (${S.ladders.length}/${cap}). Ande de frente para ela para subir.`);
+    Snd.forge(); UI.toast(tt("{0} pendurada ({1}/{2}). Ande de frente para ela para subir.", metal ? tt("Escada de metal") : tt("Escada de cordas"), S.ladders.length, cap));
     this.save();
   },
   placeTramp() {
-    if (this.climbLv() < 4) { UI.toast('A cama elástica é do Tonho do Bazar (Escalada nível 4).'); return; }
+    if (this.climbLv() < 4) { UI.toast(tt("A cama elástica é do Tonho do Bazar (Escalada nível 4).")); return; }
     const P = this.P, fx = -Math.sin(P.yaw), fy = -Math.cos(P.yaw), x = P.x + fx * 1.6, y = P.y + fy * 1.6;
-    if (Math.abs(World.height(x, y) - World.height(P.x, P.y)) > 0.8) { UI.toast('Coloque a cama elástica num chão plano.'); Snd.denied(); return; }
+    if (Math.abs(World.height(x, y) - World.height(P.x, P.y)) > 0.8) { UI.toast(tt("Coloque a cama elástica num chão plano.")); Snd.denied(); return; }
     const S = this.S; S.tramps.push({ x, y }); while (S.tramps.length > 3) S.tramps.shift();
-    Snd.buy(); UI.toast(`Cama elástica colocada (${S.tramps.length}/3). Pule nela!`); this.save();
+    Snd.buy(); UI.toast(tt("Cama elástica colocada ({0}/3). Pule nela!", S.tramps.length)); this.save();
   },
   updateClimb(dt) {
     const P = this.P, S = this.S;
@@ -792,7 +792,7 @@ const Game = {
       P.vz = Math.min(9, P.vz + 34 * dt);
       this.jetFxT = (this.jetFxT || 0) - dt;
       if (this.jetFxT <= 0) { this.jetFxT = 0.05; for (let i = 0; i < 3; i++) this.fx.push({ x: P.x + (Math.random() - 0.5) * 0.3, y: P.y + (Math.random() - 0.5) * 0.3, z: P.z + 0.6, vx: (Math.random() - 0.5), vy: (Math.random() - 0.5), vz: -6 - Math.random() * 3, c: Math.random() < 0.5 ? '#ffb347' : '#ff6a2a', t: 0.35, s: 0.1 }); Snd.noise(0.08, { vol: 0.06, f: 500, q: 0.6, type: 'lowpass' }); }
-      if (this.fuel <= 0) UI.toast('Jetpack sem combustível! Ele recarrega no chão.', 'warn');
+      if (this.fuel <= 0) UI.toast(tt("Jetpack sem combustível! Ele recarrega no chão."), 'warn');
     } else if (ground) this.fuel = Math.min(1, this.fuel + dt / 3);
     // cama elástica
     for (const T of S.tramps) {
@@ -831,7 +831,7 @@ const Game = {
       const q = Math.min(back[id], Math.max(0, (sneed[id] || 0) - (S.stock[id] || 0))); if (!q) continue;
       S.stock[id] = (S.stock[id] || 0) + q; S.money = Math.max(0, S.money - q * RES[id].value); got.push(`${q} ${RES[id].name}`);
     }
-    if (got.length) setTimeout(() => UI.toast(`Seu Lauro devolveu ao depósito o recurso raro que tinha vendido por engano: ${got.join(', ')}.`, 'level'), 2500);
+    if (got.length) setTimeout(() => UI.toast(tt("Seu Lauro devolveu ao depósito o recurso raro que tinha vendido por engano: {0}.", got.join(', ')), 'level'), 2500);
     this.save();
   },
   async reset() { // apaga tudo (navegador e cópia de segurança) e recomeça

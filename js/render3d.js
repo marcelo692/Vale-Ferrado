@@ -130,7 +130,7 @@ const Render = {
     this.fxScale = leve ? 0.45 : 1;
     try { localStorage.setItem('valeferrado_gfx', this.quality); } catch (e) {}
     const sel = document.getElementById('gfx'); if (sel) sel.value = this.quality;
-    if (!silent) UI.toast(leve ? 'Gráfico leve: sem sombras e grama, menos partículas.' : 'Gráfico bonito ligado.');
+    if (!silent) UI.toast(leve ? tt("Gráfico leve: sem sombras e grama, menos partículas.") : tt("Gráfico bonito ligado."));
   },
   // se o jogo ficar lento, sugere o gráfico leve (uma vez)
   watchFps(dt) {
@@ -139,7 +139,7 @@ const Render = {
     if (this.fpsAcc < 6) return;
     const fps = this.fpsN / this.fpsAcc; this.fpsAcc = 0; this.fpsN = 0;
     this.fpsLow = fps < 28 ? (this.fpsLow || 0) + 1 : 0;
-    if (this.fpsLow >= 2) { this.fpsTold = true; UI.toast('O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve.', 'warn'); }
+    if (this.fpsLow >= 2) { this.fpsTold = true; UI.toast(tt("O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve."), 'warn'); }
   },
   // ---------- aviso de altura nos obstáculos (atalhos de pulo) ----------
   updateObstacleHint() {
@@ -158,7 +158,7 @@ const Render = {
       this.obsSprite.scale.set(0.3, 0.056, 1); this.obsSprite.renderOrder = 5; this.scene.add(this.obsSprite);
     }
     if (!best || UI.open) { this.obsSprite.visible = false; return; }
-    const o = best.o, ok = Game.canClear(o), txt = (ok ? '⤒ Dá para pular · ' : '✕ Pulo insuficiente · ') + o.h.toFixed(1).replace('.', ',') + ' m';
+    const o = best.o, ok = Game.canClear(o), txt = (ok ? tt("⤒ Dá para pular · ") : tt("✕ Pulo insuficiente · ")) + o.h.toFixed(1).replace('.', DEC) + ' m';
     if (this.obsTxt !== txt) {
       this.obsTxt = txt; const g = this.obsCanvas.getContext('2d');
       g.clearRect(0, 0, 512, 96); g.fillStyle = 'rgba(20,14,8,0.78)'; g.beginPath(); g.roundRect(8, 8, 496, 80, 16); g.fill();
@@ -305,7 +305,7 @@ const Render = {
     this.auroraMat.uniforms.a.value = this.auroraA; this.auroraMat.uniforms.t.value += dt;
   },
 
-  toggleView() { this.view = this.view === 'fp' ? 'tp' : 'fp'; UI.toast(this.view === 'fp' ? 'Primeira pessoa' : 'Terceira pessoa: veja seu personagem (V para voltar)'); },
+  toggleView() { this.view = this.view === 'fp' ? 'tp' : 'fp'; UI.toast(this.view === 'fp' ? tt("Primeira pessoa") : tt("Terceira pessoa: veja seu personagem (V para voltar)")); },
 
   // ---------- céu e horizonte infinito ----------
   buildSky() {
@@ -471,7 +471,7 @@ const Render = {
     this.eggCracks = [];
     for (let i = 0; i < 3; i++) { const cr = new THREE.Group(); for (let j = 0; j < 4; j++) { const seg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.03), new THREE.MeshBasicMaterial({ color: '#ffb347' })); seg.position.set(0, -0.3 + j * 0.2, 0); seg.rotation.z = (j % 2 ? 0.5 : -0.5); cr.add(seg); } const a = i * 2.1; cr.position.set(Math.cos(a) * 0.61, 0, Math.sin(a) * 0.61); cr.lookAt(cr.position.clone().multiplyScalar(2)); cr.visible = false; this.egg.add(cr); this.eggCracks.push(cr); }
     this.eggLight = new THREE.PointLight('#ff8a3d', 0, 8, 2); this.eggLight.position.set(0, 3, 0); this.city.add(this.eggLight);
-    const eggLabel = labelSprite('Ovo de Dragão', 'choca no Martelo 60', '#ffd27a', 0.6); eggLabel.position.y = 4.5; this.city.add(eggLabel);
+    const eggLabel = labelSprite(tt("Ovo de Dragão"), tt("choca no Martelo 60"), '#ffd27a', 0.6); eggLabel.position.y = 4.5; this.city.add(eggLabel);
     // barracas dos NPCs (em círculo, de frente para a fonte)
     this.npcObjs = []; this.shopIcons = [];
     for (const n of NPCS) {
@@ -495,7 +495,7 @@ const Render = {
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshBasicMaterial({ map: signTex, transparent: true }));
       sign.position.set(0, 3.55, 1.25); sign.rotation.x = -0.12; g.add(sign);
       const signBack = sign.clone(); signBack.rotation.y = Math.PI; signBack.position.z = 1.24; g.add(signBack);
-      const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? 'Mineração · mochila · movimento · pulo' : n.role, '#f5e6c8', 0.8); lab.position.set(0, 2.25, 1.6); g.add(lab);
+      const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? tt("Mineração · mochila · movimento · pulo") : n.role, '#f5e6c8', 0.8); lab.position.set(0, 2.25, 1.6); g.add(lab);
       // símbolo girando em cima da barraca
       const icon = this.shopIcon(n.id); icon.position.set(0, 5.4, 0); g.add(icon);
       const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex || (this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); })), color: n.color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 }));
@@ -555,7 +555,7 @@ const Render = {
     for (const R of REGIONS) {
       const x = R.ux * (CITY_R + 4) + R.vx * 3.5, y = R.uy * (CITY_R + 4) + R.vy * 3.5, h = World.height(x, y);
       const post = mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.4, 6), mat('#4a3420')); post.position.set(x, h + 1.2, y); this.scene.add(post);
-      const lab = labelSprite(`${R.dir} → ${R.name}`, `níveis ${(R.era - 1) * 10 + 1}–${R.era * 10}`); lab.position.set(x, h + 2.7, y); this.scene.add(lab);
+      const lab = labelSprite(`${R.dir} → ${R.name}`, tt("níveis {0}–{1}", (R.era - 1) * 10 + 1, R.era * 10)); lab.position.set(x, h + 2.7, y); this.scene.add(lab);
     }
     // riacho no Leste
     const R = REGIONS[1], pts = [];
@@ -892,7 +892,7 @@ const Render = {
     const col = this.tierColor(res.ideal);
     g.fillStyle = 'rgba(20,14,8,0.78)'; g.beginPath(); g.roundRect(4, 4, 248, 64, 14); g.fill();
     g.strokeStyle = col; g.lineWidth = 4; g.stroke();
-    g.font = '800 34px system-ui, sans-serif'; g.fillStyle = col; g.textAlign = 'left'; g.fillText('Nv ' + res.ideal, 16, 48);
+    g.font = '800 34px system-ui, sans-serif'; g.fillStyle = col; g.textAlign = 'left'; g.fillText(tt("Nv ") + res.ideal, 16, 48);
     g.font = '700 26px system-ui, sans-serif'; g.fillStyle = '#ffd34d'; g.textAlign = 'right'; g.fillText(fmt(res.value), 206, 47);
     const cg = g.createRadialGradient(221, 33, 2, 226, 38, 13); cg.addColorStop(0, '#fff2a8'); cg.addColorStop(0.6, '#e0a820'); cg.addColorStop(1, '#8a5a10');
     g.fillStyle = cg; g.beginPath(); g.arc(226, 38, 12, 0, Math.PI * 2); g.fill();
@@ -1022,7 +1022,7 @@ const Render = {
         const want = Math.atan2(-lx, lf);
         let dd = want - this.arrow.rotation.y; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); this.arrow.rotation.y += dd * 0.25;
         this.arrowPivot.position.y = 0.22 + Math.sin(this.t * 3) * 0.004;
-        el.textContent = `${T.label} · ${d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', ',') + ' km'}`;
+        el.textContent = `${T.label} · ${d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1).replace('.', DEC) + tt(" km")}`;
       }
     }
     this.arrowPivot.visible = show; el.style.display = show ? 'block' : 'none';
@@ -1688,12 +1688,8 @@ const Render = {
     const col = R.blocked ? '#ff6a5a' : time <= 10 ? '#7fd36a' : time <= 60 ? '#ffd34d' : '#ff6a5a';
     cross.className = 'on';
     el.style.display = 'block';
-    if (n.res.wild) { el.innerHTML = `<div class="tl"><b>✦ ${n.res.name}</b></div><div class="hp"><i style="width:${Math.max(0, n.hp / n.maxHp * 100)}%;background:#9ff3ff"></i></div><span>${n.res.id === 'veiocint' ? 'Rende de 3 a 6 Cintilhas · qualquer martelo quebra' : 'Abre com 1 Cintilha e solta uma poção'} · some em ${fmtTime(Math.max(0, 240 - (Game.S.time - n.born)))}</span>`; return; }
-    el.innerHTML = `<div class="tl"><em style="border-color:${tc};color:${tc}">Nv ${I.lvl}</em><b>${n.res.name}${n.size === 2 ? ' · grande' : n.size === 0.5 ? ' · pequena' : ''}${n.rare === 10 ? ' · 💎 cristalizada' : n.rare === 3 ? ' · ✨ veio rico' : ''}</b></div>
-      <div class="hp"><i style="width:${Math.max(0, n.hp / n.maxHp * 100)}%;background:${col}"></i></div>
-      ${R.blocked ? `<span style="color:${col}">🔒 Precisa do Martelo ${I.lvl - LEVEL_LOCK} para quebrar</span>` : `<span style="color:${col}">${fmt(hits)} golpes · ${fmtTime(time)}${R.mult > 1 ? ` · <b>×${R.mult < 10 ? R.mult.toFixed(1).replace('.', ',') : Math.round(R.mult)} mais lento</b> (pedra acima do seu martelo)` : ''}</span>`}
-      <div class="val"><i class="coin"></i>${fmt(I.value)} cada · rende ${I.units} = <b>${fmt(I.total)}</b> · ≈ ${fmt(Math.round(I.perMin))}/min</div>
-      ${I.need ? `<div class="need">⭐ Precisa para evolução · faltam ${fmt(I.need.falta)}</div>` : ''}`;
+    if (n.res.wild) { el.innerHTML = tt("<div class=\"tl\"><b>✦ {0}</b></div><div class=\"hp\"><i style=\"width:{1}%;background:#9ff3ff\"></i></div><span>{2} · some em {3}</span>", n.res.name, Math.max(0, n.hp / n.maxHp * 100), n.res.id === 'veiocint' ? tt("Rende de 3 a 6 Cintilhas · qualquer martelo quebra") : tt("Abre com 1 Cintilha e solta uma poção"), fmtTime(Math.max(0, 240 - (Game.S.time - n.born)))); return; }
+    el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:{0};color:{1}\">Nv {2}</em><b>{3}{4}{5}</b></div>\n      <div class=\"hp\"><i style=\"width:{6}%;background:{7}\"></i></div>\n      {8}\n      <div class=\"val\"><i class=\"coin\"></i>{9} cada · rende {10} = <b>{11}</b> · ≈ {12}/min</div>\n      {13}", tc, tc, I.lvl, n.res.name, n.size === 2 ? tt(" · grande") : n.size === 0.5 ? tt(" · pequena") : '', n.rare === 10 ? tt(" · 💎 cristalizada") : n.rare === 3 ? tt(" · ✨ veio rico") : '', Math.max(0, n.hp / n.maxHp * 100), col, R.blocked ? tt("<span style=\"color:{0}\">🔒 Precisa do Martelo {1} para quebrar</span>", col, I.lvl - LEVEL_LOCK) : tt("<span style=\"color:{0}\">{1} golpes · {2}{3}</span>", col, fmt(hits), fmtTime(time), R.mult > 1 ? tt(" · <b>×{0} mais lento</b> (pedra acima do seu martelo)", R.mult < 10 ? R.mult.toFixed(1).replace('.', DEC) : Math.round(R.mult)) : ''), fmt(I.value), I.units, fmt(I.total), fmt(Math.round(I.perMin)), I.need ? tt("<div class=\"need\">⭐ Precisa para evolução · faltam {0}</div>", fmt(I.need.falta)) : '');
   },
 
   drawMinimap() {

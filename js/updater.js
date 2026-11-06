@@ -41,7 +41,7 @@ const Updater = {
     const el = document.getElementById('upd');
     if (this.state !== 'available') { el.style.display = 'none'; return; }
     el.style.display = 'flex';
-    el.innerHTML = `<span>⬆ Nova versão <b>${this.latest.version}</b> disponível</span><button onclick="Updater.open()">Ver e atualizar</button><button class="x" onclick="this.parentElement.style.display='none'">✕</button>`;
+    el.innerHTML = `<span>${tt('⬆ Nova versão <b>{0}</b> disponível', this.latest.version)}</span><button onclick="Updater.open()">${tt('Ver e atualizar')}</button><button class="x" onclick="this.parentElement.style.display='none'">✕</button>`;
   },
 
   open() { UI.freeMouse(); UI.open = 'update'; document.getElementById('panel').classList.remove('hidden'); this.render(); },
@@ -154,7 +154,7 @@ const Updater = {
     let h;
     if (st === 'available') h = `<button class="buy" onclick="Updater.quick()">⬆ Atualizar agora para a ${L.version}</button><small>${(L.notes || []).slice(0, 2).join(' · ')}</small>`;
     else if (st === 'checking') h = `<small>Procurando atualização…</small>`;
-    else if (st === 'uptodate') h = `<small>✅ Versão ${GAME_VERSION} · é a mais nova</small>`;
+    else if (st === 'uptodate') h = `<small>${tt('✅ Versão {0} · é a mais nova', GAME_VERSION)}</small>`;
     else if (st === 'error') h = `<small>⚠ Não consegui procurar atualização (${this.err}). <a href="#" onclick="Updater.check(true);return false" style="color:#ffe27a">Tentar de novo</a></small>`;
     else h = '';
     if (el.dataset.h !== h) { el.dataset.h = h; el.innerHTML = h; }

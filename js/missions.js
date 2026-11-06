@@ -15,11 +15,11 @@ function nearestObstacle() {
   const P = Game.P; let best = null, bd = Infinity;
   for (const o of World.obstacles) {
     const x = o.R.ux * o.dc + o.R.vx * o.pc, y = o.R.uy * o.dc + o.R.vy * o.pc, d = Math.hypot(x - P.x, y - P.y);
-    if (Game.canClear(o) && d < bd) { bd = d; best = { x, y, label: 'Obstáculo' }; }
+    if (Game.canClear(o) && d < bd) { bd = d; best = { x, y, label: tt("Obstáculo") }; }
   }
   return best;
 }
-const CITY = () => (Game.inCity ? null : { x: 0, y: 0, label: 'Vila' });
+const CITY = () => (Game.inCity ? null : { x: 0, y: 0, label: tt("Vila") });
 const st = k => (Game.S.stats[k] || 0);
 const mined = id => (Game.S.stats.mined[id] || 0);
 // missão de trazer recurso: aponta para a pedra; se a mochila já tem o bastante, aponta para a vila
@@ -27,43 +27,43 @@ const collectTarget = (id, falta) => ((Game.S.bag[id] || 0) >= falta ? CITY() : 
 
 // ---------- missões guiadas (primeiros minutos) ----------
 const MISSION_CHAIN = [
-  { id: 'noz', lvl: 1,      t: 'Traga 3 Nozes e castanhas para a vila', d: 'Minere nozes logo ali fora (mire e segure o botão do mouse) e volte. As missões sempre pegam primeiro o que você traz.', collect: 'noz', max: 3, cur: () => Game.S.mdel || 0, target: () => collectTarget('noz', 3 - (Game.S.mdel || 0)), reward: 10, gift: 'detector' },
-  { id: 'm2', lvl: 1,       t: 'Forje o Martelo 2 com o Seu Bento',   d: 'A barraca MARTELOS. Aperte E perto dele.', max: 1, cur: () => (Game.S.hammer >= 2 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 10 },
-  { id: 'graveto', lvl: 2,  t: 'Traga 4 Gravetos para a vila',        d: 'Gravetos guardados no depósito também valem.', collect: 'graveto', max: 4, cur: () => Game.S.mdel || 0, target: () => collectTarget('graveto', 4 - (Game.S.mdel || 0)), reward: 10 },
-  { id: 'cida', lvl: 2,     t: 'Melhore algo com a Dona Cida',        d: 'Barraca MELHORIAS: mineração, mochila, movimento ou pulo.', max: 1, base: () => Object.values(Game.S.attrs).reduce((a, b) => a + b, 0), cur: b => Object.values(Game.S.attrs).reduce((a, b) => a + b, 0) - b, target: () => npcPos('tropeira'), reward: 15 },
-  { id: 'clique', lvl: 2,   t: 'Dê 10 cliques rápidos numa pedra',    d: 'Clicar várias vezes bate bem mais rápido, mas gasta fôlego.', max: 10, base: () => st('clicks'), cur: b => st('clicks') - b, target: () => nearestNode(resourceForLevel(Game.S.hammer).id), reward: 15 },
-  { id: 'm3', lvl: 2,       t: 'Chegue ao Martelo 3',                 d: 'Junte o material e as moedas e volte ao Seu Bento.', max: 1, cur: () => (Game.S.hammer >= 3 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 20 },
-  { id: 'pulo', lvl: 3,     t: 'Suba em cima de um tronco',           d: 'Pule (Espaço) num tronco baixo. Os obstáculos são atalhos para quem pula alto.', max: 1, base: () => st('hops'), cur: b => st('hops') - b, target: nearestObstacle, reward: 20 },
-  { id: 'moedas', lvl: 3,   t: 'Ganhe 150 moedas vendendo',           d: 'Tudo o que sobra na mochila vira moeda na vila.', max: 150, base: () => Game.S.earned, cur: b => Game.S.earned - b, target: () => null, reward: 25 },
-  { id: 'm5', lvl: 4,       t: 'Chegue ao Martelo 5',                 d: 'No Martelo 5 cada clique rápido passa a valer por 2 golpes.', max: 1, cur: () => (Game.S.hammer >= 5 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 40 },
-  { id: 'pocao', lvl: 5,    t: 'Use um power-up do Zé da Botica',     d: 'Barraca POWER-UPS. Compre e ative com 1, 2 ou 3.', max: 1, base: () => st('powers'), cur: b => st('powers') - b, target: () => npcPos('botica'), reward: 40 },
-  { id: 'bazar', lvl: 5,    t: 'Compre um item do Tonho do Bazar',    d: 'Lanterna, detector ou patins: barraca ITENS.', max: 1, cur: () => (Game.S.gear.light + Game.S.gear.detector + Game.S.gear.ride > 0 ? 1 : 0), target: () => npcPos('bazar'), reward: 60 },
-  { id: 'm8', lvl: 7,       t: 'Chegue ao Martelo 8',                 d: 'Cada martelo novo quebra pedras mais valiosas.', max: 1, cur: () => (Game.S.hammer >= 8 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 120 },
-  { id: 'robo', lvl: 8,     t: 'Compre seu primeiro robô',            d: 'Os robôs do Tonho mineram sozinhos o que falta para você.', max: 1, cur: () => ((Game.S.robots || 0) >= 1 ? 1 : 0), target: () => npcPos('bazar'), reward: 300 },
-  { id: 'm10', lvl: 9,      t: 'Chegue ao Martelo 10',                d: 'O ovo de dragão da praça está esquentando…', max: 1, cur: () => (Game.S.hammer >= 10 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 400 },
-  { id: 'regiao2', lvl: 10,  t: 'Visite o Riacho das Pedras',          d: 'A segunda região fica a leste. Lá as pedras valem bem mais.', max: 1, cur: () => (st('far') >= 150 ? 1 : 0), target: () => { const R = REGIONS[1]; return { x: R.ux * (R.dMin + 5), y: R.uy * (R.dMin + 5), label: R.name }; }, reward: 500 },
+  { id: 'noz', lvl: 1,      t: tt("Traga 3 Nozes e castanhas para a vila"), d: tt("Minere nozes logo ali fora (mire e segure o botão do mouse) e volte. As missões sempre pegam primeiro o que você traz."), collect: 'noz', max: 3, cur: () => Game.S.mdel || 0, target: () => collectTarget('noz', 3 - (Game.S.mdel || 0)), reward: 10, gift: 'detector' },
+  { id: 'm2', lvl: 1,       t: tt("Forje o Martelo 2 com o Seu Bento"),   d: tt("A barraca MARTELOS. Aperte E perto dele."), max: 1, cur: () => (Game.S.hammer >= 2 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 10 },
+  { id: 'graveto', lvl: 2,  t: tt("Traga 4 Gravetos para a vila"),        d: tt("Gravetos guardados no depósito também valem."), collect: 'graveto', max: 4, cur: () => Game.S.mdel || 0, target: () => collectTarget('graveto', 4 - (Game.S.mdel || 0)), reward: 10 },
+  { id: 'cida', lvl: 2,     t: tt("Melhore algo com a Dona Cida"),        d: tt("Barraca MELHORIAS: mineração, mochila, movimento ou pulo."), max: 1, base: () => Object.values(Game.S.attrs).reduce((a, b) => a + b, 0), cur: b => Object.values(Game.S.attrs).reduce((a, b) => a + b, 0) - b, target: () => npcPos('tropeira'), reward: 15 },
+  { id: 'clique', lvl: 2,   t: tt("Dê 10 cliques rápidos numa pedra"),    d: tt("Clicar várias vezes bate bem mais rápido, mas gasta fôlego."), max: 10, base: () => st('clicks'), cur: b => st('clicks') - b, target: () => nearestNode(resourceForLevel(Game.S.hammer).id), reward: 15 },
+  { id: 'm3', lvl: 2,       t: tt("Chegue ao Martelo 3"),                 d: tt("Junte o material e as moedas e volte ao Seu Bento."), max: 1, cur: () => (Game.S.hammer >= 3 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 20 },
+  { id: 'pulo', lvl: 3,     t: tt("Suba em cima de um tronco"),           d: tt("Pule (Espaço) num tronco baixo. Os obstáculos são atalhos para quem pula alto."), max: 1, base: () => st('hops'), cur: b => st('hops') - b, target: nearestObstacle, reward: 20 },
+  { id: 'moedas', lvl: 3,   t: tt("Ganhe 150 moedas vendendo"),           d: tt("Tudo o que sobra na mochila vira moeda na vila."), max: 150, base: () => Game.S.earned, cur: b => Game.S.earned - b, target: () => null, reward: 25 },
+  { id: 'm5', lvl: 4,       t: tt("Chegue ao Martelo 5"),                 d: tt("No Martelo 5 cada clique rápido passa a valer por 2 golpes."), max: 1, cur: () => (Game.S.hammer >= 5 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 40 },
+  { id: 'pocao', lvl: 5,    t: tt("Use um power-up do Zé da Botica"),     d: tt("Barraca POWER-UPS. Compre e ative com 1, 2 ou 3."), max: 1, base: () => st('powers'), cur: b => st('powers') - b, target: () => npcPos('botica'), reward: 40 },
+  { id: 'bazar', lvl: 5,    t: tt("Compre um item do Tonho do Bazar"),    d: tt("Lanterna, detector ou patins: barraca ITENS."), max: 1, cur: () => (Game.S.gear.light + Game.S.gear.detector + Game.S.gear.ride > 0 ? 1 : 0), target: () => npcPos('bazar'), reward: 60 },
+  { id: 'm8', lvl: 7,       t: tt("Chegue ao Martelo 8"),                 d: tt("Cada martelo novo quebra pedras mais valiosas."), max: 1, cur: () => (Game.S.hammer >= 8 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 120 },
+  { id: 'robo', lvl: 8,     t: tt("Compre seu primeiro robô"),            d: tt("Os robôs do Tonho mineram sozinhos o que falta para você."), max: 1, cur: () => ((Game.S.robots || 0) >= 1 ? 1 : 0), target: () => npcPos('bazar'), reward: 300 },
+  { id: 'm10', lvl: 9,      t: tt("Chegue ao Martelo 10"),                d: tt("O ovo de dragão da praça está esquentando…"), max: 1, cur: () => (Game.S.hammer >= 10 ? 1 : 0), target: () => npcPos('ferreiro'), reward: 400 },
+  { id: 'regiao2', lvl: 10,  t: tt("Visite o Riacho das Pedras"),          d: tt("A segunda região fica a leste. Lá as pedras valem bem mais."), max: 1, cur: () => (st('far') >= 150 ? 1 : 0), target: () => { const R = REGIONS[1]; return { x: R.ux * (R.dMin + 5), y: R.uy * (R.dMin + 5), label: R.name }; }, reward: 500 },
 ];
 
 // ---------- missões rotativas (depois das guiadas) ----------
 const ROT_TYPES = {
   mine:   { gen: () => { const miss = Game.missingList().filter(m => !RES[m.id].special && RES[m.id].ideal <= Game.S.hammer + 2); const id = miss.length ? miss[0].id : resourceForLevel(Game.S.hammer).id; return { res: id, max: 8 + Math.floor(Game.S.hammer / 2) }; },
-            t: m => `Traga ${m.max} ${RES[m.res].name} para a vila`, collect: m => m.res, base: () => 0, cur: m => m.got || 0, target: m => collectTarget(m.res, m.max - (m.got || 0)) },
-  money:  { gen: () => ({ max: Math.max(100, Math.round(hammerCost(Math.min(MAX_LEVEL, Game.S.hammer + 1)).money * 0.6)) }), t: m => `Ganhe ${fmt(m.max)} moedas vendendo`, base: () => Game.S.earned, cur: (m, b) => Game.S.earned - b },
-  veio:   { gen: () => ({ max: 1 }), t: () => 'Quebre um veio rico (✨)', base: () => st('veios'), cur: (m, b) => st('veios') - b },
-  clicks: { gen: () => ({ max: 40 }), t: m => `Dê ${m.max} cliques rápidos`, base: () => st('clicks'), cur: (m, b) => st('clicks') - b },
-  hops:   { gen: () => ({ max: 3 }), t: m => `Passe por cima de ${m.max} obstáculos`, base: () => st('hops'), cur: (m, b) => st('hops') - b, target: () => nearestObstacle() },
-  peak:   { gen: () => ({ max: 1 }), t: () => 'Chegue perto do topo de uma montanha', base: () => st('peaks'), cur: (m, b) => st('peaks') - b, target: () => { const P = Game.P; let best = null, bd = Infinity; for (const mt of World.mountains) { const d = Math.hypot(mt.x - P.x, mt.y - P.y); if (d < bd) { bd = d; best = { x: mt.x, y: mt.y, label: 'Montanha' }; } } return best; } },
-  robots: { gen: () => ({ max: 20 + Game.S.hammer }), ok: () => (Game.S.robots || 0) > 0, t: m => `Seus robôs entregam ${m.max} recursos`, base: () => Game.S.robotTotal || 0, cur: (m, b) => (Game.S.robotTotal || 0) - b },
+            t: m => tt("Traga {0} {1} para a vila", m.max, RES[m.res].name), collect: m => m.res, base: () => 0, cur: m => m.got || 0, target: m => collectTarget(m.res, m.max - (m.got || 0)) },
+  money:  { gen: () => ({ max: Math.max(100, Math.round(hammerCost(Math.min(MAX_LEVEL, Game.S.hammer + 1)).money * 0.6)) }), t: m => tt("Ganhe {0} moedas vendendo", fmt(m.max)), base: () => Game.S.earned, cur: (m, b) => Game.S.earned - b },
+  veio:   { gen: () => ({ max: 1 }), t: () => tt("Quebre um veio rico (✨)"), base: () => st('veios'), cur: (m, b) => st('veios') - b },
+  clicks: { gen: () => ({ max: 40 }), t: m => tt("Dê {0} cliques rápidos", m.max), base: () => st('clicks'), cur: (m, b) => st('clicks') - b },
+  hops:   { gen: () => ({ max: 3 }), t: m => tt("Passe por cima de {0} obstáculos", m.max), base: () => st('hops'), cur: (m, b) => st('hops') - b, target: () => nearestObstacle() },
+  peak:   { gen: () => ({ max: 1 }), t: () => tt("Chegue perto do topo de uma montanha"), base: () => st('peaks'), cur: (m, b) => st('peaks') - b, target: () => { const P = Game.P; let best = null, bd = Infinity; for (const mt of World.mountains) { const d = Math.hypot(mt.x - P.x, mt.y - P.y); if (d < bd) { bd = d; best = { x: mt.x, y: mt.y, label: tt("Montanha") }; } } return best; } },
+  robots: { gen: () => ({ max: 20 + Game.S.hammer }), ok: () => (Game.S.robots || 0) > 0, t: m => tt("Seus robôs entregam {0} recursos", m.max), base: () => Game.S.robotTotal || 0, cur: (m, b) => (Game.S.robotTotal || 0) - b },
 };
 
 // o que a seta do detector procura (até 3 marcados), na ordem de prioridade
 const DET_OPTIONS = {
-  missao:  'Missão atual',
-  achados: 'Achados brilhando (Veio de Cintilha e Geodo)',
-  falta:   'Materiais que faltam para as evoluções',
-  recurso: 'Um recurso que eu escolher',
-  veios:   'Veios ricos (✨) e cristalizados (💎)',
-  raros:   'Recursos raros das montanhas',
+  missao:  tt("Missão atual"),
+  achados: tt("Achados brilhando (Veio de Cintilha e Geodo)"),
+  falta:   tt("Materiais que faltam para as evoluções"),
+  recurso: tt("Um recurso que eu escolher"),
+  veios:   tt("Veios ricos (✨) e cristalizados (💎)"),
+  raros:   tt("Recursos raros das montanhas"),
 };
 const DET_ORDER = ['achados', 'missao', 'falta', 'recurso', 'veios', 'raros'];
 const DET_DEFAULT = ['missao', 'achados', 'falta'];
@@ -92,7 +92,7 @@ const Missions = {
     if (S.mi < MISSION_CHAIN.length) { const m = MISSION_CHAIN[S.mi]; if (m.collect) take(m.collect, m.max - (S.mdel || 0), q => { S.mdel = (S.mdel || 0) + q; }); }
     else for (const m of S.rot) { const T = ROT_TYPES[m.type]; if (T.collect) take(T.collect(m), m.max - (m.got || 0), q => { m.got = (m.got || 0) + q; }); }
     const ids = Object.keys(took);
-    if (ids.length && !quiet) UI.toast('📜 A missão pegou ' + ids.map(id => `${fmt(took[id])} ${RES[id].name}`).join(', '));
+    if (ids.length && !quiet) UI.toast(tt("📜 A missão pegou ") + ids.map(id => `${fmt(took[id])} ${RES[id].name}`).join(', '));
     return took;
   },
   rewardRot() { return Math.max(20, Math.round(hammerCost(Math.min(MAX_LEVEL, Game.S.hammer + 1)).money * 0.35)); },
@@ -116,7 +116,7 @@ const Missions = {
   },
   give(money, txt) {
     const S = Game.S; S.money += money;
-    UI.toast(`📜 Missão cumprida: ${txt}! +${fmt(money)} moedas`, 'level'); Snd.levelUp();
+    UI.toast(tt("📜 Missão cumprida: {0}! +{1} moedas", txt, fmt(money)), 'level'); Snd.levelUp();
   },
   checkT: 0,
   update(dt) {
@@ -130,9 +130,9 @@ const Missions = {
       const m = MISSION_CHAIN[S.mi];
       if (m.cur(S.mb) >= m.max) {
         this.give(m.reward, m.t); Game.mark('missao' + (S.mi + 1));
-        if (m.gift === 'detector' && !S.gear.detector) { S.gear.detector = 1; S.detOn = true; setTimeout(() => UI.toast('🧭 O Seu Lauro te deu um Detector de bolso! A seta no alto da tela agora te guia. Segure G para escolher o que ela procura.', 'level'), 1800); }
+        if (m.gift === 'detector' && !S.gear.detector) { S.gear.detector = 1; S.detOn = true; setTimeout(() => UI.toast(tt("🧭 O Seu Lauro te deu um Detector de bolso! A seta no alto da tela agora te guia. Segure G para escolher o que ela procura."), 'level'), 1800); }
         S.mi++; this.startChain();
-        if (S.mi >= MISSION_CHAIN.length) { UI.toast('📜 Você terminou as missões guiadas! Agora sempre há 3 missões novas (tecla J).', 'level'); this.fill(); }
+        if (S.mi >= MISSION_CHAIN.length) { UI.toast(tt("📜 Você terminou as missões guiadas! Agora sempre há 3 missões novas (tecla J)."), 'level'); this.fill(); }
         Game.save();
       }
     } else {
@@ -146,9 +146,9 @@ const Missions = {
   panel() {
     UI.freeMouse(); UI.open = 'missions'; Snd.open();
     const S = Game.S;
-    let h = `<div class="story"><h2>📜 Missões</h2>`;
+    let h = tt("<div class=\"story\"><h2>📜 Missões</h2>");
     if (S.mi < MISSION_CHAIN.length) {
-      h += `<p class="hint">Missão ${S.mi + 1} de ${MISSION_CHAIN.length}. A seta no alto da tela mostra o caminho.</p><ul class="mlist">`;
+      h += tt("<p class=\"hint\">Missão {0} de {1}. A seta no alto da tela mostra o caminho.</p><ul class=\"mlist\">", S.mi + 1, MISSION_CHAIN.length);
       MISSION_CHAIN.forEach((m, i) => {
         const done = i < S.mi, cur = i === S.mi;
         if (i < S.mi - 1 || i > S.mi) return; // só a última feita e a atual
@@ -157,11 +157,11 @@ const Missions = {
       });
       h += `</ul>`;
     } else {
-      h += `<p class="hint">3 missões ativas · cumpridas: ${S.stats.rotDone || 0}</p><ul class="mlist">`;
+      h += tt("<p class=\"hint\">3 missões ativas · cumpridas: {0}</p><ul class=\"mlist\">", S.stats.rotDone || 0);
       for (const m of S.rot) { const T = ROT_TYPES[m.type], c = Math.max(0, Math.min(m.max, T.cur(m, m.base))); h += `<li class="cur"><b>▶</b><div><span>${T.t(m)}</span><i class="mpb"><em style="width:${c / m.max * 100}%"></em></i><small>${fmt(c)} / ${fmt(m.max)}</small></div><strong>+${fmt(m.reward)}</strong></li>`; }
       h += `</ul>`;
     }
-    h += `<div class="row"><button class="buy" onclick="UI.close()">Continuar</button></div></div>`;
+    h += tt("<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Continuar</button></div></div>");
     $('panel').innerHTML = h; $('panel').classList.remove('hidden');
   },
   // HUD da missão atual
@@ -170,7 +170,7 @@ const Missions = {
     const c = this.current();
     if (!c || UI.open) { el.style.display = 'none'; return; }
     el.style.display = 'block';
-    el.innerHTML = `<div class="mh">📜 ${c.n ? `Missão ${c.n}/${c.of}` : 'Missão'} <kbd>J</kbd><span>+${fmt(c.reward)}</span></div><div class="mt">${c.t}</div>${c.max > 1 ? `<i class="mpb"><em style="width:${c.cur / c.max * 100}%"></em></i><small>${fmt(c.cur)} / ${fmt(c.max)}</small>` : ''}`;
+    el.innerHTML = `<div class="mh">📜 ${c.n ? tt("Missão {0}/{1}", c.n, c.of) : tt("Missão")} <kbd>J</kbd><span>+${fmt(c.reward)}</span></div><div class="mt">${c.t}</div>${c.max > 1 ? `<i class="mpb"><em style="width:${c.cur / c.max * 100}%"></em></i><small>${fmt(c.cur)} / ${fmt(c.max)}</small>` : ''}`;
   },
   // para onde a seta aponta
   // a seta é o detector: sem detector (ou desligado) não aparece; só acha recursos dentro do alcance dele
@@ -180,13 +180,13 @@ const Missions = {
     const range = GADGETS.detector.levels[lv].range, P = Game.P, sel = S.detSel || DET_DEFAULT;
     const inRange = t => t && Math.hypot(t.x - P.x, t.y - P.y) <= range ? t : null;
     const near = test => { let best = null, bd = range; for (const n of World.nodes) { if (!test(n)) continue; const d = Math.hypot(n.x - P.x, n.y - P.y); if (d < bd) { bd = d; best = n; } } return best; };
-    if (!Game.inCity && Game.free() <= 0) return { x: 0, y: 0, label: 'Mochila cheia: volte à vila' };
+    if (!Game.inCity && Game.free() <= 0) return { x: 0, y: 0, label: tt("Mochila cheia: volte à vila") };
     for (const o of DET_ORDER) {
       if (!sel.includes(o)) continue;
       let t = null;
       if (o === 'achados') { const w = near(n => n.res.wild && (n.res.id === 'veiocint' || (S.cint || 0) >= 1)); if (w) t = { x: w.x, y: w.y, label: '✦ ' + w.res.name }; }
-      else if (o === 'missao') { const c = this.current(); t = c && c.target; if (t && t.label !== 'Vila' && !NPCS.some(n => n.name === t.label)) t = inRange(t); }
-      else if (o === 'falta') { const miss = Game.missingList().filter(m => !levelRule(RES[m.id].ideal, S.hammer).blocked).map(m => m.id); const n = near(n => miss.includes(n.res.id)); if (n) t = { x: n.x, y: n.y, label: n.res.name + ' (falta)' }; }
+      else if (o === 'missao') { const c = this.current(); t = c && c.target; if (t && t.label !== tt('Vila') && !NPCS.some(n => n.name === t.label)) t = inRange(t); }
+      else if (o === 'falta') { const miss = Game.missingList().filter(m => !levelRule(RES[m.id].ideal, S.hammer).blocked).map(m => m.id); const n = near(n => miss.includes(n.res.id)); if (n) t = { x: n.x, y: n.y, label: n.res.name + tt(" (falta)") }; }
       else if (o === 'recurso' && S.detRes) { const n = near(n => n.res.id === S.detRes); if (n) t = { x: n.x, y: n.y, label: n.res.name }; }
       else if (o === 'veios') { const n = near(n => n.rare > 1 && !levelRule(n.res.ideal, S.hammer).blocked); if (n) t = { x: n.x, y: n.y, label: (n.rare === 10 ? '💎 ' : '✨ ') + n.res.name }; }
       else if (o === 'raros') { const n = near(n => n.res.special); if (n) t = { x: n.x, y: n.y, label: '⛰ ' + n.res.name }; }

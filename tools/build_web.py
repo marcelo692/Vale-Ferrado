@@ -13,8 +13,9 @@ SDK = '<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>'
 shutil.rmtree(OUT, ignore_errors=True)
 os.makedirs(os.path.join(OUT, 'js'))
 shutil.copytree(os.path.join(ROOT, 'lib'), os.path.join(OUT, 'lib'))
+shutil.copytree(os.path.join(ROOT, 'js', 'lang'), os.path.join(OUT, 'js', 'lang'))
 for f in os.listdir(os.path.join(ROOT, 'js')):
-    if f in ('updater.js', 'backup.js', 'web-stubs.js'):
+    if f in ('updater.js', 'backup.js', 'web-stubs.js') or os.path.isdir(os.path.join(ROOT, 'js', f)):
         continue
     shutil.copy(os.path.join(ROOT, 'js', f), os.path.join(OUT, 'js', f))
 shutil.copy(os.path.join(ROOT, 'js', 'web-stubs.js'), os.path.join(OUT, 'js', 'web-stubs.js'))

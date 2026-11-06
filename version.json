@@ -1,8 +1,10 @@
 {
-  "version": "3.2.4",
-  "date": "2026-10-30",
+  "version": "3.3.0",
+  "date": "2026-11-06",
   "notes": [
-    "Correção: pular nos troncos e obstáculos não prende mais o personagem no meio; dá para parar em cima, andar por cima e descer"
+    "4 idiomas: Português, English, Español e Türkçe (escolha na tela inicial e no menu de pausa)",
+    "Telas mais limpas: HUD, loja, armazém, mochila, ajuda e missões com menos informação repetida",
+    "Atalho N/U e modos de venda com textos mais curtos"
   ],
   "files": [
     {
@@ -15,7 +17,7 @@
     },
     {
       "path": "index.html",
-      "size": 30117
+      "size": 30703
     },
     {
       "path": "js/audio.js",
@@ -23,19 +25,35 @@
     },
     {
       "path": "js/backup.js",
-      "size": 6618
+      "size": 6675
     },
     {
       "path": "js/data.js",
-      "size": 23870
+      "size": 24412
     },
     {
       "path": "js/game.js",
-      "size": 49463
+      "size": 49884
+    },
+    {
+      "path": "js/i18n.js",
+      "size": 2071
+    },
+    {
+      "path": "js/lang/en.js",
+      "size": 51983
+    },
+    {
+      "path": "js/lang/es.js",
+      "size": 53805
+    },
+    {
+      "path": "js/lang/tr.js",
+      "size": 53295
     },
     {
       "path": "js/missions.js",
-      "size": 16334
+      "size": 16637
     },
     {
       "path": "js/platform.js",
@@ -43,27 +61,27 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 149593
+      "size": 149781
     },
     {
       "path": "js/robots.js",
-      "size": 8325
+      "size": 8375
     },
     {
       "path": "js/ui.js",
-      "size": 36600
+      "size": 33484
     },
     {
       "path": "js/updater.js",
-      "size": 11130
+      "size": 11161
     },
     {
       "path": "js/web-stubs.js",
-      "size": 608
+      "size": 616
     },
     {
       "path": "js/world.js",
-      "size": 19724
+      "size": 19802
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -75,7 +93,7 @@
     },
     {
       "path": "version.json",
-      "size": 1317
+      "size": 1347
     }
   ]
 }

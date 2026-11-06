@@ -36,7 +36,7 @@ const Robots = {
     S.money -= price; S.robots = n + 1; Game.mark('robo' + (n + 1));
     this.sync();
     Snd.levelUp(); this.chirp();
-    UI.toast(`🤖 ${ROBOT_NAMES[n]} entrou para a equipe! Ele vai minerar o que falta para suas evoluções.`, 'level');
+    UI.toast(tt("🤖 {0} entrou para a equipe! Ele vai minerar o que falta para suas evoluções.", ROBOT_NAMES[n]), 'level');
     Game.save();
   },
   chirp() { [880, 1320, 990].forEach((f, i) => Snd.tone(f, 0.07, { vol: 0.06, type: 'square', filter: { f: 3000 }, at: i * 0.07 })); },
@@ -73,9 +73,9 @@ const Robots = {
     if (this.report && this.reportT <= 0) {
       const R = this.report; this.report = null; this.reportT = 8;
       const parts = Object.keys(R.items).map(id => `${fmt(R.items[id])} ${RES[id].name}`);
-      let txt = `🤖 Robôs entregaram ${parts.join(', ')}`;
-      if (R.kept) txt += ` · ${fmt(R.kept)} no depósito`;
-      if (R.money) txt += ` · +${fmt(R.money)} moedas`;
+      let txt = tt("🤖 Robôs entregaram {0}", parts.join(', '));
+      if (R.kept) txt += tt(" · {0} no depósito", fmt(R.kept));
+      if (R.money) txt += tt(" · +{0} moedas", fmt(R.money));
       UI.toast(txt);
       if (R.money) Snd.coins(R.money); else Snd.pickup();
     }
@@ -128,7 +128,7 @@ const Robots = {
         if (n.hp <= 0) {
           const units = Math.max(1, Math.round(2 * n.size)) * n.rare;
           r.carry[n.res.id] = (r.carry[n.res.id] || 0) + units; r.n += units;
-          if (Math.random() < cintChance(Game.S.olho) / 2) { Game.S.cint = (Game.S.cint || 0) + 1; if (near < 40) Game.floats.push({ x: n.x, y: n.y - 1.6, txt: '🤖 ✦ +1 Cintilha', c: '#9ff3ff', t: 1.6 }); }
+          if (Math.random() < cintChance(Game.S.olho) / 2) { Game.S.cint = (Game.S.cint || 0) + 1; if (near < 40) Game.floats.push({ x: n.x, y: n.y - 1.6, txt: tt("🤖 ✦ +1 Cintilha"), c: '#9ff3ff', t: 1.6 }); }
           if (near < 40) { Game.fxBurst(n.x, n.y, n.res.c, 10, 1.1); Game.floats.push({ x: n.x, y: n.y - 1, txt: `🤖 +${units} ${n.res.name}`, c: '#9fe8ff', t: 1.4 }); if (near < 20) Snd.breakNode(n.res.kind, n.rare); }
           if (Game.target === n) Game.target = null;
           this.claimed.delete(n); r.node = null;
@@ -172,9 +172,9 @@ const Robots = {
   },
 
   statusOf(r) {
-    if (r.st === 'go' && r.res) return `indo buscar ${RES[r.res].name}`;
-    if (r.st === 'mine' && r.res) return `minerando ${RES[r.res].name}`;
-    if (r.st === 'home') return `voltando com ${fmt(r.n)}`;
-    return 'procurando trabalho';
+    if (r.st === 'go' && r.res) return tt("indo buscar {0}", RES[r.res].name);
+    if (r.st === 'mine' && r.res) return tt("minerando {0}", RES[r.res].name);
+    if (r.st === 'home') return tt("voltando com {0}", fmt(r.n));
+    return tt("procurando trabalho");
   },
 };

@@ -9,11 +9,11 @@ const PIT_REGIONS = [1, 2, 3, 4, 5];
 const PIT_RW = 6;            // largura das rampas no meio de cada degrau (regiões 2 a 5; a 6 não tem rampa)
 const smooth01 = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const NPCS = [
-  { id: 'ferreiro', name: 'Seu Bento, o Ferreiro', role: 'Evolui o martelo',              shop: 'MARTELOS',  color: '#c0502a', ang: -112.5 },
-  { id: 'tropeira', name: 'Dona Cida, a Tropeira', role: 'Mineração, mochila, movimento e pulo', shop: 'MELHORIAS', color: '#3f7a4a', ang: -67.5 },
-  { id: 'bazar',    name: 'Tonho do Bazar',        role: 'Detector, transporte, luz, escalada e robôs', shop: 'ITENS',     color: '#2a7a9a', ang: -22.5 },
-  { id: 'armazem',  name: 'Seu Lauro, do Armazém', role: 'Compra tudo automaticamente',   shop: 'VENDAS',    color: '#a07a2a', ang: 45 },
-  { id: 'botica',   name: 'Zé da Botica',          role: 'Vende power-ups',               shop: 'POWER-UPS', color: '#7a3fa0', ang: 135 },
+  { id: 'ferreiro', name: tt("Seu Bento, o Ferreiro"), role: tt("Evolui o martelo"),              shop: tt("MARTELOS"),  color: '#c0502a', ang: -112.5 },
+  { id: 'tropeira', name: tt("Dona Cida, a Tropeira"), role: tt("Mineração, mochila, movimento e pulo"), shop: tt("MELHORIAS"), color: '#3f7a4a', ang: -67.5 },
+  { id: 'bazar',    name: tt("Tonho do Bazar"),        role: tt("Detector, transporte, luz, escalada e robôs"), shop: tt("ITENS"),     color: '#2a7a9a', ang: -22.5 },
+  { id: 'armazem',  name: tt("Seu Lauro, do Armazém"), role: tt("Compra tudo automaticamente"),   shop: tt("VENDAS"),    color: '#a07a2a', ang: 45 },
+  { id: 'botica',   name: tt("Zé da Botica"),          role: tt("Vende power-ups"),               shop: tt("POWER-UPS"), color: '#7a3fa0', ang: 135 },
 ];
 // barracas em círculo em volta da fonte, entre as saídas das estradas
 const STALL_R = 12;
@@ -202,7 +202,7 @@ const World = {
       const res = Math.random() < 0.6 ? RES.veiocint : RES.geodo, hp = Math.max(10, Game.force() * 4);
       const node = { x, y, pt: { used: true }, sub: this.WILD_SUB, res, size: 1, rare: 1, hp, maxHp: hp, r: 1.1, seed: Math.random() * 1000, hitT: 0, born: S.time };
       this.WILD_SUB.nodes.push(node); this.nodes.push(node);
-      Snd.veio(); UI.toast(res.id === 'veiocint' ? '✦ Um Veio de Cintilha brilhou por perto! Siga a luz antes que suma.' : '✦ Um Geodo de Poção apareceu por perto! (abre com 1 Cintilha)', 'veio');
+      Snd.veio(); UI.toast(res.id === 'veiocint' ? tt("✦ Um Veio de Cintilha brilhou por perto! Siga a luz antes que suma.") : tt("✦ Um Geodo de Poção apareceu por perto! (abre com 1 Cintilha)"), 'veio');
       return;
     }
   },
@@ -264,7 +264,7 @@ const World = {
         const R = REGIONS[res.region];
         this.veio = { res: res.id, t: 120 };
         Snd.veio();
-        UI.toast(`⛏ Veio de ${res.name} aflorou no ${R.dir} (${R.name})! Abundante por 2 min.`, 'veio');
+        UI.toast(tt("⛏ Veio de {0} aflorou no {1} ({2})! Abundante por 2 min.", res.name, R.dir, R.name), 'veio');
         // troca alguns nós da região por esse recurso
         for (const s of this.subs) if (s.R === R) for (const n of s.nodes) if (Math.random() < 0.35 && n.hp === n.maxHp) { n.res = res; n.hp = n.maxHp = res.hard * n.size; }
       }

@@ -169,6 +169,7 @@
   #title h1 { font: 700 64px Georgia, serif; color: var(--gold); margin: 0; text-shadow: 0 4px 0 #5a3a10, 0 10px 30px rgba(0,0,0,.6); letter-spacing: .02em; }
   #title p { opacity: .8; max-width: 520px; line-height: 1.5; }
   #title .buy { font-size: 18px; padding: 12px 34px; margin-top: 14px; }
+  #langs { display: flex; gap: 8px; margin-top: 22px; } #langs .lg { background: rgba(255,255,255,.07); color: var(--ink); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; } #langs .lg.on { border-color: var(--gold); color: var(--gold); }
 </style>
 </head>
 <body>
@@ -210,6 +211,7 @@
   <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>
   <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value)"><option value="alto">Bonito</option><option value="leve">Leve (para PC mais fraco)</option></select><b></b></label>
   <label class="vol sens"><span>Sensibilidade do mouse</span><input type="range" min="20" max="250" value="100" id="sens" oninput="Game.S.sens=this.value/100;this.nextElementSibling.textContent=this.value+'%';Game.save()"><b>100%</b></label>
+  <label class="vol sens"><span>Idioma</span><select id="langsel" onchange="setLang(this.value)"></select><b></b></label>
   <small>Esc solta o mouse e abre este menu.</small></div></div>
 <div id="panel" class="hidden"></div>
 
@@ -218,9 +220,11 @@
   <p>Do graveto ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.</p>
   <button class="buy" id="play">Jogar</button>
   <button class="buy alt" id="restoreFile" style="display:none" onclick="Backup.restoreFromFile()">📂 Carregar progresso do arquivo</button>
+  <div id="langs"></div>
   <p style="font-size:12px;opacity:.6;margin-top:18px">Mouse olha · WASD anda · Shift corre · Espaço pula · Segure o clique para minerar · E fala com NPCs · V muda a câmera</p>
 </div>
 
+<script src="js/i18n.js"></script>
 <script src="js/platform.js"></script>
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
@@ -252,8 +256,11 @@
     requestAnimationFrame(frame);
   }
   Platform.init().then(() => Platform.ready());
+  trDom(document.body);
+  document.getElementById('langs').innerHTML = Object.keys(LANGS).map(k => `<button class="lg${k === LANG ? ' on' : ''}" onclick="setLang('${k}')">${LANGS[k].n}</button>`).join('');
+  document.getElementById('langsel').innerHTML = Object.keys(LANGS).map(k => `<option value="${k}"${k === LANG ? ' selected' : ''}>${LANGS[k].n}</option>`).join('');
   Game.init(); Render.init(); Updater.init(); Backup.init();
-  document.getElementById('play').textContent = Game.S.time > 1 ? 'Continuar' : 'Jogar';
+  document.getElementById('play').textContent = tt(Game.S.time > 1 ? 'Continuar' : 'Jogar');
   document.getElementById('play').onclick = () => {
     Snd.start();
     document.getElementById('title').remove(); started = true;

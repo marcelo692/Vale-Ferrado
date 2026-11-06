@@ -69,13 +69,13 @@ const Backup = {
   },
   indicator(reason) {
     const el = document.getElementById('saved'); if (!el) return;
-    el.textContent = '💾 Salvo' + (this.fileState === 'ok' ? ' (navegador + arquivo)' : '');
+    el.textContent = this.fileState === 'ok' ? tt('💾 Salvo (navegador + arquivo)') : tt('💾 Salvo');
     el.classList.add('on'); clearTimeout(this.indT); this.indT = setTimeout(() => el.classList.remove('on'), 1600);
   },
   statusText() {
-    const ago = t => { if (!t) return 'nunca'; const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `há ${s} s` : `há ${Math.round(s / 60)} min`; };
-    const f = { ok: `✅ arquivo salvo ${ago(this.lastFile)}`, 'needs-permission': '⚠ clique em Salvar agora para liberar o arquivo', off: '⚠ ainda sem arquivo: clique em Salvar agora', unsupported: 'arquivo: só no Chrome/Edge', error: '⚠ erro ao salvar o arquivo' }[this.fileState];
-    return `Navegador: ✅ salvo ${ago(this.last || Game.S.savedAt)} · ${f}`;
+    const ago = t => { if (!t) return tt('nunca'); const s = Math.round((Date.now() - t) / 1000); return s < 60 ? tt('há {0} s', s) : tt('há {0} min', Math.round(s / 60)); };
+    const f = { ok: tt('✅ arquivo salvo {0}', ago(this.lastFile)), 'needs-permission': tt('⚠ clique em Salvar agora para liberar o arquivo'), off: tt('⚠ ainda sem arquivo: clique em Salvar agora'), unsupported: tt('arquivo: só no Chrome/Edge'), error: tt('⚠ erro ao salvar o arquivo') }[this.fileState];
+    return tt('Navegador: ✅ salvo {0} · {1}', ago(this.last || Game.S.savedAt), f);
   },
 
   // ---------- recuperar ao abrir ----------
