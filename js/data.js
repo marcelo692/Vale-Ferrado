@@ -275,7 +275,7 @@ function fmtTime(s) {
 // ---------- Equipamentos (Tonho do Bazar) ----------
 const GADGETS = {
   detector: {
-    title: 'Detector (a seta)', key: 'G', desc: 'O detector é a seta no alto da tela: sem ele ela não aparece, e ela só acha o que estiver dentro do alcance. Toque em G para ligar/desligar; segure G para escolher até 3 coisas que ela procura.',
+    title: 'Detector (a seta)', key: 'G', desc: 'Mostra uma seta para o que você procura. G liga/desliga; segure G para escolher.',
     levels: [null,
       { n: 'Detector de bolso',    price: 300,     range: 80,   err: 0.6,  info: 'A seta acha coisas a até 80 m' },
       { n: 'Detector de campo',    price: 15000,   range: 600,  err: 0.35, info: 'A seta acha coisas a até 600 m' },
@@ -283,7 +283,7 @@ const GADGETS = {
     ],
   },
   ride: {
-    title: 'Transporte', key: 'R', desc: 'Suba e desça com R. Vale também para pular.',
+    title: 'Transporte', key: 'R', desc: 'R sobe e desce.',
     levels: [null,
       { n: 'Patins de rodinha',  price: 800,      mult: 1.5, info: '+50% de velocidade · correr ainda cansa' },
       { n: 'Patinete',           price: 20000,    mult: 2.2, info: '+120% de velocidade · correr ainda cansa' },
@@ -292,7 +292,7 @@ const GADGETS = {
     ],
   },
   light: {
-    title: 'Iluminação', key: 'L', desc: 'Liga e desliga com L. À noite, sem luz, quase não se vê nada.',
+    title: 'Iluminação', key: 'L', desc: 'L liga e desliga. Essencial à noite.',
     levels: [null,
       { n: 'Lanterna de mão',       price: 150,      info: 'Facho estreito de 28 m' },
       { n: 'Lanterna de cabeça',    price: 6000,     info: 'Facho largo de 40 m, mãos livres' },
@@ -311,5 +311,5 @@ GADGETS.climb = {
     { n: 'Jetpack',            price: 60000000, info: 'Segure Espaço no ar para voar; o combustível recarrega no chão. Sai até do fundo da Serra dos Cristais', mats: [{ id: 'ferroceleste', qty: 5 }] },
   ],
 };
-const SELL_MODES = { sobra: 'guardar o que as evoluções precisam (até 60% de cada carga) e vender o resto', guardar: 'guardar tudo no depósito', vender: 'vender tudo' };
+const SELL_MODES = { sobra: 'guardar o que falta, vender o resto', guardar: 'guardar tudo', vender: 'vender tudo' };
 const DAY_LEN = 16 * 60; // um dia inteiro dura 16 minutos

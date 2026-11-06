@@ -148,15 +148,16 @@ const Missions = {
     const S = Game.S;
     let h = `<div class="story"><h2>📜 Missões</h2>`;
     if (S.mi < MISSION_CHAIN.length) {
-      h += `<p class="hint">Missões guiadas: ${S.mi} de ${MISSION_CHAIN.length}. A seta no alto da tela aponta para onde ir.</p><ul class="mlist">`;
+      h += `<p class="hint">Missão ${S.mi + 1} de ${MISSION_CHAIN.length}. A seta no alto da tela mostra o caminho.</p><ul class="mlist">`;
       MISSION_CHAIN.forEach((m, i) => {
         const done = i < S.mi, cur = i === S.mi;
+        if (i < S.mi - 1 || i > S.mi) return; // só a última feita e a atual
         const c = cur ? Math.max(0, Math.min(m.max, m.cur(S.mb))) : 0;
         h += `<li class="${done ? 'done' : cur ? 'cur' : 'lock'}"><b>${done ? '✔' : cur ? '▶' : '🔒'}</b><div><span>${cur || done ? m.t : '???'}</span>${cur ? `<small>${m.d}</small><i class="mpb"><em style="width:${c / m.max * 100}%"></em></i><small>${fmt(c)} / ${fmt(m.max)}</small>` : ''}</div><strong>+${fmt(m.reward)}</strong></li>`;
       });
       h += `</ul>`;
     } else {
-      h += `<p class="hint">Sempre há 3 missões ativas. Ao cumprir uma, outra aparece. Já cumpridas: ${S.stats.rotDone || 0}.</p><ul class="mlist">`;
+      h += `<p class="hint">3 missões ativas · cumpridas: ${S.stats.rotDone || 0}</p><ul class="mlist">`;
       for (const m of S.rot) { const T = ROT_TYPES[m.type], c = Math.max(0, Math.min(m.max, T.cur(m, m.base))); h += `<li class="cur"><b>▶</b><div><span>${T.t(m)}</span><i class="mpb"><em style="width:${c / m.max * 100}%"></em></i><small>${fmt(c)} / ${fmt(m.max)}</small></div><strong>+${fmt(m.reward)}</strong></li>`; }
       h += `</ul>`;
     }

@@ -36,8 +36,9 @@ const UI = {
     el.style.display = want;
   },
   resume() { Snd.start(); Game.lock(); },
-  pics(kind, a) {
+  pics(kind, a, both) {
     try {
+      if (!both) return `<div class="pics one"><figure><img src="${Render.itemImg(kind, a)}" alt=""></figure></div>`;
       return `<div class="pics"><figure><img src="${Render.itemImg(kind, a)}" alt=""><figcaption>Item</figcaption></figure><figure><img src="${Render.charImg(kind, a)}" alt=""><figcaption>Em você</figcaption></figure></div>`;
     } catch (e) { return ''; }
   },
@@ -60,13 +61,13 @@ const UI = {
       h += `<div class="cur"><span class="lv">Nível ${L}</span><h3>${HAMMERS[L].n}</h3><p>Força ${fmt(HAMMERS[L].f)}</p></div>`;
       if (L < MAX_LEVEL) {
         const c = hammerCost(L + 1);
-        h += `<div class="card big">${this.pics('hammer', L + 1)}<span class="lv">Próximo · nível ${L + 1}</span><h3>${HAMMERS[L + 1].n}</h3><p>Força ${fmt(HAMMERS[L].f)} → <b>${fmt(HAMMERS[L + 1].f)}</b></p>${this.costHtml(c)}${SPECIAL_AT[L + 1] ? `<p class="rare">⛰ ${RES[SPECIAL_AT[L + 1]].name} só existe perto do topo das montanhas da região ${REGIONS[RES[SPECIAL_AT[L + 1]].region].name}</p>` : ''}
+        h += `<div class="card big">${this.pics('hammer', L + 1, true)}<span class="lv">Próximo · nível ${L + 1}</span><h3>${HAMMERS[L + 1].n}</h3><p>Força ${fmt(HAMMERS[L].f)} → <b>${fmt(HAMMERS[L + 1].f)}</b></p>${this.costHtml(c)}${SPECIAL_AT[L + 1] ? `<p class="rare">⛰ ${RES[SPECIAL_AT[L + 1]].name} só existe perto do topo das montanhas da região ${REGIONS[RES[SPECIAL_AT[L + 1]].region].name}</p>` : ''}
           <button class="buy" ${Game.canPay(c) ? '' : 'disabled'} onclick="Game.buyHammer();UI.renderPanel()">Forjar</button></div>`;
         h += `<h4>Pela frente</h4><ol class="road" start="${L + 2}">`;
-        for (let i = L + 2; i <= Math.min(MAX_LEVEL, L + 6); i++) h += `<li>${HAMMERS[i].n} <i>força ${fmt(HAMMERS[i].f)}</i></li>`;
+        for (let i = L + 2; i <= Math.min(MAX_LEVEL, L + 4); i++) h += `<li>${HAMMERS[i].n} <i>força ${fmt(HAMMERS[i].f)}</i></li>`;
         h += `</ol>`;
       } else h += `<p class="done">Você tem o Martelo do Vale. Não existe nada mais forte.</p>`;
-      h += `<p class="hint">Materiais vêm do depósito. Quando você entra na cidade, o que é preciso para a próxima forja fica guardado automaticamente.</p>`;
+      h += `<p class="hint">Os materiais saem do depósito.</p>`;
     }
 
     if (id === 'tropeira') {
@@ -80,25 +81,25 @@ const UI = {
         } else h += `<p class="done">${attrLabel(k, L)} (máximo)</p>`;
         h += `</div>`;
       }
-      h += `</div><p class="hint">Cada melhoria muda seu visual: luvas, mochila, calçados e pernas.</p>`;
+      h += `</div>`;
     }
 
     if (id === 'botica') {
       const tier = eraOf(S.hammer);
-      h += `<p class="free">Espaço livre na mochila: <b>${fmt(Game.free())}</b> de ${fmt(Game.capacity())}</p><div class="grid">`;
+      h += `<p class="free">Espaço livre na mochila: <b>${fmt(Game.free())}</b> de ${fmt(Game.capacity())} · ✦ Cintilhas: <b>${fmt(S.cint || 0)}</b></p><div class="grid">`;
       for (const pid in POWERUPS) {
         const P = POWERUPS[pid], price = powerPrice(pid, S.hammer);
         const owned = S.pw.filter(p => p.id === pid).length;
         const ci = powerCint(pid, S.hammer), ok = S.money >= price && (S.cint || 0) >= ci && Game.free() >= P.slots;
         h += `<div class="card">${this.pics('pw', pid)}<span class="lv" style="color:${P.color}">Tecla ${P.key} · na mochila: ${owned}</span><h3>${P.name} ${ROMAN[tier]}</h3>
-          <p>+${Math.round(powerBonus(pid, tier) * 100)}% ${P.desc} por ${P.dur / 60} min</p><p>Ocupa <b>${P.slots} espaços</b> na mochila</p>
-          <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(price)}</b></li><li class="${(S.cint || 0) >= ci ? 'ok' : 'no'}">✦ Cintilhas: <b>${ci}</b> <small>(você tem ${fmt(S.cint || 0)})</small></li></ul>
+          <p>+${Math.round(powerBonus(pid, tier) * 100)}% ${P.desc} por ${P.dur / 60} min · ocupa ${P.slots} espaços</p>
+          <ul class="cost"><li class="${S.money >= price ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(price)}</b></li><li class="${(S.cint || 0) >= ci ? 'ok' : 'no'}">✦ Cintilhas: <b>${ci}</b></li></ul>
           <button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyPower('${pid}');UI.renderPanel()">Comprar</button></div>`;
       }
       const oL = S.olho || 0, oN = oL + 1;
-      h += `<div class="card"><span class="lv">Nível ${oL} de ${OLHO.length - 1}</span><h3>👁 Olho de Garimpeiro</h3><p>Aumenta a chance de achar <b>Cintilha</b> dentro das pedras. Hoje: <b>${(cintChance(oL) * 100).toFixed(1).replace('.', ',')}%</b> por pedra${oN < OLHO.length ? `, no próximo nível: ${(cintChance(oN) * 100).toFixed(1).replace('.', ',')}%` : ''}.</p>
+      h += `<div class="card"><span class="lv">Nível ${oL} de ${OLHO.length - 1}</span><h3>👁 Olho de Garimpeiro</h3><p>Chance de achar Cintilha nas pedras: <b>${(cintChance(oL) * 100).toFixed(1).replace('.', ',')}%</b>${oN < OLHO.length ? ` → <b>${(cintChance(oN) * 100).toFixed(1).replace('.', ',')}%</b>` : ''}</p>
         ${oN < OLHO.length ? `<ul class="cost"><li class="${S.money >= OLHO[oN] ? 'ok' : 'no'}"><i class="coin"></i>Moedas: <b>${fmt(OLHO[oN])}</b></li></ul><button class="buy" ${S.money >= OLHO[oN] ? '' : 'disabled'} onclick="Game.buyOlho();UI.renderPanel()">Melhorar</button>` : '<button class="buy" disabled>Nível máximo</button>'}</div>`;
-      h += `</div><p class="hint">Poções custam moedas e <b>✦ Cintilhas</b>. Cintilhas saem de qualquer pedra (às vezes), dos robôs e dos Veios de Cintilha que aparecem pelo mapa. Ative com as teclas 1, 2 e 3. Dá para ativar vários ao mesmo tempo: os efeitos se multiplicam. Ao ativar, o espaço volta a ficar livre.</p>`;
+      h += `</div><p class="hint">Cintilhas saem das pedras, dos robôs e dos Veios de Cintilha. Teclas 1, 2 e 3 ativam; os efeitos se somam.</p>`;
     }
 
     if (id === 'bazar') {
@@ -106,18 +107,18 @@ const UI = {
       for (const type in GADGETS) {
         const T = GADGETS[type], have = S.gear[type];
         h += `<h4>${T.title} <span class="kbd">${T.key}</span></h4><p class="hint" style="margin:0 0 8px">${T.desc}</p><div class="grid">`;
-        for (let lv = 1; lv < T.levels.length; lv++) {
+        for (let lv = Math.max(1, have || 1); lv < T.levels.length; lv++) {
           const G = T.levels[lv], owned = have >= lv, ok = !owned && Game.canPay({ money: G.price, mats: G.mats || [] });
           h += `<div class="card ${have === lv ? 'eq' : ''}">${this.pics(type, lv)}<span class="lv">Nível ${lv}</span><h3>${G.n}</h3><p>${G.info}</p>
-            ${owned ? `<ul class="cost"><li class="ok"><i class="coin"></i>Moedas: <b>${fmt(G.price)}</b></li></ul>` : this.costHtml({ money: G.price, mats: G.mats || [] })}${G.mats ? '<p class="rare">⛰ Precisa de recurso raro das montanhas</p>' : ''}
-            ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você já tem melhor</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
+            ${owned ? `<ul class="cost"><li class="ok"><i class="coin"></i>Moedas: <b>${fmt(G.price)}</b></li></ul>` : this.costHtml({ money: G.price, mats: G.mats || [] })}${G.mats ? '<p class="rare">⛰ Recurso raro das montanhas</p>' : ''}
+            ${have === lv ? '<button class="buy" disabled>Equipado</button>' : owned ? '<button class="buy" disabled>Você tem</button>' : `<button class="buy" ${ok ? '' : 'disabled'} onclick="Game.buyGadget('${type}',${lv});UI.renderPanel()">Comprar</button>`}</div>`;
         }
         h += `</div>`;
         if (type === 'detector' && have) h += `<div class="row" style="margin-top:10px"><button class="buy alt" onclick="UI.detectorPanel()">🧭 Escolher o que a seta procura</button></div>`;
       }
       // robôs auto-mineradores
       const nR = S.robots || 0;
-      h += `<h4>🤖 Robôs auto-mineradores</h4><p class="hint" style="margin:0 0 8px">Bonequinhos com hélice na cabeça. Cada um sai da cidade sozinho, vai até o recurso que falta para as suas evoluções, minera devagar e volta para entregar no depósito (o que sobrar o Seu Lauro vende). Ficam mais fortes, rápidos e carregam mais conforme seu martelo evolui. Com a hélice, passam voando por cima dos obstáculos.</p><div class="grid">`;
+      h += `<h4>🤖 Robôs auto-mineradores</h4><p class="hint" style="margin:0 0 8px">Mineram sozinhos o que falta para suas evoluções e entregam no depósito. Evoluem com o seu martelo.</p><div class="grid">`;
       let pr = '';
       try { pr = `<div class="pics"><figure><img src="${Render.robotImg(1)}" alt=""><figcaption>Robô</figcaption></figure><figure><img src="${Render.robotImg(Math.min(ROBOT_MAX, nR + 1))}" alt=""><figcaption>Sua equipe</figcaption></figure></div>`; } catch (e) {}
       if (nR < ROBOT_MAX) {
@@ -127,22 +128,21 @@ const UI = {
       h += `</div>`;
       if (nR) {
         Robots.sync();
-        h += `<p class="free" style="margin-top:10px">Sua equipe (${nR}) · já trouxeram ${fmt(S.robotTotal || 0)} recursos</p><ul class="cost">${Robots.list.map(r => `<li>🤖 <b>${r.name}</b>: ${Robots.statusOf(r)}</li>`).join('')}</ul>`;
+        h += `<p class="free" style="margin-top:10px">Sua equipe: ${Robots.list.map(r => `<b>${r.name}</b>`).join(', ')} · já trouxeram ${fmt(S.robotTotal || 0)} recursos</p>`;
       }
     }
 
     if (id === 'armazem') {
       const ids = Object.keys(S.stock).filter(k => S.stock[k] > 0);
       const mode = Game.sellMode();
-      h += `<p>Quando você chega na vila, primeiro as <b>missões</b> pegam o que precisam. Depois eu faço o que você escolher:</p><div class="row" style="flex-wrap:wrap">${Object.keys(SELL_MODES).map(m => `<button class="buy ${m === mode ? '' : 'alt'}" onclick="Game.S.sellMode='${m}';Game.save();UI.renderPanel()">${{ sobra: '🏠 Guardar o que falta, vender o resto', guardar: '📦 Guardar tudo', vender: '💰 Vender tudo' }[m]}</button>`).join('')}</div><p class="hint">Fora daqui, a tecla <b>N</b> troca o modo. No modo guardar tudo você junta no depósito e vende tudo de uma vez quando quiser (por exemplo, depois de tomar um power-up).</p>`;
+      h += `<p>Ao chegar na vila, as missões pegam o que precisam. O resto:</p><div class="row" style="flex-wrap:wrap">${Object.keys(SELL_MODES).map(m => `<button class="buy ${m === mode ? '' : 'alt'}" onclick="Game.S.sellMode='${m}';Game.save();UI.renderPanel()">${{ sobra: '🏠 Guardar o que falta', guardar: '📦 Guardar tudo', vender: '💰 Vender tudo' }[m]}</button>`).join('')}</div><p class="hint" style="text-align:center">Tecla N troca o modo em qualquer lugar.</p>`;
       const sv = Object.keys(S.stock).reduce((a, k) => a + (S.stock[k] || 0) * RES[k].value, 0);
-      if (sv) h += `<div class="row"><button class="buy" onclick="Game.sellAllStock();UI.renderPanel()">💰 Vender tudo do depósito por ${fmt(sv)} moedas</button></div>`;
-      h += `<p class="free">Total ganho até hoje: <b>${fmt(S.earned)}</b> moedas</p>`;
+      if (sv) h += `<div class="row"><button class="buy" onclick="Game.sellAllStock();UI.renderPanel()">💰 Vender o depósito (${fmt(sv)})</button></div>`;
 
       if ((S.receipts || []).length) h += `<h4>Última entrega</h4><div class="receipt-in">${this.receiptHtml(S.receipts[0])}</div>`;
       if (ids.length) {
         h += `<h4>Depósito</h4><ul class="stock">${ids.map(k => `<li><span class="dot" style="background:${RES[k].c2}"></span>${RES[k].name}<b>${fmt(S.stock[k])}</b><i>${fmt(RES[k].value)} cada</i></li>`).join('')}</ul>
-          <button class="buy alt" onclick="UI.sellStock()">Vender o excedente do depósito</button>`;
+          <button class="buy alt" onclick="UI.sellStock()">Vender só o que sobra</button>`;
       } else h += `<p class="hint">Depósito vazio.</p>`;
     }
     h += `</div></div>`;
@@ -217,6 +217,7 @@ const UI = {
       h += `</table><p>Ao entrar na vila você recebe <b><i class="coin"></i>${fmt(bv.money)}</b>${bv.kept ? ` e ${fmt(bv.kept)} vão para o depósito` : ''}.</p>`;
     } else h += `<p>A mochila está vazia. Saia da vila e minere!</p>`;
     if (S.pw.length) { const c = {}; S.pw.forEach(p => c[p.id] = (c[p.id] || 0) + 1); h += `<h4>Power-ups</h4><p>${Object.keys(c).map(id => `${POWERUPS[id].name} ×${c[id]} (tecla ${POWERUPS[id].key})`).join(' · ')}</p>`; }
+    h += `<h4>Atributos</h4><div class="mst">${Object.keys(ATTRS).map(k => `<span>${ATTRS[k].name} (nível ${S.attrs[k]})</span><b>${k === 'bag' ? fmt(Game.capacity()) + ' espaços' : attrLabel(k, S.attrs[k])}</b>`).join('')}<span>Clique rápido</span><b>×${Game.clickMult()}</b></div>`;
     h += `<div class="row"><button class="buy" onclick="UI.close()">Fechar</button></div></div>`;
     $('panel').innerHTML = h; $('panel').classList.remove('hidden');
   },
@@ -226,32 +227,19 @@ const UI = {
     $('panel').classList.remove('hidden');
     $('panel').innerHTML = `<div class="story"><h2>Como jogar</h2>
       <ul class="help">
-        <li><b>Mouse</b>: olhar em volta</li>
-        <li><b>W A S D</b>: andar</li>
-        <li><b>Shift</b>: correr (gasta fôlego; se zerar, você cansa e fica mais lento)</li>
-        <li><b>Montanhas</b> (triângulos no minimapa): subir é lento e o Shift não funciona na subida; perto do topo ficam os recursos raros</li>
-        <li><b>Espaço</b>: pular (passe por cima de troncos, muros e penhascos para cortar caminho)</li>
-        <li><b>Segurar o botão esquerdo</b> mirando uma pedra: minera na velocidade normal, sem cansar</li>
-        <li><b>Clicar várias vezes</b>: golpes bem mais rápidos, mas cada clique gasta fôlego. Cada clique vale por vários golpes, e isso aumenta a cada 5 níveis do martelo (×2 no 5, ×3 no 10… até ×13 no 60)</li>
-        <li><b>E</b> perto de um NPC: abrir a loja</li>
-        <li><b>1, 2, 3</b>: ativar power-ups da mochila</li>
-        <li><b>V</b>: alternar primeira e terceira pessoa</li>
-        <li><b>R</b>: subir/descer do transporte · <b>L</b>: ligar a luz · <b>G</b>: ligar o detector · <b>T</b>: escolher o minério do detector na mão · <b>Shift+T</b>: voltar ao automático</li>
-        <li><b>H</b>: voltar à cidade voando rapidinho, por uma taxa pequena (libera no martelo nível 20)</li>
-        <li><b>J</b>: missões · <b>Tab</b>: abrir a mochila</li>
-        <li><b>Na vila</b>: as missões pegam primeiro o que você traz; o resto segue o modo (<b>N</b> troca: guardar o que falta e vender o resto, guardar tudo ou vender tudo). <b>U</b> na vila vende tudo do depósito</li>
-        <li><b>G</b>: liga/desliga a seta do detector · segure <b>G</b> para escolher o que ela procura (até 3)</li>
-        <li><b>Valões</b>: cada região (menos a primeira) é uma cava em degraus, cada vez mais funda. Descer é fácil; para subir use a rampa no meio de cada degrau, pule, ou use os itens de Escalada do Tonho do Bazar: <b>Q</b> gancho, <b>Z</b> escada, <b>X</b> cama elástica, <b>Espaço no ar</b> jetpack. A Serra dos Cristais não tem rampa</li>
-        <li><b>M</b>: ligar/desligar som (volumes no botão 🔊 Som)</li>
-        <li><b>Esc</b>: soltar o mouse</li>
+        <li><b>W A S D</b> andar · <b>Shift</b> correr (gasta fôlego) · <b>Espaço</b> pular · <b>V</b> câmera</li>
+        <li><b>Segurar o botão esquerdo</b> numa pedra: minerar · <b>clicar várias vezes</b>: golpes mais rápidos (gasta fôlego)</li>
+        <li><b>E</b> perto de um NPC: abrir a loja · <b>J</b> missões · <b>Tab</b> mochila</li>
+        <li><b>1 2 3</b> power-ups · <b>R</b> transporte · <b>L</b> luz · <b>G</b> seta do detector (segure para escolher)</li>
+        <li><b>H</b> voltar à cidade voando (martelo 20+) · <b>N</b> o que fazer ao chegar na vila · <b>U</b> vender o depósito</li>
+        <li><b>Q Z X</b> gancho, escada, cama elástica · <b>Espaço no ar</b> jetpack (itens de escalada do Tonho)</li>
+        <li><b>M</b> som · <b>Esc</b> soltar o mouse e abrir o menu</li>
       </ul>
-      <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra tudo sozinho. Use o dinheiro no Ferreiro (martelo), na Tropeira (atributos) e na Botica (power-ups).</p>
-      <p>Qualquer martelo quebra qualquer pedra, mas a informação embaixo da mira mostra quanto tempo vai levar: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
-      <p>O jogo salva sozinho no seu computador.</p>
+      <p>Saia da cidade, encha a mochila e volte. Seu Lauro compra o que sobra. Gaste no Ferreiro (martelo), na Tropeira (melhorias) e na Botica (power-ups).</p>
+      <p>A informação embaixo da mira mostra o tempo de cada pedra: <b style="color:#7fd36a">verde</b> vale a pena, <b style="color:#ffd34d">amarelo</b> é lento, <b style="color:#ff6a5a">vermelho</b> não compensa.</p>
       ${Object.keys(Game.S.ms || {}).length ? `<h4>Seus tempos</h4><div class="mst">${Object.entries(Game.S.ms).sort((a, b) => a[1] - b[1]).map(([k, t]) => `<span>${k.replace(/^martelo/, 'Martelo ').replace(/^missao/, 'Missão ').replace(/^robo/, 'Robô ').replace('venda1', 'Primeira venda')}</span><b>${fmtTime(t)}</b>`).join('')}</div>` : ''}
-      <h4>Seu progresso</h4><p class="hint" style="margin-top:0">O jogo salva sozinho a cada 30 segundos e sempre que você sai da janela, troca de aba ou fecha o jogo: no navegador e no arquivo <b>save/progresso.json</b> dentro da pasta do jogo (Chrome/Edge, depois de liberar a pasta em <b>💾 Salvar agora</b>). ${Backup.statusText()}</p>
-      <div class="row"><button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button><button class="buy alt" onclick="Backup.restoreFromFile()">📂 Carregar do arquivo da pasta</button></div>
-      <div class="row"><button class="buy alt" onclick="UI.exportSave()">Salvar cópia do progresso</button><button class="buy alt" onclick="document.getElementById('impfile').click()">Carregar progresso</button><input type="file" id="impfile" accept=".json" style="display:none" onchange="UI.importSave(this.files[0])"></div>
+      <h4>Progresso</h4><p class="hint" style="margin-top:0">Salva sozinho. ${Backup.statusText()}</p>
+      <div class="row" style="flex-wrap:wrap"><button class="buy alt" onclick="Backup.manual()">💾 Salvar agora</button><button class="buy alt" onclick="UI.exportSave()">Exportar</button><button class="buy alt" onclick="document.getElementById('impfile').click()">Importar</button><button class="buy alt" onclick="Backup.restoreFromFile()">📂 Da pasta</button><input type="file" id="impfile" accept=".json" style="display:none" onchange="UI.importSave(this.files[0])"></div>
       <div class="row" style="margin-top:12px"><button class="buy" onclick="UI.close()">Voltar ao jogo</button><button class="buy alt" onclick="if(confirm('Apagar todo o progresso e recomeçar?'))Game.reset()">Recomeçar do zero</button></div><p class="hint" style="text-align:center">Vale Ferrado v${GAME_VERSION}</p></div>`;
   },
   exportSave() {
@@ -276,43 +264,28 @@ const UI = {
     if (!S.showInv) { el.style.display = 'none'; return; }
     el.style.display = 'block';
     const rows = [];
-    const ups = [];
-    if (S.hammer < MAX_LEVEL) ups.push({ ic: '⚒', name: 'Martelo', lv: S.hammer + 1, c: hammerCost(S.hammer + 1), npc: 'Seu Bento' });
-    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ ic: { mine: '✊', bag: '🎒', move: '👟', jump: '⤒' }[k], name: ATTRS[k].short, lv: S.attrs[k] + 1, c: attrCost(k, S.attrs[k] + 1), npc: 'Dona Cida' });
-    for (const g of Game.gadgetUps()) ups.push({ ic: '🛒', name: g.label, lv: '', c: g.c });
     const bv = Game.bagValue();
-    let html = Object.keys(S.bag).length ? `<div class="bagv"><span>🎒 Mochila vale</span><b><i class="coin"></i>${fmt(bv.money)}</b><small>${bv.mission ? `📜 ${fmt(bv.mission)} para a missão · ` : ''}${bv.kept ? `${fmt(bv.kept)} vão pro depósito` : ''}</small></div>` : '';
+    let html = Object.keys(S.bag).length ? `<div class="bagv"><span>🎒 Mochila vale</span><b><i class="coin"></i>${fmt(bv.money)}</b>${bv.mission ? `<small>📜 ${fmt(bv.mission)} para a missão</small>` : ''}</div>` : '';
     if (Robots.list.length) {
-      const cnt = {}; for (const r of Robots.list) { const k = r.st === 'go' ? 'indo' : r.st === 'mine' ? 'minerando' : r.st === 'home' ? 'voltando' : 'procurando'; cnt[k] = (cnt[k] || 0) + 1; }
       const carrying = Robots.list.reduce((a, r) => a + r.n, 0);
-      html += `<div class="bagv"><span>🤖 Robôs (${Robots.list.length})</span><small>${Object.keys(cnt).map(k => cnt[k] + ' ' + k).join(' · ')}${carrying ? ` · trazendo ${fmt(carrying)}` : ''}</small></div>`;
+      html += `<div class="bagv"><span>🤖 ${Robots.list.length} robô${Robots.list.length > 1 ? 's' : ''} minerando</span>${carrying ? `<small>trazendo ${fmt(carrying)}</small>` : ''}</div>`;
     }
-    html += `<div class="ih">Próximas evoluções <kbd>I</kbd></div>`;
-    for (const u of ups) {
-      const okMoney = S.money >= u.c.money;
-      let st = okMoney ? 2 : 0, mats = '';
-      for (const m of u.c.mats) {
-        const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0;
-        const ms = have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0;
-        st = Math.min(st, ms);
+    // só a próxima forja; as outras melhorias aparecem como aviso quando dá para comprar
+    const okOf = c => { let st = S.money >= c.money ? 2 : 0; for (const m of c.mats) { const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0; st = Math.min(st, have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0); } return st; };
+    if (S.hammer < MAX_LEVEL) {
+      const c = hammerCost(S.hammer + 1), st = okOf(c);
+      let mats = '';
+      for (const m of c.mats) {
+        const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0, ms = have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0;
         mats += `<span class="m s${ms}"><i style="background:${RES[m.id].c2}"></i>${RES[m.id].name.split(' (')[0]} ${fmt(Math.min(have, m.qty))}/${fmt(m.qty)}${bag && ms < 2 ? ` <em>+${fmt(bag)}🎒</em>` : ''}</span>`;
       }
-      const sign = ['✖', '●', '✔'][st], cls = 's' + st;
-      html += `<div class="up ${cls}"><b>${sign}</b><div><div class="un">${u.ic} ${u.name} ${u.lv ? `<small>nv ${u.lv}</small>` : ''}</div>${mats}<span class="m ${okMoney ? 's2' : 's0'}"><i class="coin"></i>${fmt(u.c.money)}</span></div></div>`;
+      html += `<div class="ih">Próximo martelo <kbd>I</kbd></div><div class="up s${st}"><b>${['✖', '●', '✔'][st]}</b><div><div class="un">⚒ ${HAMMERS[S.hammer + 1].n} <small>nv ${S.hammer + 1}</small></div>${mats}<span class="m ${S.money >= c.money ? 's2' : 's0'}"><i class="coin"></i>${fmt(c.money)}</span></div></div>`;
+      if (st === 1) html += `<div class="leg"><span class="s1">● Falta só entregar: volte à cidade</span></div>`;
     }
-    // materiais guardados e na mochila
-    const need = Game.needs();
-    const ids = new Set([...Object.keys(S.stock).filter(k => S.stock[k] > 0), ...Object.keys(S.bag), ...Object.keys(need)]);
-    if (ids.size) {
-      html += `<div class="ih">Materiais <small>🏠 guardado · 🎒 mochila · precisa</small></div><table>`;
-      [...ids].sort((a, b) => RESOURCES.indexOf(RES[a]) - RESOURCES.indexOf(RES[b])).forEach(id => {
-        const have = S.stock[id] || 0, bag = S.bag[id] || 0, n = need[id] || 0;
-        const ms = !n ? 3 : have >= n ? 2 : have + bag >= n ? 1 : 0;
-        html += `<tr class="s${ms}"><td><i style="background:${RES[id].c2}"></i>${RES[id].name.split(' (')[0]}</td><td>${fmt(have)}</td><td>${bag ? fmt(bag) : ''}</td><td>${n ? fmt(n) + ' ' + ['✖', '●', '✔'][ms] : '—'}</td></tr>`;
-      });
-      html += `</table>`;
-    }
-    html += `<div class="leg"><span class="s2">✔ pronto</span> <span class="s1">● está na mochila, volte à cidade</span> <span class="s0">✖ falta</span></div>`;
+    let ready = 0;
+    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL && okOf(attrCost(k, S.attrs[k] + 1)) === 2) ready++;
+    ready += Game.gadgetUps().filter(g => okOf(g.c) === 2).length;
+    if (ready) html += `<div class="leg"><span class="s2">✔ ${ready} melhoria${ready > 1 ? 's' : ''} pronta${ready > 1 ? 's' : ''} para comprar</span></div>`;
     if (html !== this.invHtml) { el.innerHTML = html; this.invHtml = html; }
   },
   // ---------- recibo do Seu Lauro (o que foi guardado e o que foi vendido) ----------
@@ -320,15 +293,14 @@ const UI = {
     let h = `<table><tr><th>Material</th><th>Trouxe</th><th>🏠 Guardou</th><th>Vendeu</th></tr>`;
     for (const l of r.lines) {
       h += `<tr><td><i style="background:${RES[l.id].c2}"></i>${RES[l.id].name.split(' (')[0]}</td><td>${fmt(l.q)}</td><td class="${l.k ? 'k' : ''}">${l.k ? fmt(l.k) : '—'}</td><td class="${l.sq ? 'v' : ''}">${l.sq ? fmt(l.sq) + ' <small>= ' + fmt(l.money) + '</small>' : '—'}</td></tr>`;
-      h += `<tr class="why"><td colspan="4">${l.k && l.for.length ? 'Para: ' + l.for.join(', ') + ' · ' : ''}${l.why}</td></tr>`;
     }
     const took = r.took ? Object.keys(r.took) : [];
-    h += `</table>${took.length ? `<div class="tot"><span>📜 Missão pegou: ${took.map(id => fmt(r.took[id]) + ' ' + RES[id].name).join(', ')}</span></div>` : ''}<div class="tot"><span>🏠 ${fmt(r.kept)} guardados</span><span><i class="coin"></i>+${fmt(r.earned)} moedas</span></div>`;
+    h += `</table>${took.length ? `<div class="tot"><span>📜 Missão: ${took.map(id => fmt(r.took[id]) + ' ' + RES[id].name).join(', ')}</span></div>` : ''}<div class="tot"><span>🏠 ${fmt(r.kept)} guardados</span><span><i class="coin"></i>+${fmt(r.earned)} moedas</span></div>`;
     return h;
   },
   showReceipt(r) {
     const el = $('receipt');
-    el.innerHTML = `<div class="rh">Seu Lauro, do Armazém</div><p class="rule">Modo: <b>${SELL_MODES[r.mode || 'sobra']}</b> · <kbd>N</kbd> troca</p>${this.receiptHtml(r)}<p class="rule dim">Veja de novo no Armazém · some em instantes</p>`;
+    el.innerHTML = `<div class="rh">Entrega no Armazém</div>${this.receiptHtml(r)}`;
     el.classList.add('on');
     clearTimeout(this.rcT); this.rcT = setTimeout(() => el.classList.remove('on'), 9000 + r.lines.length * 1200);
   },
@@ -368,8 +340,7 @@ const UI = {
     $('money').textContent = fmt(S.money);
     $('cint').textContent = '✦ ' + fmt(S.cint || 0) + ' Cintilha' + ((S.cint || 0) === 1 ? '' : 's');
     $('hname').textContent = HAMMERS[S.hammer].n;
-    $('hlv').textContent = 'Martelo nível ' + S.hammer + ' / 60';
-    $('hforce').textContent = 'Força ' + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');
+    $('hlv').textContent = 'Martelo nv ' + S.hammer + ' · força ' + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');
     const used = G.used(), cap = G.capacity();
     const st = $('stam'); st.style.width = (G.P.stamina * 100) + '%'; st.className = G.P.tired ? 'tired' : G.P.sprint ? 'run' : '';
     $('fuelwrap').style.display = (S.gear.climb || 0) >= 5 && (G.fuel !== undefined && G.fuel < 0.999 || G.jetting) ? 'block' : 'none'; if (G.fuel !== undefined) $('fuel').style.width = G.fuel * 100 + '%';
@@ -380,24 +351,20 @@ const UI = {
     // local
     const sub = World.subAt(G.P.x, G.P.y);
     let loc;
-    if (G.inCity) loc = '<b>Vale Ferrado</b> · cidade';
-    else if (sub) loc = `<b>${sub.R.name}</b> · ${sub.R.dir} · trecho ${sub.k + 1} <i>(nível sugerido ${sub.level})</i>`;
-    else loc = `<b>Campos de Vale Ferrado</b> · ${Math.round(Math.hypot(G.P.x, G.P.y))} m da cidade`;
+    if (G.inCity) loc = '<b>Vale Ferrado</b>';
+    else if (sub) loc = `<b>${sub.R.name}</b> · <i>martelo ${sub.level}</i>`;
+    else loc = `<b>Campos de Vale Ferrado</b> · ${Math.round(Math.hypot(G.P.x, G.P.y))} m`;
     if (World.veio) loc += `<br><span class="veio">⛏ Veio de ${RES[World.veio.res].name} aflorado: ${Math.ceil(World.veio.t)} s</span>`;
     $('loc').innerHTML = loc;
-    // atributos
-    $('attrs').innerHTML = Object.keys(ATTRS).map(k => `<div><span>${ATTRS[k].short}</span><b>${S.attrs[k]}</b><i>${k === 'bag' ? '' : attrLabel(k, S.attrs[k])}</i></div>`).join('') + `<div><span>Clique rápido</span><b>×${G.clickMult()}</b><i>${S.hammer < 60 ? `×${G.clickMult() + 1} no martelo ${(Math.floor(S.hammer / 5) + 1) * 5}` : 'máximo'}</i></div>`;
     // power-ups
     let pw = '';
     for (const id in POWERUPS) {
       const n = S.pw.filter(p => p.id === id).length;
       const act = S.active.find(a => a.id === id);
+      if (!n && !act) continue;
       pw += `<div class="pw ${n ? '' : 'empty'} ${act ? 'on' : ''}" style="--c:${POWERUPS[id].color}"><kbd>${POWERUPS[id].key}</kbd><span>${POWERUPS[id].name}</span><b>${n}</b>${act ? `<em>${Math.ceil(act.left)}s</em>` : ''}</div>`;
     }
-    $('pws').innerHTML = pw;
-    // conteúdo da mochila
-    const items = Object.keys(S.bag).map(k => `<span><i style="background:${RES[k].c2}"></i>${S.bag[k]}</span>`).join('');
-    $('bagitems').innerHTML = items;
+    $('pws').innerHTML = pw; $('pws').style.display = pw ? 'flex' : 'none';
     // dica NPC
     const npc = G.npcNear();
     $('npchint').textContent = npc && !this.open ? `[E] Falar com ${npc.name}` : '';
@@ -421,10 +388,10 @@ const UI = {
       if (ok) { const c = G.recallCost(); $('recallc').innerHTML = `<i class="coin"></i>${fmt(c)}`; rb.classList.toggle('off', S.money < c); }
       $('travelbar').style.display = G.travel ? 'block' : 'none';
       if (G.travel) $('travelp').style.width = Math.min(100, G.travel.t / G.travel.dur * 100) + '%'; }
-    { const sm = $('sellmode'); sm.innerHTML = `${{ sobra: '🏠', guardar: '📦', vender: '💰' }[G.sellMode()]} Na vila: ${{ sobra: 'guardar o que falta', guardar: 'guardar tudo', vender: 'vender tudo' }[G.sellMode()]} <kbd>N</kbd>`;
+    { const sm = $('sellmode'); sm.style.display = G.inCity || Object.keys(S.bag).length ? '' : 'none'; sm.innerHTML = `${{ sobra: '🏠', guardar: '📦', vender: '💰' }[G.sellMode()]} Na vila: ${SELL_MODES[G.sellMode()]} <kbd>N</kbd>`;
       const cb = $('citybar'), sv = G.inCity && !this.open ? Object.keys(S.stock).reduce((a, k) => a + (S.stock[k] || 0) * RES[k].value, 0) : 0;
-      if (G.unloadT !== undefined && !this.open) { cb.style.display = 'block'; cb.innerHTML = `Entregando a mochila… modo: <b>${SELL_MODES[G.sellMode()]}</b> · <kbd>N</kbd> troca`; }
-      else if (sv) { cb.style.display = 'block'; cb.innerHTML = `<button onclick="Game.sellAllStock()">💰 Vender tudo do depósito · ${fmt(sv)} moedas <kbd>U</kbd></button>`; }
+      if (G.unloadT !== undefined && !this.open) { cb.style.display = 'block'; cb.innerHTML = `Entregando a mochila…`; }
+      else if (sv) { cb.style.display = 'block'; cb.innerHTML = `<button onclick="Game.sellAllStock()">💰 Vender o depósito · ${fmt(sv)} <kbd>U</kbd></button>`; }
       else cb.style.display = 'none'; }
     $('climb').style.display = Game.P.climbing && Game.P.moving && !this.open ? 'block' : 'none';
   },
