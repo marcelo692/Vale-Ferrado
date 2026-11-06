@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '3.3.2';
+const GAME_VERSION = '3.3.3';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------

@@ -1,9 +1,8 @@
 {
-  "version": "3.3.2",
+  "version": "3.3.3",
   "date": "2026-11-06",
   "notes": [
-    "Minérios em escada de tamanho: pequeno 1x, médio 2x, grande e especial 3x de altura (visíveis de longe)",
-    "Mão e manga do martelo refeitas: punho com polegar, punho de manga e braço afinado, sem entrar na camiseta"
+    "Martelos 31 a 59 viram picaretas: cada faixa mais enfeitada, com brilho e partículas que crescem até o Martelo do Vale"
   ],
   "files": [
     {
@@ -60,7 +59,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 151126
+      "size": 159180
     },
     {
       "path": "js/robots.js",
@@ -92,7 +91,7 @@
     },
     {
       "path": "version.json",
-      "size": 1568
+      "size": 1691
     }
   ]
 }

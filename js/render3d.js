@@ -971,11 +971,94 @@ const Render = {
   // ---------- martelo (usado na mão e no personagem) ----------
   // martelo girado no próprio cabo: a face de bater fica virada para o alvo (e não de lado)
   hammerInHand(L) { const w = new THREE.Group(), h = this.makeHammer(L); h.rotation.y = Math.PI / 2; w.add(h); w.userData = h.userData; return w; },
+  getGlowTex() {
+    if (!this.glowTex) this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); });
+    return this.glowTex;
+  },
+  // ---------- picaretas (martelos 31 a 59): cada faixa fica mais enfeitada, com brilho e partículas crescentes ----------
+  makePick(L, g, handle, len, hw, hl) {
+    const p = (L - 31) / 28, tier = L <= 34 ? 0 : L <= 37 ? 1 : L <= 40 ? 2 : L <= 44 ? 3 : L <= 47 ? 4 : L <= 50 ? 5 : L <= 55 ? 6 : L <= 57 ? 7 : 8;
+    const gem = hammerLook(L).head;
+    const PAL = [
+      { h: '#8e949c', t: '#c4cad0', glow: null },
+      { h: '#5f6a76', t: '#c9d3dd', glow: '#bfe6ff' },
+      { h: '#aab6c4', t: '#ffffff', glow: '#ffffff' },
+      { h: '#c28b2a', t: '#ffe08a', glow: '#ffa63a' },
+      { h: '#e0b030', t: '#fff1a8', glow: '#ffd34d' },
+      { h: '#4f7488', t: '#9fe9ff', glow: '#5ad7ff' },
+      { h: '#33363f', t: '#e8ecf4', glow: gem },
+      { h: '#cfd6e2', t: '#ffffff', glow: gem },
+      { h: '#2a2224', t: '#ff8a3d', glow: '#ff6a2a' },
+    ][tier];
+    const gcol = new THREE.Color(PAL.glow || '#ffffff'), glowOn = !!PAL.glow;
+    handle.material = mat(L >= 41 ? '#2a2230' : '#5a3f2a');
+    const hr = 0.028 + L * 0.0006;
+    for (let i = 0; i < (tier >= 3 ? Math.min(4, tier - 1) : 0); i++) { const bd = mesh(new THREE.TorusGeometry(hr + 0.004, 0.012, 5, 10), mat(PAL.t, glowOn ? { emissive: PAL.glow, emissiveIntensity: 0.25 } : {}), false); bd.rotation.x = Math.PI / 2; bd.position.y = len * 0.78 - i * len * 0.12; g.add(bd); }
+    if (tier >= 2) { const pm = mesh(new THREE.SphereGeometry(hr * 1.7, 8, 6), mat(PAL.t, { shininess: 90 }), false); pm.position.y = 0.02; g.add(pm); }
+    const head = new THREE.Group(); head.position.y = len; head.rotation.y = Math.PI / 2; // a curva da picareta aparece de perfil para quem segura
+    const half = hl * 0.72, arch = hl * 0.3, depth = hw * 1.15, thk = hw * 1.5, N = 9;
+    const k0 = L - [31, 35, 38, 41, 45, 48, 51, 56, 58][tier], hc = new THREE.Color(PAL.h).offsetHSL(0, 0.015 * k0, 0.014 * k0).getStyle();
+    const hm = mat(hc, Object.assign({ shininess: 80, specular: '#999' }, tier >= 8 ? { emissive: '#5a1a00', emissiveIntensity: 0.4 } : {}));
+    const P = t => [t * half, arch * (1 - t * t)];
+    for (let i = 0; i < N; i++) {
+      const t0 = -1 + 2 * i / N, t1 = -1 + 2 * (i + 1) / N, tm = (t0 + t1) / 2, [x0, y0] = P(t0), [x1, y1] = P(t1);
+      const sl = Math.hypot(x1 - x0, y1 - y0), th = thk * (1 - 0.72 * Math.pow(Math.abs(tm), 1.3)) + 0.015, dp = depth * (1 - 0.35 * Math.abs(tm));
+      const seg = mesh(new THREE.BoxGeometry(sl * 1.06, th, dp), hm, false); seg.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0); seg.rotation.z = Math.atan2(y1 - y0, x1 - x0); head.add(seg);
+      if (tier === 8 && i % 2 === 0) for (const sd of [-1, 1]) { const v = mesh(new THREE.BoxGeometry(sl * 0.7, th * 0.22, 0.01), new THREE.MeshBasicMaterial({ color: '#ff7a2e' }), false); v.position.set(seg.position.x, seg.position.y, sd * (dp / 2 + 0.003)); v.rotation.z = seg.rotation.z; head.add(v); }
+      if (tier >= 4 && tier <= 5 && Math.abs(tm) < 0.5) for (const sd of [-1, 1]) { const rn = mesh(new THREE.BoxGeometry(sl * 0.35, th * 0.3, 0.01), new THREE.MeshBasicMaterial({ color: PAL.glow }), false); rn.position.set(seg.position.x, seg.position.y, sd * (dp / 2 + 0.003)); rn.rotation.z = seg.rotation.z; head.add(rn); }
+    }
+    for (const sd of [-1, 1]) { const [tx, ty] = P(sd); const tip = mesh(new THREE.ConeGeometry(thk * 0.3, hl * 0.28, 5), mat(PAL.t, Object.assign({ shininess: 110, specular: '#fff' }, tier >= 4 ? { emissive: PAL.glow || '#fff', emissiveIntensity: 0.3 } : {})), false); tip.rotation.z = -sd * (Math.PI / 2 + 0.55); tip.position.set(tx + sd * hl * 0.1, ty - hl * 0.1, 0); head.add(tip); }
+    const sock = mesh(new THREE.BoxGeometry(hw * 1.5, thk * 1.2, depth * 1.45), mat(PAL.t, { shininess: 90, specular: '#fff' }), false); sock.position.y = arch * 0.82; head.add(sock);
+    const col = mesh(new THREE.CylinderGeometry(hr * 2.0, hr * 1.6, 0.06, 8), mat(PAL.t, { shininess: 90 }), false); col.position.y = -0.02; head.add(col);
+    if (tier >= 5) for (let i = 0; i < (tier >= 7 ? 3 : 1); i++) { const x = (i - (tier >= 7 ? 1 : 0)) * half * 0.38, [, y] = P(x / half); const sp = mesh(new THREE.ConeGeometry(thk * 0.2, thk * 0.9, 4), mat(PAL.t, { emissive: PAL.glow, emissiveIntensity: 0.5 }), false); sp.position.set(x, y + thk * 0.75, 0); head.add(sp); }
+    if (tier === 6 || tier === 7) {
+      const gm = () => mat(gem, { emissive: gem, emissiveIntensity: 0.9, shininess: 150, specular: '#ffffff', transparent: true, opacity: 0.92 });
+      const g0 = mesh(new THREE.OctahedronGeometry(thk * 0.85, 0), gm(), false); g0.scale.set(0.8, 1.1, 0.8); g0.position.set(0, arch + thk * 0.55, 0); head.add(g0);
+      for (const sd of [-1, 1]) { const g1 = mesh(new THREE.OctahedronGeometry(thk * 0.42, 0), gm(), false); const [gx, gy] = P(sd * 0.62); g1.position.set(gx, gy + thk * 0.35, 0); head.add(g1); }
+    }
+    g.add(head); g.userData.headY = len; g.userData.head = head;
+    // brilho, partículas e cristais girando: ficam mais fortes a cada faixa
+    if (tier >= 1) {
+      const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.getGlowTex(), color: gcol, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.1 }));
+      aura.scale.setScalar(hl * (1.0 + p * 1.9)); aura.position.y = arch * 0.7; head.add(aura);
+      const base = 0.04 + p * 0.36, ph0 = L;
+      aura.onBeforeRender = () => { aura.material.opacity = base * (0.72 + 0.28 * Math.sin(performance.now() / 240 + ph0)); };
+    }
+    const n = L < 35 ? 0 : Math.round(3 + p * 30);
+    if (n) {
+      const pos = new Float32Array(n * 3), cl = new Float32Array(n * 3), ph = [];
+      for (let i = 0; i < n; i++) ph.push({ a: Math.random() * 6.28, s: 0.3 + Math.random() * 0.9, r: Math.random(), x: Math.random() * 2 - 1 });
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(cl, 3));
+      const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map: this.getGlowTex(), size: 0.016 + p * 0.03, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      pts.frustumCulled = false; const rise = hl * (0.5 + p * 1.1);
+      pts.onBeforeRender = () => {
+        const T = performance.now() / 1000;
+        for (let i = 0; i < n; i++) {
+          const q = ph[i], u = (T * q.s * (0.6 + p * 0.8) + q.r) % 1, x = q.x * half * 0.95, [, by] = P(x / half), f = (1 - u) * Math.min(1, u * 8);
+          pos[i * 3] = x + Math.sin(T * 2 + q.a) * 0.02; pos[i * 3 + 1] = by + u * rise; pos[i * 3 + 2] = Math.sin(q.a + T * 2.4) * depth * 0.9 * (0.3 + u);
+          cl[i * 3] = gcol.r * f; cl[i * 3 + 1] = gcol.g * f; cl[i * 3 + 2] = gcol.b * f;
+        }
+        geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
+      };
+      head.add(pts);
+    }
+    if (tier >= 7) {
+      const orbit = new THREE.Group(), cnt = tier === 8 ? 5 : 3; orbit.position.y = arch * 0.7; head.add(orbit);
+      for (let i = 0; i < cnt; i++) {
+        const c = i % 2 ? '#ffffff' : (PAL.glow || '#fff'), sh = mesh(new THREE.OctahedronGeometry(0.035 + p * 0.03, 0), new THREE.MeshBasicMaterial({ color: c }), false);
+        const a = i / cnt * Math.PI * 2; sh.position.set(Math.cos(a) * hl * 0.95, Math.sin(a * 2) * 0.05, Math.sin(a) * hl * 0.95); orbit.add(sh);
+        if (i === 0) sh.onBeforeRender = () => { orbit.rotation.y = performance.now() / 1000 * 2.6; };
+      }
+    }
+    g.userData.glowCol = PAL.glow; g.userData.glowPow = tier >= 3 ? 0.15 + p * 0.7 : 0;
+    return g;
+  },
   makeHammer(L) {
     const look = hammerLook(L), g = new THREE.Group();
     const len = 0.5 + L * 0.02, hw = 0.07 + L * 0.004, hl = 0.18 + L * 0.011;
     const emi = look.glow ? { emissive: look.glow, emissiveIntensity: 0.35 } : {};
     const handle = mesh(new THREE.CylinderGeometry(0.022 + L * 0.0006, 0.028 + L * 0.0006, len, 6), mat(look.handle), false); handle.position.y = len / 2; g.add(handle);
+    if (L >= 31 && L <= 59) return this.makePick(L, g, handle, len, hw, hl);
     let head;
     if (look.type === 'wood' && L <= 3) head = mesh(new THREE.CylinderGeometry(0.035 + L * 0.008, 0.03, 0.18 + L * 0.03, 6), mat(look.head), false), head.position.y = len + 0.05;
     else if (look.type === 'wood') { head = mesh(new THREE.CylinderGeometry(hw * 1.1, hw * 1.1, hl, 8), mat(look.head), false); head.rotation.z = Math.PI / 2; head.position.y = len; }
@@ -1114,7 +1197,7 @@ const Render = {
     if (this.vmTorch) this.vmTorch.position.set(-0.32 - bob * 0.01, -0.36 + Math.abs(bob) * 0.012, -0.55);
     // martelo do Vale: cristais girando e brilho pulsando
     const u = this.vmHam && this.vmHam.userData;
-    if (u && u.orbit) { u.orbit.rotation.y += dt * 3; u.ring.rotation.z += dt * 1.5; this.vmGlow.intensity = 0.8 + Math.sin(this.t * 4) * 0.3; } else this.vmGlow.intensity = 0;
+    if (u && u.orbit) { u.orbit.rotation.y += dt * 3; u.ring.rotation.z += dt * 1.5; this.vmGlow.intensity = 0.8 + Math.sin(this.t * 4) * 0.3; } else if (u && u.glowPow) { this.vmGlow.color.set(u.glowCol); this.vmGlow.intensity = u.glowPow * (0.8 + Math.sin(this.t * 4) * 0.2); } else this.vmGlow.intensity = 0;
     this.vmFlash.intensity = Math.max(0, this.vmFlash.intensity - dt * 12);
   },
 
