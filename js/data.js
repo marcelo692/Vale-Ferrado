@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '3.3.1';
+const GAME_VERSION = '3.3.2';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -64,6 +64,8 @@ const SPECIALS = [
 ];
 RESOURCES.push(...SPECIALS);
 const RES = {};
+// escada de tamanho dos minérios: pequeno 1x, médio 2x, grande e especial 3x de altura (largura cresce metade)
+function oreMul(n) { const M = n.res.wild ? 1 : (n.res.special || n.size >= 2) ? 3 : n.size >= 1 ? 2 : 1; return { M, W: 1 + (M - 1) * 0.5 }; }
 RESOURCES.forEach(r => { r.value = Math.max(1, Math.round(r.special ? r.hard * 2 : r.hard / 2)); RES[r.id] = r; });
 // martelos que exigem o recurso raro da montanha (5 unidades)
 const SPECIAL_AT = { 20: 'pedravento', 30: 'ambar', 40: 'ferroceleste', 50: 'obsidiana', 60: 'coracao' };

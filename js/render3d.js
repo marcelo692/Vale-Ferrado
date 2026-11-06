@@ -867,6 +867,8 @@ const Render = {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex, color: res.special ? (g.userData.glowCol || '#ffffff') : n.rare === 10 ? '#8ff0ff' : '#ffd860', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
       sp.scale.setScalar(s * (res.special ? 2.6 : 4)); sp.position.y = s * 0.8; if (res.special) sp.material.opacity = 0.4; g.add(sp); g.userData.glow = sp; g.userData.glowMax = res.special ? 0.4 : 0.85;
     }
+    const { M, W } = oreMul(n);
+    if (M > 1) for (const c of g.children) { if (c.isSprite) { c.scale.multiplyScalar(W); c.position.y *= M; continue; } c.scale.x *= W; c.scale.z *= W; c.scale.y *= M; c.position.x *= W; c.position.z *= W; c.position.y *= M; }
     g.rotation.y = n.seed % 6.28;
     g.position.set(n.x, World.height(n.x, n.y) - 0.05, n.y);
     g.userData.res = res.id; g.userData.base = g.position.clone();
@@ -924,7 +926,7 @@ const Render = {
         if (!m.userData.badge) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: true, transparent: true, fog: false, sizeAttenuation: false })); sp.scale.set(0.2, 0.056, 1); sp.renderOrder = 4; m.userData.badge = sp; this.scene.add(sp); }
         const sp = m.userData.badge, tex = this.badgeTex(n.res, need);
         if (sp.material.map !== tex) { sp.material.map = tex; sp.material.needsUpdate = true; }
-        sp.position.set(m.userData.base.x, m.userData.base.y + n.r * 1.25 + 0.6, m.userData.base.z); sp.visible = true;
+        sp.position.set(m.userData.base.x, m.userData.base.y + n.r * 1.25 * oreMul(n).M + 0.6, m.userData.base.z); sp.visible = true;
       } else if (m.userData.badge) m.userData.badge.visible = false;
     }
     for (const [n, m] of this.nodeMeshes) if (!seen.has(n) || n.dead) { this.scene.remove(m); if (m.userData.badge) { this.scene.remove(m.userData.badge); m.userData.badge.material.dispose(); } this.nodeMeshes.delete(n); }
@@ -933,8 +935,8 @@ const Render = {
     const P = Game.P, o = this.cam.position, dir = new V3(); this.cam.getWorldDirection(dir);
     let best = null, bt = Infinity;
     for (const [n, m] of this.nodeMeshes) {
-      const pd = Math.hypot(n.x - P.x, n.y - P.y); if (pd > reach + n.r + 0.6) continue;
-      const c = new V3(n.x, m.userData.base.y + n.r * 0.35, n.y), rad = n.r * 0.7;
+      const pd = Math.hypot(n.x - P.x, n.y - P.y); const om = oreMul(n); if (pd > reach + n.r * om.W + 0.6) continue;
+      const c = new V3(n.x, m.userData.base.y + n.r * 0.35 * om.M, n.y), rad = n.r * 0.7 * om.W;
       const oc = c.clone().sub(o), t = oc.dot(dir); if (t < 0) continue;
       const d2 = oc.lengthSq() - t * t;
       if (d2 < rad * rad && t < bt) { bt = t; best = n; }
@@ -943,7 +945,7 @@ const Render = {
     // ajuda de mira: pedra bem na frente
     let bd = 0.86;
     for (const [n] of this.nodeMeshes) {
-      const pd = Math.hypot(n.x - P.x, n.y - P.y); if (pd > reach + n.r * 0.6) continue;
+      const pd = Math.hypot(n.x - P.x, n.y - P.y); if (pd > reach + n.r * 0.6 * oreMul(n).W) continue;
       const fx = -Math.sin(P.yaw), fy = -Math.cos(P.yaw), dot = ((n.x - P.x) * fx + (n.y - P.y) * fy) / (pd || 1);
       if (dot > bd) { bd = dot; best = n; }
     }
@@ -1034,7 +1036,10 @@ const Render = {
     this.vm.clear();
     const arm = new THREE.Group();
     const G = gear.glove, gs = 0.075 + G.era * 0.008;
-    const glove = mesh(new THREE.BoxGeometry(gs * 1.2, gs * 1.1, gs * 1.4), mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {}), false); glove.position.z = -0.02; arm.add(glove); this.vmGlove = glove;
+    const gmat = mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {});
+    // punho arredondado + polegar, para parecer uma mão fechada no cabo (e não uma caixa)
+    const glove = mesh(new THREE.SphereGeometry(gs * 0.78, 12, 9), gmat, false); glove.scale.set(1.05, 0.95, 1.2); glove.position.z = -0.02; arm.add(glove); this.vmGlove = glove;
+    const thumb = mesh(new THREE.SphereGeometry(gs * 0.3, 8, 6), gmat, false); thumb.scale.set(0.9, 0.9, 1.5); thumb.position.set(-gs * 0.62, gs * 0.18, -gs * 0.25); glove.add(thumb);
     if (G.era >= 4) { const brace = mesh(new THREE.BoxGeometry(0.13, 0.13, 0.16), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 }), false); brace.position.z = 0.12; arm.add(brace); }
     if (G.era >= 5) { const pis = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6), mat('#d8dde2', { shininess: 80 }), false); pis.rotation.x = Math.PI / 2; pis.position.set(0.07, 0.05, 0.2); arm.add(pis); }
     const ham = this.hammerInHand(L);
@@ -1046,8 +1051,12 @@ const Render = {
     this.vmRig = new THREE.Group(); this.vmRig.add(arm);
     this.vmArm = arm; this.vm.add(this.vmRig);
     // manga: sempre liga a mão ao ombro (fora da tela, embaixo à direita), assim o braço nunca parece cortado
-    const sg = new THREE.BoxGeometry(0.07, 0.07, 1); sg.translate(0, 0, 0.5);
-    this.vmSleeve = mesh(sg, mat('#2c4f68'), false); this.vm.add(this.vmSleeve);
+    // (afinada no pulso, mais larga no ombro; começa depois do punho, com um punho de manga)
+    const sg = new THREE.CylinderGeometry(0.078, 0.04, 1, 10, 1, true); sg.rotateX(Math.PI / 2); sg.translate(0, 0, 0.5);
+    const slMat = mat('#2c4f68'); slMat.side = THREE.DoubleSide;
+    this.vmSleeve = mesh(sg, slMat, false); this.vm.add(this.vmSleeve);
+    const cg = new THREE.CylinderGeometry(0.056, 0.052, 0.05, 10); cg.rotateX(Math.PI / 2);
+    this.vmCuff = mesh(cg, mat('#1f3a4e'), false); this.vm.add(this.vmCuff);
     // ajusta o braço para a batida cair um pouco abaixo da mira
     const hp = new V3(); this.vmCam.updateMatrixWorld(true);
     this.applyVmPose(this.vmPoseAt(0, 0.58));
@@ -1098,7 +1107,9 @@ const Render = {
     if (this.vmSleeve) {
       this.vmRig.updateMatrixWorld(true);
       const hand = this.vmGlove.getWorldPosition(this._hv || (this._hv = new V3())), sh = this._sh || (this._sh = new V3(0.42, -0.78, 0.25));
-      this.vmSleeve.position.copy(hand); this.vmSleeve.lookAt(sh); this.vmSleeve.scale.set(1, 1, hand.distanceTo(sh));
+      const dir = (this._sd || (this._sd = new V3())).copy(sh).sub(hand).normalize(), off = 0.045, st = (this._ss || (this._ss = new V3())).copy(hand).addScaledVector(dir, off);
+      this.vmSleeve.position.copy(st); this.vmSleeve.lookAt(sh); this.vmSleeve.scale.set(1, 1, Math.max(0.1, st.distanceTo(sh)));
+      this.vmCuff.position.copy(st).addScaledVector(dir, 0.02); this.vmCuff.lookAt(sh);
     }
     if (this.vmTorch) this.vmTorch.position.set(-0.32 - bob * 0.01, -0.36 + Math.abs(bob) * 0.012, -0.55);
     // martelo do Vale: cristais girando e brilho pulsando
@@ -1133,8 +1144,8 @@ const Render = {
     if (A) { A.followDur = Math.min(0.26, Math.max(0.12, Game.interval() * (o.click ? 0.3 : 0.25))); A.follow = A.followDur; A.click = 0; A.t = 0.58; A.stop = 0.03 + L / 1200 + (fin ? 0.03 : 0); A.combo = (A.combo + 1) % 3; }
     let power = (fin ? 1.7 : 1) * (o.broke ? 2 : 1) * (o.click ? 0.85 : 1);
     // ponto do impacto: superfície da pedra virada para o jogador
-    const P = Game.P, dx = P.x - n.x, dy = P.y - n.y, dd = Math.hypot(dx, dy) || 1, r = n.r * 0.55;
-    const ix = n.x + dx / dd * r, iy = n.y + dy / dd * r, iz = World.height(n.x, n.y) + n.r * 0.75;
+    const P = Game.P, dx = P.x - n.x, dy = P.y - n.y, dd = Math.hypot(dx, dy) || 1, om = oreMul(n), r = n.r * 0.55 * om.W;
+    const ix = n.x + dx / dd * r, iy = n.y + dy / dd * r, iz = World.height(n.x, n.y) + n.r * 0.75 * (1 + (om.M - 1) * 0.6);
     const chipCols = [n.res.c, n.res.c2, n.res.c].map(c => new THREE.Color(c));
     const fs = this.fxScale || 1, nChips = Math.round((4 + L * 0.45) * power * fs), nSparks = Math.round((L < 6 ? 0 : 6 + L * 1.25) * power * fs);
     const look = hammerLook(L);

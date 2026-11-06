@@ -1,8 +1,9 @@
 {
-  "version": "3.3.1",
+  "version": "3.3.2",
   "date": "2026-11-06",
   "notes": [
-    "Painel lateral 'Falta minerar': mostra o nome de cada material que falta e para qual melhoria serve"
+    "Minérios em escada de tamanho: pequeno 1x, médio 2x, grande e especial 3x de altura (visíveis de longe)",
+    "Mão e manga do martelo refeitas: punho com polegar, punho de manga e braço afinado, sem entrar na camiseta"
   ],
   "files": [
     {
@@ -27,7 +28,7 @@
     },
     {
       "path": "js/data.js",
-      "size": 24412
+      "size": 24670
     },
     {
       "path": "js/game.js",
@@ -59,11 +60,11 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 149781
+      "size": 151126
     },
     {
       "path": "js/robots.js",
-      "size": 8375
+      "size": 8394
     },
     {
       "path": "js/ui.js",
@@ -91,7 +92,7 @@
     },
     {
       "path": "version.json",
-      "size": 1728
+      "size": 1568
     }
   ]
 }

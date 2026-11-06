@@ -112,7 +112,7 @@ const Robots = {
         if (!r.node) { r.st = r.n >= this.cap() ? 'home' : 'idle'; r.t = 0.3; break; }
         if (r.node === Game.target) { this.release(r); r.st = 'idle'; r.t = 0.5; break; }
         const d = this.walkTo(r, r.node.x, r.node.y, dt);
-        if (d < r.node.r + 0.9) { r.st = 'mine'; r.t = 0.6; r.moving = false; }
+        if (d < r.node.r * oreMul(r.node).W + 0.9) { r.st = 'mine'; r.t = 0.6; r.moving = false; }
         break;
       }
       case 'mine': {
