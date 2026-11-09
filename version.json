@@ -1,9 +1,8 @@
 {
-  "version": "3.5.1",
-  "date": "2026-11-08",
+  "version": "3.5.2",
+  "date": "2026-11-09",
   "notes": [
-    "Ovo lendário redesenhado: casca redonda e lisa, cores vibrantes com manchas, filigrana élfica dourada com runas",
-    "Ovo com anéis dourados, runas flutuantes e vaga-lumes élficos subindo em espiral"
+    "Aviso de erro visível na tela se algo impedir o jogo de iniciar"
   ],
   "files": [
     {
@@ -16,7 +15,7 @@
     },
     {
       "path": "index.html",
-      "size": 31916
+      "size": 32777
     },
     {
       "path": "js/audio.js",
@@ -96,7 +95,7 @@
     },
     {
       "path": "version.json",
-      "size": 1882
+      "size": 1734
     }
   ]
 }

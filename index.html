@@ -175,6 +175,13 @@
 </style>
 </head>
 <body class="pre">
+<script>
+// aviso de erro visível (se algo quebrar, aparece uma faixa vermelha em vez de "não acontece nada")
+function showErr(m) { let d = document.getElementById('errbox'); if (!d) { d = document.createElement('div'); d.id = 'errbox'; d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#7a1010;color:#fff;font:13px/1.4 monospace;padding:8px 12px;white-space:pre-wrap;max-height:40vh;overflow:auto'; document.body.appendChild(d); } d.textContent += m + '\n'; }
+addEventListener('error', e => showErr('Erro: ' + e.message + ' (' + String(e.filename || '').split('/').pop() + ':' + e.lineno + ')'));
+addEventListener('unhandledrejection', e => showErr('Erro: ' + ((e.reason && e.reason.message) || e.reason)));
+</script>
+
 <canvas id="game"></canvas>
 
 <div id="tl" class="box"><div class="money" id="money">0</div><div id="cint" style="color:#9ff3ff;font-weight:700;font-size:13px;margin:-2px 0 4px"></div><div id="hname"></div><div id="hlv"></div></div>
@@ -272,9 +279,9 @@
   Game.init(); Render.init(); Updater.init(); Backup.init();
   document.getElementById('play').textContent = tt(Game.S.time > 1 ? 'Continuar' : 'Jogar');
   document.getElementById('play').onclick = () => {
-    Snd.start();
+    try { Snd.start(); } catch (e) { showErr('Som: ' + e.message); }
     document.getElementById('title').remove(); document.body.classList.remove('pre'); started = true;
-    Game.lock();
+    try { Game.lock(); } catch (e) { showErr('Mouse: ' + e.message); }
     if (!Game.S.seen[1]) UI.story(1);
     else if (Game.offline) setTimeout(() => UI.offlinePanel(), 400);
   };
