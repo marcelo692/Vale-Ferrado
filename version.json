@@ -1,11 +1,9 @@
 {
-  "version": "3.5.0",
-  "date": "2026-11-06",
+  "version": "3.5.1",
+  "date": "2026-11-08",
   "notes": [
-    "Estradas de terra da vila até a metade do caminho das minas 2 a 6, com placa no fim",
-    "Impacto da picareta com cor e brasas próprias em cada faixa (31 a 61)",
-    "Segredo: Picareta 61 no pedestal da vila e a Zona 7 com a Pedra Selada, a porta do dragão e inscrições rúnicas nas 4 línguas",
-    "Placas de rua com texto que cabe na tabuleta"
+    "Ovo lendário redesenhado: casca redonda e lisa, cores vibrantes com manchas, filigrana élfica dourada com runas",
+    "Ovo com anéis dourados, runas flutuantes e vaga-lumes élficos subindo em espiral"
   ],
   "files": [
     {
@@ -62,7 +60,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 177487
+      "size": 177557
     },
     {
       "path": "js/robots.js",
@@ -86,7 +84,7 @@
     },
     {
       "path": "js/zone7.js",
-      "size": 22258
+      "size": 29834
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -98,7 +96,7 @@
     },
     {
       "path": "version.json",
-      "size": 1860
+      "size": 1882
     }
   ]
 }

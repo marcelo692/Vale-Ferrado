@@ -261,3 +261,81 @@ Object.assign(Render, {
     g.userData.glow = halo; g.userData.glowMax = 0.6; g.userData.spin = rune;
   },
 });
+
+// =============================================================
+// Ovo lendário da fonte: casca lisa e redonda, cores vibrantes, manchas,
+// filigrana élfica dourada com runas e partículas de vaga-lumes
+// =============================================================
+Object.assign(Render, {
+  eggTex(glowOnly) {
+    return canvasTex(1024, 512, (g, w, h) => {
+      const r = rng(glowOnly ? 3 : 3);
+      if (!glowOnly) {
+        const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#7a3cff'); gr.addColorStop(0.3, '#18c8d8'); gr.addColorStop(0.62, '#19d98a'); gr.addColorStop(1, '#e8c820');
+        g.fillStyle = gr; g.fillRect(0, 0, w, h);
+        // manchas macias de duas cores, repetidas nas bordas para fechar a costura
+        const blots = [['rgba(10,40,110,.9)', 46], ['rgba(255,50,160,.85)', 34], ['rgba(255,235,70,.85)', 30], ['rgba(120,40,200,.8)', 30]];
+        for (const [col, n] of blots) for (let i = 0; i < n; i++) {
+          const x = r() * w, y = h * (0.1 + r() * 0.8), rad = 12 + r() * 38;
+          for (const dx of [-w, 0, w]) { const gg = g.createRadialGradient(x + dx, y, 1, x + dx, y, rad); gg.addColorStop(0, col); gg.addColorStop(0.7, col.replace(/[\d.]+\)$/, '.25)')); gg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gg; g.beginPath(); g.ellipse(x + dx, y, rad, rad * (0.7 + r() * 0.5), r() * 3, 0, 7); g.fill(); }
+        }
+        for (let i = 0; i < 260; i++) { g.fillStyle = r() < 0.5 ? 'rgba(255,255,255,.35)' : 'rgba(0,40,60,.3)'; g.beginPath(); g.arc(r() * w, h * (0.08 + r() * 0.84), 1 + r() * 2.4, 0, 7); g.fill(); }
+      }
+      // filigrana élfica dourada: dois cintos de videira com folhas e uma faixa de runas
+      g.strokeStyle = '#ffd34d'; g.fillStyle = '#ffd34d'; g.lineCap = 'round'; g.lineJoin = 'round';
+      if (glowOnly) { g.shadowColor = '#ffffff'; g.shadowBlur = 0; }
+      const vine = (y0, amp, ph) => {
+        g.lineWidth = 5; g.beginPath(); for (let x = 0; x <= w; x += 4) { const y = y0 + Math.sin(x / w * Math.PI * 16 + ph) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
+        for (let k = 0; k < 32; k++) { const x = k * w / 32 + w / 64, y = y0 + Math.sin(x / w * Math.PI * 16 + ph) * amp, sd = k % 2 ? 1 : -1;
+          g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 12, y + sd * 18, x + 3, y + sd * 36); g.quadraticCurveTo(x - 10, y + sd * 18, x, y); g.fill();
+          g.beginPath(); g.arc(x + 20, y - sd * 8, 3, 0, 7); g.fill(); }
+      };
+      vine(h * 0.3, 12, 0); vine(h * 0.72, 12, 1.6);
+      g.lineWidth = 3; for (const y of [0.4, 0.6]) { g.beginPath(); g.moveTo(0, h * y); g.lineTo(w, h * y); g.stroke(); }
+      g.lineWidth = 4; runeText(g, 'OVO LENDARIO FOGO ESTRELA DRAGAO VALE FERRADO ', 0, h * 0.425, 22, 50, 99999);
+      // estrelas élficas de quatro pontas
+      for (let k = 0; k < 14; k++) { const x = (k + 0.5) * w / 14, y = h * (k % 2 ? 0.16 : 0.86), q = 11; g.beginPath(); g.moveTo(x, y - q * 1.6); g.quadraticCurveTo(x, y, x + q, y); g.quadraticCurveTo(x, y, x, y + q * 1.6); g.quadraticCurveTo(x, y, x - q, y); g.quadraticCurveTo(x, y, x, y - q * 1.6); g.fill(); }
+    });
+  },
+  polishEgg() {
+    const egg = this.egg; if (!egg) return;
+    // casca mais redonda e com mais polígonos; topo mais fino, como um ovo de verdade
+    const geo = new THREE.SphereGeometry(0.62, 72, 48), pa = geo.attributes.position;
+    for (let i = 0; i < pa.count; i++) { const y = pa.getY(i) / 0.62, k = 1 - 0.13 * Math.max(0, y) - 0.03 * Math.max(0, -y); pa.setX(i, pa.getX(i) * k); pa.setZ(i, pa.getZ(i) * k); pa.setY(i, pa.getY(i) * 1.32); }
+    geo.computeVertexNormals(); egg.geometry.dispose(); egg.geometry = geo;
+    while (egg.children.length) { const c = egg.children[0]; if (this.eggCracks.includes(c)) break; egg.remove(c); }
+    for (const c of [...egg.children]) if (!this.eggCracks.includes(c)) egg.remove(c); // espinhos antigos
+    const tex = this.eggTex(false), glowT = this.eggTex(true);
+    egg.material = new THREE.MeshPhongMaterial({ map: tex, emissive: '#ffffff', emissiveMap: glowT, emissiveIntensity: 0.55, shininess: 120, specular: '#ffffff', flatShading: false });
+    egg.castShadow = false;
+    this.eggBase = 0.55;
+    const C = this.city, gt = this.getGlowTex(), T = () => performance.now() / 1000;
+    // luz élfica: esverdeada, sobe junto com a força do martelo
+    this.eggLight.color.set('#a8ffd0');
+    const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: gt, color: '#40ffb0', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.2 }));
+    aura.scale.setScalar(3.0); aura.position.y = 2.95; C.add(aura);
+    // anel armilar fino com runas orbitando
+    const arm = new THREE.Group(); arm.position.y = 2.95; C.add(arm);
+    const gold = new THREE.MeshBasicMaterial({ color: '#ffd34d' });
+    for (const [rot, rad] of [[[Math.PI / 2, 0, 0.0], 1.05], [[Math.PI / 2.6, 0.5, 0], 1.18]]) { const t = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.012, 6, 96), gold); t.rotation.set(...rot); arm.add(t); }
+    const keys = Object.keys(RUNES), plates = [];
+    for (let i = 0; i < 9; i++) {
+      const rk = RUNES[keys[(i * 3) % keys.length]], tx = canvasTex(64, 96, g => { g.strokeStyle = '#ffe27a'; g.lineWidth = 7; g.lineCap = 'round'; g.shadowColor = '#ffb020'; g.shadowBlur = 10; g.beginPath(); for (const [x1, y1, x2, y2] of rk) { g.moveTo(8 + x1 * 48, 8 + y1 * 80); g.lineTo(8 + x2 * 48, 8 + y2 * 80); } g.stroke(); });
+      const pl = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); pl.scale.set(0.2, 0.3, 1); arm.add(pl); plates.push(pl);
+    }
+    // vaga-lumes élficos: espirais subindo em volta do ovo, em dourado, menta e lilás
+    const NP = 70, pp = new Float32Array(NP * 3), pc = new Float32Array(NP * 3), pg = new THREE.BufferGeometry();
+    pg.setAttribute('position', new THREE.BufferAttribute(pp, 3)); pg.setAttribute('color', new THREE.BufferAttribute(pc, 3));
+    const pts = new THREE.Points(pg, new THREE.PointsMaterial({ map: gt, size: 0.13, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    pts.frustumCulled = false; pts.position.y = 2.2; C.add(pts);
+    const pal = ['#ffb000', '#00f090', '#a860ff', '#ffd000'].map(c => new THREE.Color(c)), sd = Array.from({ length: NP }, (_, i) => ({ a: Math.random() * 6.28, sp: 0.15 + Math.random() * 0.35, rr: 0.7 + Math.random() * 0.9, ph: Math.random(), c: pal[i % 4], tw: 2 + Math.random() * 4 }));
+    pts.onBeforeRender = () => {
+      const t = T(), L = Game.S.hammer, pw = 0.6 + Math.min(1, L / 60) * 0.4;
+      sd.forEach((q, i) => { const u = (t * q.sp * 0.3 + q.ph) % 1, a = q.a + t * q.sp * 2 + u * 5, r = q.rr * (0.7 + 0.5 * Math.sin(u * Math.PI)); pp[i * 3] = Math.cos(a) * r; pp[i * 3 + 1] = u * 3.4; pp[i * 3 + 2] = Math.sin(a) * r; const f = Math.sin(u * Math.PI) * (0.6 + 0.4 * Math.sin(t * q.tw + i)) * pw; pc[i * 3] = q.c.r * f; pc[i * 3 + 1] = q.c.g * f; pc[i * 3 + 2] = q.c.b * f; });
+      pg.attributes.position.needsUpdate = true; pg.attributes.color.needsUpdate = true;
+      arm.children[0].rotation.z = t * 0.35; arm.children[1].rotation.z = -t * 0.25; arm.rotation.y = t * 0.2;
+      plates.forEach((pl, i) => { const a = i / plates.length * 6.283 + t * 0.4; pl.position.set(Math.cos(a) * 1.35, Math.sin(t * 1.3 + i) * 0.35 + (i % 3 - 1) * 0.3, Math.sin(a) * 1.35); pl.material.opacity = 0.6 + Math.sin(t * 2 + i) * 0.3; });
+      aura.material.opacity = 0.16 + Math.sin(t * 1.6) * 0.05 + Math.min(1, L / 60) * 0.1; egg.rotation.y = t * 0.25;
+    };
+  },
+});

@@ -579,6 +579,7 @@ const Render = {
       bench.rotation.y = Math.PI; g.add(bench); C.add(g);
     }
     this.buildPick61();
+    if (this.polishEgg) this.polishEgg();
   },
   // picareta 61: relíquia à mostra perto da fonte, soltando faíscas
   buildPick61() {
@@ -1908,7 +1909,7 @@ const Render = {
     this.sun.target.position.set(P.x, gh, P.y);
     // efeitos de veio aflorado: recurso brilha
     this.water.position.y = 0.68 + Math.sin(this.t * 2) * 0.02;
-    if (this.egg) { const L = Game.S.hammer, st = L >= 50 ? 3 : L >= 40 ? 2 : L >= 20 ? 1 : 0; this.eggCracks.forEach((c, i) => c.visible = i < st); const pulse = st ? (0.15 + st * 0.15) * (0.6 + 0.4 * Math.sin(this.t * (1 + st))) : 0; this.egg.material.emissiveIntensity = pulse; this.eggLight.intensity = pulse * 2; this.egg.rotation.z = st >= 2 ? Math.sin(this.t * 7) * 0.04 * (Math.sin(this.t * 0.7) > 0.6 ? 1 : 0) : 0; }
+    if (this.egg) { const L = Game.S.hammer, st = L >= 50 ? 3 : L >= 40 ? 2 : L >= 20 ? 1 : 0; this.eggCracks.forEach((c, i) => c.visible = i < st); const pulse = st ? (0.15 + st * 0.15) * (0.6 + 0.4 * Math.sin(this.t * (1 + st))) : 0; this.egg.material.emissiveIntensity = (this.eggBase || 0) + pulse; this.eggLight.intensity = 0.5 + pulse * 2; this.egg.rotation.z = st >= 2 ? Math.sin(this.t * 7) * 0.04 * (Math.sin(this.t * 0.7) > 0.6 ? 1 : 0) : 0; }
     if (this.shopIcons) this.shopIcons.forEach((ic, i) => { ic.rotation.y = this.t * 1.2 + i; ic.position.y = 5.4 + Math.sin(this.t * 2 + i) * 0.15; });
     this.updatePlayerLights();
     this.updateRobots(dt);
