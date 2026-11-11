@@ -48,6 +48,12 @@ const Game = {
     Missions.init();
     if (this.S.world) World.restore(this.S.world);
     World.setupSeal();
+    // lanternas e drones saíram do jogo (v3.6): devolve o que o jogador pagou
+    if (this.S.gear.light > 0) {
+      const paid = [0, 150, 6000, 400000, 12000000].slice(1, this.S.gear.light + 1).reduce((a, b) => a + b, 0);
+      this.S.money += paid; this.S.gear.light = 0; this.lightRefund = paid;
+      setTimeout(() => UI.toast(tt("Lanternas e drones saíram do jogo. Devolvemos {0} moedas para você.", fmt(paid)), 'level'), 2500);
+    }
     // robôs trabalhando com o jogo fechado (metade do ritmo, até 8 horas)
     const S = this.S;
     if ((S.robots || 0) > 0 && lastSeen && (S.robotTime || 0) > 60 && S.robotValue > 0) {
@@ -107,7 +113,6 @@ const Game = {
       if (k === 'b') { this.S.showBadges = this.S.showBadges === false; UI.toast(this.S.showBadges === false ? tt("Etiquetas dos recursos escondidas (B mostra)") : tt("Etiquetas dos recursos visíveis")); }
       if (k === 'i') { this.S.showInv = !this.S.showInv; Snd.toggle(this.S.showInv); }
       if (k === 'r') this.toggleRide();
-      if (k === 'l') this.toggleLight();
       if (k === 'g' && !e.repeat) { this.gHold = setTimeout(() => { this.gHold = null; this.gMenu = true; UI.detectorPanel(); }, 400); }
       if (k === 't') UI.detectorPanel();
       if (k === 'n') this.cycleSellMode();
@@ -484,7 +489,7 @@ const Game = {
     Missions.update(dt);
     const wasNight = this.isNight();
     S.clock = (S.clock + dt / DAY_LEN) % 1;
-    if (!wasNight && this.isNight()) UI.toast(S.gear.light ? tt("Anoiteceu. Aperte L para ligar sua luz.") : tt("Anoiteceu! O Tonho do Bazar vende lanternas."), 'veio');
+    if (!wasNight && this.isNight()) UI.toast(tt("Anoiteceu. Os minérios brilham mais no escuro."), 'veio');
     if (wasNight && !this.isNight()) UI.toast(tt("Amanheceu em Vale Ferrado."));
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(tt("{0} acabou.", POWERUPS[S.active[i].id].name)); S.active.splice(i, 1); } }
 

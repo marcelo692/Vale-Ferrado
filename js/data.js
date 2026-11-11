@@ -3,7 +3,7 @@
 // =============================================================
 'use strict';
 
-const GAME_VERSION = '3.5.2';
+const GAME_VERSION = '3.6.0';
 const PX = 8; // pixels por metro
 
 // ---------- Regiões (uma por era) ----------
@@ -296,15 +296,6 @@ const GADGETS = {
       { n: tt("Patinete"),           price: 20000,    mult: 2.2, info: tt("+120% de velocidade · correr ainda cansa") },
       { n: tt("Monociclo elétrico"), price: 600000,   mult: 3.2, info: tt("+220% de velocidade · correr ainda cansa") },
       { n: tt("Hoverboard"),         price: 25000000, mult: 5.5, free: true, info: tt("+450% de velocidade · não gasta fôlego"), mats: [{ id: 'obsidiana', qty: 5 }] },
-    ],
-  },
-  light: {
-    title: tt("Iluminação"), key: 'L', desc: tt("L liga e desliga. Essencial à noite."),
-    levels: [null,
-      { n: tt("Lanterna de mão"),       price: 150,      info: tt("Facho estreito de 28 m") },
-      { n: tt("Lanterna de cabeça"),    price: 6000,     info: tt("Facho largo de 40 m, mãos livres") },
-      { n: tt("Drone de luz"),          price: 400000,   info: tt("Lanterna de cabeça + drone que ilumina 45 m em volta") },
-      { n: tt("Esquadrilha de drones"), price: 12000000, info: tt("Lanterna de cabeça + 3 drones iluminando 80 m"), mats: [{ id: 'obsidiana', qty: 5 }] },
     ],
   },
 };

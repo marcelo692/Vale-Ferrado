@@ -1,8 +1,11 @@
 {
-  "version": "3.5.2",
-  "date": "2026-11-09",
+  "version": "3.6.0",
+  "date": "2026-11-11",
   "notes": [
-    "Aviso de erro visível na tela se algo impedir o jogo de iniciar"
+    "Desempenho: chão distante só até a neblina, árvores em blocos desenhados só perto, minérios com 3 níveis de detalhe (completo, médio e simplificado)",
+    "Peças paradas da vila, Zona 7, nuvens e NPCs juntadas: cerca de 3 vezes menos pedidos de desenho e 5 vezes menos triângulos",
+    "Lanternas e drones removidos (quem comprou recebe as moedas de volta); noite um pouco mais clara",
+    "Luzes do ovo, picareta 61, impacto e porta da Zona 7 viraram brilho falso; resolução limitada a 1,5x; sombra menor e só perto do jogador; modo Leve com neblina mais perto"
   ],
   "files": [
     {
@@ -27,11 +30,11 @@
     },
     {
       "path": "js/data.js",
-      "size": 25307
+      "size": 24688
     },
     {
       "path": "js/game.js",
-      "size": 53235
+      "size": 53578
     },
     {
       "path": "js/i18n.js",
@@ -39,15 +42,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 54067
+      "size": 53555
     },
     {
       "path": "js/lang/es.js",
-      "size": 55892
+      "size": 55329
     },
     {
       "path": "js/lang/tr.js",
-      "size": 55381
+      "size": 54846
     },
     {
       "path": "js/missions.js",
@@ -59,7 +62,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 177557
+      "size": 188324
     },
     {
       "path": "js/robots.js",
@@ -67,7 +70,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 34102
+      "size": 33970
     },
     {
       "path": "js/updater.js",
@@ -79,11 +82,11 @@
     },
     {
       "path": "js/world.js",
-      "size": 20958
+      "size": 20953
     },
     {
       "path": "js/zone7.js",
-      "size": 29834
+      "size": 29606
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -95,7 +98,7 @@
     },
     {
       "path": "version.json",
-      "size": 1734
+      "size": 1595
     }
   ]
 }

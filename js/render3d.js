@@ -4,6 +4,7 @@
 'use strict';
 
 const V3 = THREE.Vector3;
+const FAR_SIZE = 1040, FAR_SEG = 52; // chão distante: 1 km em volta do jogador (a neblina fecha em ~420 m), quadrados de 20 m
 const EYE = 1.65;
 const FP_FWD = 0.3, FP_DROP = 0.24; // na primeira pessoa a câmera fica um pouco à frente do peito, para ver o corpo ao olhar para baixo
 
@@ -53,9 +54,9 @@ const Render = {
   init() {
     const cv = document.getElementById('game');
     this.r = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
-    this.r.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.r.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     this.r.setSize(innerWidth, innerHeight);
-    this.r.shadowMap.enabled = true; this.r.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.r.shadowMap.enabled = true; this.r.shadowMap.type = THREE.PCFShadowMap;
     this.r.outputEncoding = THREE.sRGBEncoding;
     this.r.autoClear = false;
     this.scene = new THREE.Scene();
@@ -69,8 +70,8 @@ const Render = {
     this.hemi = new THREE.HemisphereLight('#cfe3ff', '#5a4a32', 0.75); this.scene.add(this.hemi);
     this.sunDir = new V3(0.45, 0.62, 0.3).normalize();
     this.sun = new THREE.DirectionalLight('#fff1d6', 1.05);
-    this.sun.castShadow = true; this.sun.shadow.mapSize.set(2048, 2048);
-    const sc = this.sun.shadow.camera; sc.left = sc.bottom = -45; sc.right = sc.top = 45; sc.near = 1; sc.far = 260;
+    this.sun.castShadow = true; this.sun.shadow.mapSize.set(1024, 1024);
+    const sc = this.sun.shadow.camera; sc.left = sc.bottom = -32; sc.right = sc.top = 32; sc.near = 1; sc.far = 260; // sombra só em volta do jogador
     this.sun.shadow.bias = -0.0006; this.sun.shadow.normalBias = 0.03;
     this.scene.add(this.sun, this.sun.target);
 
@@ -87,31 +88,24 @@ const Render = {
     this.buildObstacles();
     this.buildPitWalls();
     this.buildClimbFx();
-    this.buildDecor();
+    this.buildDecor(); this.buildOreLod();
     this.buildGrass();
     this.buildFx();
     this.buildHitFx();
     this.buildViewModel();
     this.player = new THREE.Group(); this.scene.add(this.player);
     this.buildPlayerLights();
+    // junta as peças paradas da vila e da Zona 7 (fica igual na tela, com bem menos pedidos de desenho)
+    this.mergedCount = this.mergeStatic(this.city) + (this.z7 ? this.mergeStatic(this.z7) : 0);
     let q = 'alto'; try { q = localStorage.getItem('valeferrado_gfx') || 'alto'; } catch (e) {}
     this.setQuality(q, true);
+    try { this.r.compile(this.scene, this.cam); } catch (e) {} // compila os materiais já no início (evita travadinhas na primeira vez)
     this.mini = document.getElementById('minimap'); this.mctx = this.mini.getContext('2d');
     this.floatsEl = document.getElementById('floats');
     this.ray = new THREE.Raycaster();
   },
 
   buildPlayerLights() {
-    this.spot = new THREE.SpotLight('#fff2d8', 0, 40, 0.5, 0.45, 1);
-    this.scene.add(this.spot, this.spot.target);
-    this.drones = [];
-    for (let i = 0; i < 3; i++) {
-      const L = new THREE.PointLight('#e2ecff', 0, 60, 1);
-      const d = this.makeDrone(); const rotors = d.children.filter(o => o.geometry && o.geometry.type === 'CircleGeometry');
-      d.add(L); L.position.y = -0.2;
-      d.visible = false; this.scene.add(d);
-      this.drones.push({ g: d, light: L, rotors });
-    }
     // postes de luz na praça
     this.lampMat = new THREE.MeshBasicMaterial({ color: '#555' });
     for (let i = 0; i < 8; i++) {
@@ -127,10 +121,10 @@ const Render = {
   setQuality(q, silent) {
     this.quality = q === 'leve' ? 'leve' : 'alto';
     const leve = this.quality === 'leve';
-    this.r.setPixelRatio(leve ? Math.min(devicePixelRatio, 0.85) : Math.min(devicePixelRatio, 2)); this.r.setSize(innerWidth, innerHeight);
+    this.r.setPixelRatio(leve ? Math.min(devicePixelRatio, 0.75) : Math.min(devicePixelRatio, 1.5)); this.r.setSize(innerWidth, innerHeight);
     this.sun.castShadow = !leve;
     if (this.grass) this.grass.visible = !leve;
-    this.scene.fog.far = leve ? 300 : 420;
+    this.fogK = leve ? 0.7 : 1; // modo leve: neblina mais perto (desenha menos coisa)
     this.fxScale = leve ? 0.45 : 1;
     try { localStorage.setItem('valeferrado_gfx', this.quality); } catch (e) {}
     const sel = document.getElementById('gfx'); if (sel) sel.value = this.quality;
@@ -190,40 +184,17 @@ const Render = {
     this.skyU.moon.value.copy(moon); this.skyU.night.value = 1 - df;
     this.stars.material.opacity = Math.max(0, 1 - df * 1.6);
     this.scene.fog.color.copy(this.horizon);
-    this.scene.fog.near = 15 + 45 * df; this.scene.fog.far = 140 + 280 * df;
-    this.hemi.intensity = 0.1 + 0.65 * df;
+    this.scene.fog.near = (15 + 45 * df) * (this.fogK || 1); this.scene.fog.far = (140 + 280 * df) * (this.fogK || 1);
+    this.hemi.intensity = 0.3 + 0.45 * df;
     this.hemi.color.copy(L('#5a6a9a', '#cfe3ff', df));
     if (el > -0.04) { this.lightDir = this.sunDir; this.sun.intensity = 1.05 * df; this.sun.color.copy(L('#ff9a50', '#fff1d6', Math.min(1, el * 4))); }
-    else { this.lightDir = moon; this.sun.intensity = 0.2 * (1 - df); this.sun.color.set('#9fb4ff'); }
+    else { this.lightDir = moon; this.sun.intensity = 0.38 * (1 - df); this.sun.color.set('#a8bcff'); }
     this.cloudMat.color.copy(L('#2a3048', '#ffffff', df)); this.cloudMat.emissive.copy(L('#0a0e18', '#c8d4e0', df)).lerp(new THREE.Color('#e08860'), dusk * 0.4);
     for (const m of this.ring.children) m.material.color.copy(m.userData.base).lerp(new THREE.Color('#0d1322'), (1 - df) * 0.85).lerp(new THREE.Color('#c07858'), dusk * 0.25);
     const night = 1 - df;
     this.lampMat.color.copy(L('#555555', '#ffd890', night));
     this.cityLight.intensity = night * 0.9;
     this.vmScene.children.forEach(o => { if (o.isLight) o.intensity = (o.isHemisphereLight ? 0.6 : 0.55) * (0.25 + 0.75 * df); });
-  },
-  updatePlayerLights() {
-    const S = Game.S, P = Game.P, lv = S.gear.light, on = lv > 0 && S.lightOn;
-    const fwd = new V3(); this.cam.getWorldDirection(fwd);
-    const gh = World.height(P.x, P.y) + P.z + this.rideH();
-    if (on) {
-      const head = new V3(P.x, gh + EYE, P.y);
-      const right = new V3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
-      if (lv === 1) { this.spot.position.copy(head).addScaledVector(right, 0.25).add(new V3(0, -0.3, 0)); this.spot.angle = 0.36; this.spot.distance = 30; this.spot.intensity = 2.4 * (0.3 + 0.7 * (1 - this.day)); }
-      else { this.spot.position.copy(head).add(new V3(0, 0.15, 0)); this.spot.angle = 0.62; this.spot.distance = 44; this.spot.intensity = 2.8 * (0.3 + 0.7 * (1 - this.day)); }
-      const look = this.view === 'fp' ? fwd : new V3(-Math.sin(P.yaw) * Math.cos(P.pitch), Math.sin(P.pitch), -Math.cos(P.yaw) * Math.cos(P.pitch));
-      this.spot.target.position.copy(this.spot.position).addScaledVector(look, 10);
-    } else this.spot.intensity = 0;
-    const nd = on && lv >= 3 ? (lv === 4 ? 3 : 1) : 0;
-    this.drones.forEach((d, i) => {
-      d.g.visible = i < nd;
-      if (i >= nd) { d.light.intensity = 0; return; }
-      const a = this.t * (lv === 4 ? 0.5 : 0.7) + i * Math.PI * 2 / nd, r = lv === 4 ? 8 : 3;
-      const tx = P.x + Math.cos(a) * r, tz = P.y + Math.sin(a) * r, ty = World.height(P.x, P.y) + (lv === 4 ? 8 : 5.5) + Math.sin(this.t * 2 + i) * 0.25;
-      d.g.position.lerp(new V3(tx, ty, tz), 0.15);
-      d.light.intensity = (lv === 4 ? 1.1 : 1.5) * (0.3 + 0.7 * (1 - this.day)); d.light.distance = lv === 4 ? 85 : 50; d.light.decay = 1.1;
-      d.rotors.forEach(rt => rt.rotation.y += 1.5);
-    });
   },
   rideH() { const r = Game.ride(); return r ? this.rideHFor(Game.S.gear.ride) + (Game.S.gear.ride === 4 ? Math.sin(this.t * 3) * 0.05 : 0) : 0; },
 
@@ -370,6 +341,7 @@ const Render = {
       c.position.set(Math.cos(a) * d, 320 + r() * 260, Math.sin(a) * d);
       this.clouds.add(c);
     }
+    this.mergeStatic(this.clouds, true); // as nuvens se movem juntas: viram uma peça só
     this.scene.add(this.clouds);
   },
 
@@ -411,11 +383,10 @@ const Render = {
   buildGround() {
     const mk = (size, seg) => { const g = new THREE.PlaneGeometry(size, size, seg, seg); g.rotateX(-Math.PI / 2); g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 3), 3)); return g; };
     const gm = new THREE.MeshLambertMaterial({ vertexColors: true, map: this.grassTex });
-    // terreno distante
-    const far = mk(9000, 360); this.fillGround(far, 0, 0, -0.7); this.grassTex.repeat.set(1, 1);
-    const farTex = this.grassTex.clone(); farTex.needsUpdate = true; farTex.wrapS = farTex.wrapT = THREE.RepeatWrapping; farTex.repeat.set(2250, 2250);
-    const farMat = new THREE.MeshLambertMaterial({ vertexColors: true, map: farTex });
-    this.farGround = new THREE.Mesh(far, farMat); this.farGround.receiveShadow = true; this.scene.add(this.farGround);
+    // terreno distante: só até onde a neblina deixa ver (grade leve que acompanha o jogador)
+    this.farGeo = mk(FAR_SIZE, FAR_SEG); this.farXZ = null; this.farAt = null;
+    this.farGround = new THREE.Mesh(this.farGeo, new THREE.MeshLambertMaterial({ vertexColors: true, map: this.grassTex })); this.farGround.receiveShadow = true; this.scene.add(this.farGround);
+    this.updateFarGround(true);
     // terreno próximo (detalhado, acompanha o jogador)
     gm.map = this.grassTex;
     this.nearGeo = mk(200, 200);
@@ -438,6 +409,24 @@ const Render = {
       this.groundColor(x, y, c); col.setXYZ(i, c.r, c.g, c.b);
     }
     pos.needsUpdate = col.needsUpdate = true; geo.computeVertexNormals();
+  },
+  updateFarGround(force) {
+    const P = Game.P, st = 80, sx = Math.round(P.x / st) * st, sy = Math.round(P.y / st) * st;
+    if (!force && this.farAt && this.farAt[0] === sx && this.farAt[1] === sy) return;
+    const g = this.farGeo, pos = g.attributes.position, col = g.attributes.color, uv = g.attributes.uv, c = new THREE.Color();
+    if (!this.farXZ) { this.farXZ = []; for (let i = 0; i < pos.count; i++) this.farXZ.push(pos.getX(i), pos.getZ(i)); }
+    this.farAt = [sx, sy];
+    for (let i = 0; i < pos.count; i++) {
+      const lx = this.farXZ[i * 2], lz = this.farXZ[i * 2 + 1], x = lx + sx, y = lz + sy;
+      // malha grossa: usa o ponto mais baixo em volta, para nunca ficar acima do terreno detalhado
+      let h = World.height(x, y); const q = FAR_SIZE / FAR_SEG / 2;
+      for (const [ax, ay] of [[q, 0], [-q, 0], [0, q], [0, -q]]) h = Math.min(h, World.height(x + ax, y + ay));
+      h -= World.mountainH(x, y) > 0.5 ? 1.4 : 0.4;
+      pos.setXYZ(i, lx, h - 0.7, lz); uv.setXY(i, x / 4, y / 4);
+      this.groundColor(x, y, c); col.setXYZ(i, c.r, c.g, c.b);
+    }
+    pos.needsUpdate = col.needsUpdate = uv.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingSphere();
+    this.farGround.position.set(sx, 0, sy);
   },
   updateNearGround() {
     const P = Game.P, sx = Math.round(P.x / 24) * 24, sy = Math.round(P.y / 24) * 24;
@@ -475,7 +464,7 @@ const Render = {
     for (let i = 0; i < 9; i++) { const sp = mesh(new THREE.ConeGeometry(0.09, 0.2, 4), mat('#2f5a3e')); const a = i / 9 * Math.PI * 2, yy = (i % 3 - 1) * 0.35; sp.position.set(Math.cos(a) * 0.6 * Math.cos(yy), yy * 1.3, Math.sin(a) * 0.6 * Math.cos(yy)); sp.lookAt(sp.position.clone().multiplyScalar(2)); sp.rotateX(Math.PI / 2); this.egg.add(sp); }
     this.eggCracks = [];
     for (let i = 0; i < 3; i++) { const cr = new THREE.Group(); for (let j = 0; j < 4; j++) { const seg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.03), new THREE.MeshBasicMaterial({ color: '#ffb347' })); seg.position.set(0, -0.3 + j * 0.2, 0); seg.rotation.z = (j % 2 ? 0.5 : -0.5); cr.add(seg); } const a = i * 2.1; cr.position.set(Math.cos(a) * 0.61, 0, Math.sin(a) * 0.61); cr.lookAt(cr.position.clone().multiplyScalar(2)); cr.visible = false; this.egg.add(cr); this.eggCracks.push(cr); }
-    this.eggLight = new THREE.PointLight('#ff8a3d', 0, 8, 2); this.eggLight.position.set(0, 3, 0); this.city.add(this.eggLight);
+    this.eggLight = { intensity: 0, color: new THREE.Color() }; // sem luz real: o brilho do ovo é falso (halo), para não pesar
     const eggLabel = labelSprite(tt("Ovo de Dragão"), tt("choca no Martelo 60"), '#ffd27a', 0.6); eggLabel.position.y = 4.5; this.city.add(eggLabel);
     // barracas dos NPCs (em círculo, de frente para a fonte)
     this.npcObjs = []; this.shopIcons = [];
@@ -507,7 +496,7 @@ const Render = {
       halo.scale.setScalar(2.6); halo.position.set(0, 5.4, 0); g.add(halo);
       this.shopIcons.push(icon);
       g.userData = { npc: n, person };
-      this.city.add(g); this.npcObjs.push(g);
+      this.mergeStatic(g, true); this.city.add(g); this.npcObjs.push(g);
     }
     this.houses = new THREE.Group(); this.city.add(this.houses); this.houseEra = -1;
     this.buildCityDeco();
@@ -608,7 +597,7 @@ const Render = {
       sg.attributes.position.needsUpdate = true; sg.attributes.color.needsUpdate = true;
     };
     const lab = labelSprite(tt("Picareta 61"), tt("o que vem depois do 60"), '#ffe27a', 0.7); lab.position.y = 6.2; g.add(lab);
-    const lt = new THREE.PointLight('#ffcf6a', 0.9, 9, 2); lt.position.y = 3; g.add(lt);
+    // sem luz real: a aura da picareta já faz o brilho
     C.add(g); this.pick61 = g;
   },
   shopIcon(id) {
@@ -632,7 +621,7 @@ const Render = {
   updateHouses() {
     const era = eraOf(Game.S.hammer) + (Game.S.hammer >= 60 ? 1 : 0);
     if (era === this.houseEra) return; this.houseEra = era;
-    this.houses.clear();
+    this.disposeObj(this.houses); this.houses.clear();
     const built = Math.min(12, era * 2);
     let k = 0;
     for (let i = 0; i < 14; i++) {
@@ -653,6 +642,7 @@ const Render = {
       }
       this.houses.add(h); k++;
     }
+    this.mergeStatic(this.houses, true);
   },
 
   // estradas de terra visíveis de longe: das minas 2 a 6, saem da cidade e vão até a metade do caminho
@@ -844,7 +834,7 @@ const Render = {
           if (o.type === 'trilho') for (const sx of [-0.3, 0.3]) { const rail = mesh(new THREE.BoxGeometry(0.08, 0.08, L + 0.15), mat('#9aa0a6', { shininess: 60 })); rail.position.set(sx, o.h + 0.04, 0); seg.add(rail); }
         }
       }
-      this.scene.add(g);
+      this.mergeStatic(g, true); this.scene.add(g);
     }
   },
 
@@ -870,20 +860,92 @@ const Render = {
     }
     const tGeo = new THREE.CylinderGeometry(0.22, 0.32, 3, 6); tGeo.translate(0, 1.5, 0);
     const cGeo = jitterGeo(new THREE.IcosahedronGeometry(2.2, 0), 0.6, 3); cGeo.translate(0, 4.4, 0);
-    const c2Geo = new THREE.ConeGeometry(2, 5, 7); c2Geo.translate(0, 5, 0);
-    const tm = new THREE.InstancedMesh(tGeo, mat('#5a3d24'), trunks.length);
-    const cm = new THREE.InstancedMesh(cGeo, new THREE.MeshLambertMaterial({ flatShading: true }), crowns.length);
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color();
-    trunks.forEach(([x, y, s], i) => { pv.set(x, World.height(x, y) - 0.1, y); sv.set(s, s, s); m4.compose(pv, q, sv); tm.setMatrixAt(i, m4); });
-    crowns.forEach(([x, y, s, v], i) => { q.setFromAxisAngle(new V3(0, 1, 0), v * 6); pv.set(x, World.height(x, y) - 0.1, y); sv.set(s, s * (0.9 + v * 0.3), s); m4.compose(pv, q, sv); cm.setMatrixAt(i, m4); col.setHSL(0.23 + v * 0.07, 0.45, 0.22 + v * 0.1); cm.setColorAt(i, col); });
-    tm.castShadow = cm.castShadow = true; tm.receiveShadow = cm.receiveShadow = true;
-    this.scene.add(tm, cm);
     const rGeo = jitterGeo(new THREE.DodecahedronGeometry(1, 0), 0.35, 11);
-    const rm = new THREE.InstancedMesh(rGeo, new THREE.MeshLambertMaterial({ flatShading: true }), rocks.length);
-    q.identity();
-    rocks.forEach(([x, y, s, c], i) => { pv.set(x, World.height(x, y) + s * 0.2, y); sv.set(s, s * 0.7, s * 1.1); m4.compose(pv, q, sv); rm.setMatrixAt(i, m4); col.set(c); col.offsetHSL(0, 0, -0.05); rm.setColorAt(i, col); });
-    rm.castShadow = rm.receiveShadow = true; this.scene.add(rm);
+    const tMat = mat('#5a3d24'), cMat = new THREE.MeshLambertMaterial({ flatShading: true }), rMat = new THREE.MeshLambertMaterial({ flatShading: true });
+    // árvores e pedregulhos divididos em blocos de 200 m: cada bloco só é desenhado quando está perto e na frente da câmera
+    const CH = 200, cells = new Map(), cell = (x, y) => { const k = Math.floor(x / CH) + ',' + Math.floor(y / CH); if (!cells.has(k)) cells.set(k, { t: [], c: [], r: [], cx: (Math.floor(x / CH) + 0.5) * CH, cy: (Math.floor(y / CH) + 0.5) * CH }); return cells.get(k); };
+    trunks.forEach(t => cell(t[0], t[1]).t.push(t)); crowns.forEach(c => cell(c[0], c[1]).c.push(c)); rocks.forEach(r => cell(r[0], r[1]).r.push(r));
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color(), up = new V3(0, 1, 0);
+    this.decoChunks = [];
+    for (const C of cells.values()) {
+      const ch = { x: C.cx, y: C.cy, list: [] };
+      if (C.t.length) { const tm = new THREE.InstancedMesh(tGeo, tMat, C.t.length); C.t.forEach(([x, y, s2], i) => { q.identity(); pv.set(x, World.height(x, y) - 0.1, y); sv.set(s2, s2, s2); m4.compose(pv, q, sv); tm.setMatrixAt(i, m4); }); ch.tm = tm; ch.list.push(tm); }
+      if (C.c.length) { const cm = new THREE.InstancedMesh(cGeo, cMat, C.c.length); C.c.forEach(([x, y, s2, v], i) => { q.setFromAxisAngle(up, v * 6); pv.set(x, World.height(x, y) - 0.1, y); sv.set(s2, s2 * (0.9 + v * 0.3), s2); m4.compose(pv, q, sv); cm.setMatrixAt(i, m4); col.setHSL(0.23 + v * 0.07, 0.45, 0.22 + v * 0.1); cm.setColorAt(i, col); }); ch.cm = cm; ch.list.push(cm); }
+      if (C.r.length) { const rm = new THREE.InstancedMesh(rGeo, rMat, C.r.length); q.identity(); C.r.forEach(([x, y, s2, c], i) => { pv.set(x, World.height(x, y) + s2 * 0.2, y); sv.set(s2, s2 * 0.7, s2 * 1.1); m4.compose(pv, q, sv); rm.setMatrixAt(i, m4); col.set(c); col.offsetHSL(0, 0, -0.05); rm.setColorAt(i, col); }); ch.rm = rm; ch.list.push(rm); }
+      for (const o of ch.list) { o.frustumCulled = false; o.receiveShadow = true; o.castShadow = false; o.visible = false; this.scene.add(o); }
+      this.decoChunks.push(ch);
+    }
   },
+  // liga só os blocos de árvores perto e na frente; sombra só nos bem próximos; troncos somem de longe (LOD)
+  updateDecor() {
+    if (!this.decoChunks) return;
+    const P = Game.P, fwd = this.cam.getWorldDirection(this._fwd || (this._fwd = new V3())), view = this.scene.fog.far + 30, R = 142;
+    const shadows = this.quality !== 'leve';
+    if (this.z7) this.z7.visible = Math.hypot(P.x - Z7.x, P.y - Z7.y) < view + 120; // Zona 7 só quando está perto
+    for (const ch of this.decoChunks) {
+      const dx = ch.x - P.x, dy = ch.y - P.y, d = Math.hypot(dx, dy), ahead = dx * fwd.x + dy * fwd.z;
+      const vis = d - R < view && (ahead > -R || d < R * 1.2);
+      if (ch.cm) ch.cm.visible = vis;
+      if (ch.rm) ch.rm.visible = vis;
+      if (ch.tm) ch.tm.visible = vis && d - R < 170;
+      const sh = shadows && d - R < 50;
+      for (const o of ch.list) o.castShadow = sh;
+    }
+  },
+  // ---------- minérios de longe: versão simplificada (poucos polígonos, na cor do minério) ----------
+  buildOreLod() {
+    const g = jitterGeo(new THREE.DodecahedronGeometry(1, 0), 0.25, 5);
+    this.oreLod = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ flatShading: true }), 2600);
+    this.oreLod.frustumCulled = false; this.oreLod.count = 0; this.oreLod.receiveShadow = false; this.oreLod.castShadow = false;
+    this.oreLod.setColorAt(0, new THREE.Color()); this.scene.add(this.oreLod); this.oreLodAt = null;
+  },
+  updateOreLod() {
+    if (!this.oreLod) return;
+    const P = Game.P, now = this.t;
+    if (this.oreLodAt && Math.hypot(P.x - this.oreLodAt[0], P.y - this.oreLodAt[1]) < 6 && now - this.oreLodAt[2] < 0.5) return;
+    this.oreLodAt = [P.x, P.y, now];
+    const near = this.nodeNear(), far = this.scene.fog.far + 40, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color();
+    let i = 0; const lim = this.oreLod.instanceMatrix.count;
+    for (const n of World.nodes) {
+      if (n.dead || n.res.sealed) continue;
+      const d2 = (n.x - P.x) ** 2 + (n.y - P.y) ** 2;
+      if (d2 < (near - 6) ** 2 || d2 > far * far || i >= lim) continue;
+      const om = oreMul(n), s2 = n.r * 0.62;
+      pv.set(n.x, World.height(n.x, n.y) + s2 * 0.25 * om.M, n.y); sv.set(s2 * om.W, s2 * 0.55 * om.M, s2 * om.W); q.setFromAxisAngle(sv.clone().set(0, 1, 0), n.seed * 6);
+      m4.compose(pv, q, sv); this.oreLod.setMatrixAt(i, m4);
+      col.set(n.res.c || '#8a8580'); if (n.res.c2) col.lerp(this._c2 || (this._c2 = new THREE.Color()), 0).lerp(this._c2.set(n.res.c2), 0.5); col.offsetHSL(0, 0, 0.06); if (n.rare > 1 || n.res.special || n.res.wild) col.offsetHSL(0, 0.15, 0.12); this.oreLod.setColorAt(i, col); i++;
+    }
+    this.oreLod.count = i; this.oreLod.instanceMatrix.needsUpdate = true; if (this.oreLod.instanceColor) this.oreLod.instanceColor.needsUpdate = true;
+  },
+  // distância em que o minério aparece completo (o resto vira versão simplificada)
+  nodeFull() { return this.quality === 'leve' ? 32 : 45; },
+  // versão média do minério: todas as peças viram uma malha só, com a cor de cada peça pintada nos vértices
+  bakeNode(g) {
+    if (!this.lodMat) this.lodMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+    g.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), parts = [], kill = [], col = new THREE.Color();
+    g.traverse(o => {
+      if (!o.isMesh || o.isInstancedMesh) return;
+      const mt = Array.isArray(o.material) ? o.material[0] : o.material; kill.push(o);
+      if (mt.transparent || mt.blending === THREE.AdditiveBlending) return;
+      const m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld), geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      geo.applyMatrix4(m);
+      const pos = geo.attributes.position, nrm = geo.attributes.normal, n = pos.count;
+      if (m.determinant() < 0) for (let i = 0; i < n; i += 3) for (const a of [pos, nrm]) { if (!a) continue; for (let j = 0; j < 3; j++) { const t = a.array[(i + 1) * 3 + j]; a.array[(i + 1) * 3 + j] = a.array[(i + 2) * 3 + j]; a.array[(i + 2) * 3 + j] = t; } }
+      col.copy(mt.color || col.set('#888888')); if (mt.emissive && !mt.isMeshBasicMaterial) col.add(mt.emissive);
+      const ca = new Float32Array(n * 3); for (let i = 0; i < n; i++) { ca[i * 3] = col.r; ca[i * 3 + 1] = col.g; ca[i * 3 + 2] = col.b; }
+      parts.push([pos.array, nrm ? nrm.array : new Float32Array(n * 3), ca]);
+    });
+    for (const o of kill) { o.parent.remove(o); o.geometry.dispose(); }
+    if (!parts.length) return;
+    const tot = parts.reduce((a, p) => a + p[0].length, 0), P = new Float32Array(tot), N = new Float32Array(tot), C = new Float32Array(tot);
+    let off = 0; for (const [p, nn, c] of parts) { P.set(p, off); N.set(nn, off); C.set(c, off); off += p.length; }
+    const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.BufferAttribute(P, 3)); out.setAttribute('normal', new THREE.BufferAttribute(N, 3)); out.setAttribute('color', new THREE.BufferAttribute(C, 3)); out.computeBoundingSphere();
+    const mm = new THREE.Mesh(out, this.lodMat); mm.castShadow = true; mm.receiveShadow = true;
+    // a malha fica no espaço do grupo: desfaz a escala do grupo (será reaplicada pelo grupo)
+    g.add(mm);
+  },
+  nodeNear() { return this.quality === 'leve' ? 85 : 130; },
   buildGrass() {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute([-0.25, 0, 0, 0.25, 0, 0, 0, 0.55, 0, 0, 0, -0.25, 0, 0, 0.25, 0.04, 0.5, 0], 3));
@@ -975,6 +1037,48 @@ const Render = {
     };
   })(),
 
+  // libera da placa de vídeo as malhas únicas de um objeto removido (materiais são compartilhados)
+  disposeObj(o) {
+    o.traverse(c => { if ((c.isMesh || c.isPoints) && c.geometry && !c.isInstancedMesh && !c.userData.sharedGeo) c.geometry.dispose(); if (c.isSprite && c.material && c !== o.userData.badge) c.material.dispose(); });
+  },
+  // junta as peças paradas de um grupo que usam o mesmo material numa peça só (menos pedidos de desenho)
+  mergeStatic(root, local) {
+    root.updateMatrixWorld(true);
+    const dyn = new Set(), noop = THREE.Object3D.prototype.onBeforeRender;
+    const mark = v => { if (v && v.isObject3D) dyn.add(v); else if (Array.isArray(v)) v.forEach(mark); };
+    if (!local) for (const k in this) { const v = this[k]; if (v === root) continue; if (v && v.isObject3D) dyn.add(v); else if (Array.isArray(v)) v.forEach(x => { mark(x); if (x && typeof x === 'object' && !x.isObject3D) for (const kk in x) mark(x[kk]); }); else if (v && typeof v === 'object' && !(v instanceof Map) && !v.isMaterial && !v.isTexture) for (const kk in v) mark(v[kk]); }
+    root.traverse(o => { for (const k in o.userData) mark(o.userData[k]); if (o.onBeforeRender !== noop && o !== root) dyn.add(o); });
+    const isDyn = o => { for (let p = o; p && p !== root; p = p.parent) if (dyn.has(p)) return true; return false; };
+    const groups = new Map(), inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    root.traverse(o => {
+      if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material) || o.material.transparent || !o.visible || isDyn(o)) return;
+      for (let p = o.parent; p && p !== root; p = p.parent) if (!p.visible) return;
+      const g = o.geometry; if (!g.attributes.position || !g.attributes.normal || g.morphAttributes.position) return;
+      const useUv = !!(o.material.map || o.material.emissiveMap), useCol = !!o.material.vertexColors;
+      if ((useUv && !g.attributes.uv) || (useCol && !g.attributes.color)) return;
+      const key = o.material.uuid + '|' + o.castShadow + o.receiveShadow + useUv + useCol;
+      if (!groups.has(key)) groups.set(key, { m: o.material, cast: o.castShadow, recv: o.receiveShadow, useUv, useCol, list: [] });
+      groups.get(key).list.push(o);
+    });
+    let merged = 0;
+    for (const G of groups.values()) {
+      if (G.list.length < 2) continue;
+      const parts = [];
+      let nv = 0;
+      for (const o of G.list) {
+        const m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld), g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()); g.applyMatrix4(m);
+        if (m.determinant() < 0) { const flip = a => { if (!a) return; const it = a.itemSize, arr = a.array; for (let i = 0; i < a.count; i += 3) for (let j = 0; j < it; j++) { const t = arr[(i + 1) * it + j]; arr[(i + 1) * it + j] = arr[(i + 2) * it + j]; arr[(i + 2) * it + j] = t; } }; flip(g.attributes.position); flip(g.attributes.normal); flip(g.attributes.uv); flip(g.attributes.color); }
+        parts.push(g); nv += g.attributes.position.count;
+      }
+      const out = new THREE.BufferGeometry(), names = ['position', 'normal'].concat(G.useUv ? ['uv'] : [], G.useCol ? ['color'] : []);
+      for (const nm of names) { const it = parts[0].attributes[nm].itemSize, arr = new Float32Array(nv * it); let off = 0; for (const p of parts) { arr.set(p.attributes[nm].array, off); off += p.attributes[nm].array.length; } out.setAttribute(nm, new THREE.BufferAttribute(arr, it)); }
+      out.computeBoundingSphere();
+      const mm = new THREE.Mesh(out, G.m); mm.castShadow = G.cast; mm.receiveShadow = G.recv; root.add(mm);
+      for (const o of G.list) { o.parent.remove(o); o.geometry.dispose(); }
+      merged += G.list.length;
+    }
+    return merged;
+  },
   nodeMesh(n) {
     const g = new THREE.Group(), res = n.res, r = rng(Math.floor(n.seed * 1000)), s = n.r * 0.55;
     const rock = (col, sz, seed) => mesh(jitterGeo(new THREE.IcosahedronGeometry(sz, 0), sz * 0.35, seed), mat(col));
@@ -1057,14 +1161,17 @@ const Render = {
     this.missT = (this.missT || 0) - 1; if (this.missT <= 0) { this.missT = 20; Game.missCache = Game.missingList(); }
     if (this.pick61) this.pick61.visible = !(Game.S.hammer >= 61);
     if (this.z7s && (!this.z7s.init || this.z7s.target !== (Game.S.seal ? 1 : 0))) this.openSeal(!!Game.S.seal);
-    const P = Game.P, seen = new Set();
+    const P = Game.P, seen = new Set(), NR = this.nodeNear();
     for (const n of World.nodes) {
       const dx = n.x - P.x, dy = n.y - P.y;
-      if (dx * dx + dy * dy > 170 * 170) continue;
+      if (dx * dx + dy * dy > NR * NR) continue;
       seen.add(n);
       let m = this.nodeMeshes.get(n);
+      // LOD: perto = minério completo; médio = mesmo formato numa peça só (1 desenho); longe = versão simplificada (updateOreLod)
+      const dd = Math.sqrt(dx * dx + dy * dy), FR = this.nodeFull(), lod = m ? (m.userData.lod === 'full' ? (dd < FR + 6 ? 'full' : 'mid') : (dd < FR - 6 ? 'full' : 'mid')) : (dd < FR ? 'full' : 'mid');
+      if (m && m.userData.lod !== lod && n !== Game.target) { this.scene.remove(m); this.disposeObj(m); if (m.userData.badge) { this.scene.remove(m.userData.badge); m.userData.badge.material.dispose(); } this.nodeMeshes.delete(n); m = null; }
       if (m && m.userData.res !== n.res.id) { this.scene.remove(m); if (m.userData.badge) this.scene.remove(m.userData.badge); m = null; }
-      if (!m) { m = this.nodeMesh(n); this.scene.add(m); this.nodeMeshes.set(n, m); }
+      if (!m) { m = this.nodeMesh(n); if (lod === 'mid') this.bakeNode(m); m.userData.lod = lod; this.scene.add(m); this.nodeMeshes.set(n, m); }
       const k = 0.75 + 0.25 * Math.max(0, n.hp / n.maxHp);
       m.scale.setScalar(k);
       if (n.hitT > 0) m.position.set(m.userData.base.x + (Math.random() - 0.5) * 0.12, m.userData.base.y, m.userData.base.z + (Math.random() - 0.5) * 0.12);
@@ -1082,7 +1189,7 @@ const Render = {
         sp.position.set(m.userData.base.x, m.userData.base.y + n.r * 1.25 * oreMul(n).M + 0.6, m.userData.base.z); sp.visible = true;
       } else if (m.userData.badge) m.userData.badge.visible = false;
     }
-    for (const [n, m] of this.nodeMeshes) if (!seen.has(n) || n.dead) { this.scene.remove(m); if (m.userData.badge) { this.scene.remove(m.userData.badge); m.userData.badge.material.dispose(); } this.nodeMeshes.delete(n); }
+    for (const [n, m] of this.nodeMeshes) if (!seen.has(n) || n.dead) { this.scene.remove(m); this.disposeObj(m); if (m.userData.badge) { this.scene.remove(m.userData.badge); m.userData.badge.material.dispose(); } this.nodeMeshes.delete(n); }
   },
   pickTarget(reach) {
     const P = Game.P, o = this.cam.position, dir = new V3(); this.cam.getWorldDirection(dir);
@@ -1299,7 +1406,7 @@ const Render = {
     this.applyVmPose(this.vmPoseAt(0, 0.58));
     for (let it = 0; it < 8; it++) { this.vmRig.updateMatrixWorld(true); ham.userData.head.getWorldPosition(hp); hp.project(this.vmCam); this.vmRig.position.y += (-0.28 - hp.y) * 0.25; this.vmRig.position.x += (0.1 - hp.x) * 0.3; }
     this.vmTorch = null;
-    if (Game.S.gear.light === 1) {
+    if (false) {
       const t = new THREE.Group();
       const hand = mesh(new THREE.BoxGeometry(0.09, 0.08, 0.11), mat(G.col), false); t.add(hand);
       const tor = this.makeTorch(); tor.position.z = -0.1; tor.scale.setScalar(0.9); t.add(tor);
@@ -1369,7 +1476,7 @@ const Render = {
     this.sparkPts = new THREE.Points(sg, new THREE.PointsMaterial({ map: tex, size: 0.09, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
     this.sparkPts.frustumCulled = false; this.scene.add(this.sparkPts); this.spD = Array.from({ length: N }, () => ({ t: 0 }));
     for (let i = 0; i < N; i++) this.spPos[i * 3 + 1] = -999;
-    this.hitLight = new THREE.PointLight('#ffd27a', 0, 7, 2); this.scene.add(this.hitLight);
+    this.hitLight = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#ffd27a', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 })); this.hitLight.scale.setScalar(2.4); this.hitLight.intensity = 0; this.hitLight.color = this.hitLight.material.color; this.scene.add(this.hitLight); // flash falso (sem luz real)
     this.wave = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#bff8ff', transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
     this.scene.add(this.wave); this.waveT = 0; this.hitLightT = 0;
   },
@@ -1455,7 +1562,7 @@ const Render = {
     if (anyS || this._spWas) { this.sparkPts.geometry.attributes.position.needsUpdate = this.sparkPts.geometry.attributes.color.needsUpdate = true; }
     this._spWas = anyS;
     this.sparkPts.material.size = 0.045 + Game.S.hammer / 1600;
-    this.hitLightT = Math.max(0, this.hitLightT - dt); this.hitLight.intensity = this.hitLightT > 0 ? (this.hitLightT / 0.14) * this.hitLightPow : 0;
+    this.hitLightT = Math.max(0, this.hitLightT - dt); { const k = this.hitLightT > 0 ? (this.hitLightT / 0.14) * this.hitLightPow : 0; this.hitLight.material.opacity = Math.min(0.85, k * 0.45); this.hitLight.scale.setScalar(1.6 + k * 1.2); this.hitLight.visible = k > 0.01; }
     this.waveT = Math.max(0, this.waveT - dt); const wk = this.waveT / 0.45;
     this.wave.material.opacity = wk * 0.55; this.wave.scale.setScalar(0.3 + (1 - wk) * (this.waveSize || 2)); this.wave.visible = this.waveT > 0;
   },
@@ -1751,9 +1858,9 @@ const Render = {
     const gl2 = this.tag(mesh(new THREE.BoxGeometry(0.17 + G.era * 0.012, 0.16, 0.2), mat(G.col)), 'mine'); gl2.position.y = -0.66; arm2.add(gl2);
     // iluminação
     const lv = st.gear.light;
-    if (lv === 1) { const t = this.tag(this.makeTorch(), 'light'); t.position.set(0, -0.7, -0.08); arm2.add(t); arm2.rotation.x = -0.5; }
-    if (lv >= 2) { const hl = this.tag(this.makeHeadlamp(st.lightOn), 'light'); hl.position.y = 1.95; body.add(hl); }
-    if (lv >= 3 && st.preview) { const n = lv === 4 ? 3 : 1; for (let i = 0; i < n; i++) { const d = this.tag(this.makeDrone(), 'light'); d.scale.setScalar(0.8); d.position.set((i - (n - 1) / 2) * 1.1, 2.7 + (i === 1 ? 0.25 : 0), 0.3); g.add(d); } }
+    if (false) { const t = this.tag(this.makeTorch(), 'light'); t.position.set(0, -0.7, -0.08); arm2.add(t); arm2.rotation.x = -0.5; }
+    if (false) { const hl = this.tag(this.makeHeadlamp(st.lightOn), 'light'); hl.position.y = 1.95; body.add(hl); }
+    if (false) { const n = lv === 4 ? 3 : 1; for (let i = 0; i < n; i++) { const d = this.tag(this.makeDrone(), 'light'); d.scale.setScalar(0.8); d.position.set((i - (n - 1) / 2) * 1.1, 2.7 + (i === 1 ? 0.25 : 0), 0.3); g.add(d); } }
     // detector
     const dl = st.gear.detector;
     if (dl === 1) { const d = this.tag(this.makeDetector(1), 'detector'); d.position.set(-0.33, 0.95, -0.05); d.rotation.y = Math.PI / 2; d.scale.setScalar(0.9); body.add(d); }
@@ -1882,7 +1989,7 @@ const Render = {
     this.t += dt;
     const P = Game.P;
     this.updateDayNight();
-    this.updateNearGround(); this.updateGrass(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
+    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;
@@ -1911,7 +2018,6 @@ const Render = {
     this.water.position.y = 0.68 + Math.sin(this.t * 2) * 0.02;
     if (this.egg) { const L = Game.S.hammer, st = L >= 50 ? 3 : L >= 40 ? 2 : L >= 20 ? 1 : 0; this.eggCracks.forEach((c, i) => c.visible = i < st); const pulse = st ? (0.15 + st * 0.15) * (0.6 + 0.4 * Math.sin(this.t * (1 + st))) : 0; this.egg.material.emissiveIntensity = (this.eggBase || 0) + pulse; this.eggLight.intensity = 0.5 + pulse * 2; this.egg.rotation.z = st >= 2 ? Math.sin(this.t * 7) * 0.04 * (Math.sin(this.t * 0.7) > 0.6 ? 1 : 0) : 0; }
     if (this.shopIcons) this.shopIcons.forEach((ic, i) => { ic.rotation.y = this.t * 1.2 + i; ic.position.y = 5.4 + Math.sin(this.t * 2 + i) * 0.15; });
-    this.updatePlayerLights();
     this.updateRobots(dt);
     this.updateHitFx(dt);
     this.updateClimbFx();

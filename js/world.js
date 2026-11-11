@@ -16,7 +16,7 @@ const smooth01 = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b -
 const NPCS = [
   { id: 'ferreiro', name: tt("Seu Bento, o Ferreiro"), role: tt("Evolui o martelo"),              shop: tt("MARTELOS"),  color: '#c0502a', ang: -112.5 },
   { id: 'tropeira', name: tt("Dona Cida, a Tropeira"), role: tt("Mineração, mochila, movimento e pulo"), shop: tt("MELHORIAS"), color: '#3f7a4a', ang: -67.5 },
-  { id: 'bazar',    name: tt("Tonho do Bazar"),        role: tt("Detector, transporte, luz, escalada e robôs"), shop: tt("ITENS"),     color: '#2a7a9a', ang: -22.5 },
+  { id: 'bazar',    name: tt("Tonho do Bazar"),        role: tt("Detector, transporte, escalada e robôs"), shop: tt("ITENS"),     color: '#2a7a9a', ang: -22.5 },
   { id: 'armazem',  name: tt("Seu Lauro, do Armazém"), role: tt("Compra tudo automaticamente"),   shop: tt("VENDAS"),    color: '#a07a2a', ang: 45 },
   { id: 'botica',   name: tt("Zé da Botica"),          role: tt("Vende power-ups"),               shop: tt("POWER-UPS"), color: '#7a3fa0', ang: 135 },
 ];

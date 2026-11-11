@@ -361,7 +361,6 @@ const UI = {
     // equipamentos ativos
     const eq = [];
     if (S.gear.ride) eq.push(`<span class="${S.riding ? 'on' : ''}"><kbd>R</kbd>${GADGETS.ride.levels[S.gear.ride].n}</span>`);
-    if (S.gear.light) eq.push(`<span class="${S.lightOn ? 'on' : ''}"><kbd>L</kbd>${GADGETS.light.levels[S.gear.light].n}</span>`);
     if (S.gear.detector) eq.push(`<span class="${S.detOn ? 'on' : ''}"><kbd>G</kbd>${GADGETS.detector.levels[S.gear.detector].n}</span>`);
     $('equip').innerHTML = eq.join('');
     this.updateDetectorHud();

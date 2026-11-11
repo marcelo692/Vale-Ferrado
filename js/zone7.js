@@ -207,14 +207,13 @@ Object.assign(Render, {
     inner.position.set(WA + 0.6, 8.25, 0); inner.rotation.y = -Math.PI / 2; G.add(inner);
     const eyes = [-1, 1].map(sd => { const e = glow('#ffb020', 1.3, 0); e.position.set(WA + 4, 3.2, sd * 1.5); G.add(e); return e; });
     const spill = glow('#ff8a3a', 16, 0); spill.position.set(WA - 4, 1.2, 0); G.add(spill);
-    const doorLight = new THREE.PointLight('#ff8a3a', 0, 42, 2); doorLight.position.set(WA - 4, 6, 0); G.add(doorLight);
     const S7 = this.z7s = { cur: 0, target: 0, init: false };
     let lastT = performance.now();
     inner.onBeforeRender = () => {
       const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
       S7.cur += (S7.target - S7.cur) * (1 - Math.exp(-dt * 1.4));
       for (const [pv, sd] of leaves) pv.rotation.y = -sd * S7.cur * 0.34;
-      inner.material.opacity = S7.cur * (0.75 + Math.sin(now / 600) * 0.1); spill.material.opacity = S7.cur * 0.55; doorLight.intensity = S7.cur * (0.9 + Math.sin(now / 450) * 0.25);
+      inner.material.opacity = S7.cur * (0.75 + Math.sin(now / 600) * 0.1); spill.material.opacity = S7.cur * 0.55;
       const blink = Math.sin(now / 1900) > 0.93 ? 0 : 1; eyes.forEach(e => { e.material.opacity = S7.cur * 0.9 * blink; });
     };
 
@@ -311,7 +310,6 @@ Object.assign(Render, {
     this.eggBase = 0.55;
     const C = this.city, gt = this.getGlowTex(), T = () => performance.now() / 1000;
     // luz élfica: esverdeada, sobe junto com a força do martelo
-    this.eggLight.color.set('#a8ffd0');
     const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: gt, color: '#40ffb0', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.2 }));
     aura.scale.setScalar(3.0); aura.position.y = 2.95; C.add(aura);
     // anel armilar fino com runas orbitando
