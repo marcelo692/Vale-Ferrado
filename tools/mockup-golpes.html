@@ -1,0 +1,271 @@
+<title>Bancada de Golpes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Inter:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: bancada de oficina — duas janelas (primeira pessoa e vista de lado) em cima, controles em faixa embaixo */
+:root {
+  --bg: #17120d; --panel: #221a12; --line: #3d2f20; --ink: #f1e6d2; --muted: #b5a184; --gold: #ffd34d; --ok: #8fe07a;
+  --display: 'Bitter', Georgia, serif; --body: 'Inter', system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px; box-sizing: border-box; }
+h1 { font: 800 22px/1.1 var(--display); margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin-bottom: 10px; }
+.top p { margin: 0; color: var(--muted); font-size: 13px; max-width: 70ch; }
+.views { display: grid; grid-template-columns: 1.6fr 1fr; gap: 10px; }
+.view { position: relative; background: #0d0a07; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; max-width: 100%; }
+.view canvas { width: 100%; height: 100%; display: block; }
+.view .tag { position: absolute; left: 8px; top: 8px; font: 600 11px var(--body); letter-spacing: .08em; text-transform: uppercase; background: rgba(23,18,13,.8); color: var(--gold); padding: 3px 8px; border-radius: 4px; }
+.view .cross { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; pointer-events: none; }
+.view .cross::before, .view .cross::after { content: ""; position: absolute; background: rgba(255,255,255,.75); }
+.view .cross::before { left: 6px; top: 0; width: 2px; height: 14px; } .view .cross::after { top: 6px; left: 0; height: 2px; width: 14px; }
+.side .tag { color: var(--ok); }
+.ctl { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.box h2 { font: 600 11px var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+button, .chips label { font: 600 12px var(--body); color: var(--ink); background: #2e2318; border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+button:hover, .chips label:hover { border-color: var(--gold); }
+button.on, .chips input:checked + span { color: #1b1209; background: var(--gold); border-color: var(--gold); }
+.chips input { position: absolute; opacity: 0; pointer-events: none; } .chips label { padding: 0; } .chips label span { display: block; padding: 5px 9px; border-radius: 5px; }
+button:focus-visible, .chips input:focus-visible + span, input[type=range]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.lvl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; }
+.lvl b { font: 800 28px/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; min-width: 2.2ch; }
+.lvl small { color: var(--muted); }
+input[type=range] { width: 100%; accent-color: var(--gold); }
+.mono { font: 500 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { color: var(--muted); font-size: 12px; margin: 0; }
+@media (max-width: 760px) { .views { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="top">
+  <h1>Bancada de Golpes · Vale Ferrado</h1>
+  <p>Ombro, cotovelo e pulso articulados. A vista de lado mostra o cotovelo dobrando na carga e esticando na batida. As partículas nascem na superfície da pedra, onde o martelo encosta.</p>
+</div>
+
+<div class="views">
+  <div class="view" id="vFp"><span class="tag">Primeira pessoa (como no jogo)</span><span class="cross"></span></div>
+  <div class="view side" id="vSide"><span class="tag">Vista de lado</span></div>
+</div>
+
+<div class="ctl">
+  <div class="box">
+    <h2>Golpe</h2>
+    <div class="chips" id="swings"></div>
+    <div class="chips">
+      <label><input type="radio" name="seq" id="seqOne" value="one"><span>Repetir este</span></label>
+      <label><input type="radio" name="seq" id="seqMix" value="mix" checked><span>Alternar lados (como no jogo)</span></label>
+    </div>
+  </div>
+  <div class="box">
+    <h2>Martelo / picareta</h2>
+    <div class="lvl"><b id="lvN">20</b><input type="range" id="lv" min="1" max="61" value="20" aria-label="Nível do martelo"><span></span><small id="lvName"></small></div>
+    <div class="chips">
+      <label><input type="radio" name="sc" id="scNew" value="new" checked><span>Tamanho novo (cresce com o nível)</span></label>
+      <label><input type="radio" name="sc" id="scOld" value="old"><span>Tamanho atual do jogo</span></label>
+    </div>
+    <div class="chips" id="jumps"></div>
+  </div>
+  <div class="box">
+    <h2>Modo e velocidade</h2>
+    <div class="chips">
+      <label><input type="radio" name="md" id="mdHold" value="hold" checked><span>Segurando (sem clique)</span></label>
+      <label><input type="radio" name="md" id="mdClick" value="click"><span>Clique rápido</span></label>
+    </div>
+    <div class="chips">
+      <label><input type="radio" name="sp" id="sp1" value="1" checked><span>1×</span></label>
+      <label><input type="radio" name="sp" id="sp5" value="0.5"><span>0,5×</span></label>
+      <label><input type="radio" name="sp" id="sp25" value="0.25"><span>0,25×</span></label>
+      <label><input type="radio" name="sp" id="sp01" value="0.1"><span>0,1×</span></label>
+    </div>
+    <div class="chips"><button id="pause">Pausar</button><button id="step">Quadro a quadro</button></div>
+    <p class="mono" id="phase">—</p>
+  </div>
+</div>
+<p class="legend" style="margin-top:10px">Os modelos de martelo e as cores do impacto são os mesmos do jogo. O braço, os golpes e o limite de lascas daqui são a proposta nova.</p>
+
+<script>
+// os scripts do jogo ficam ao lado (publicado) ou uma pasta acima (aberto pelo arquivo, em tools/)
+const BASE = location.protocol === 'file:' ? '../' : '';
+window.LANG = 'pt';
+window.tt = (s, ...a) => String(s).replace(/\{(\d+)\}/g, (m, i) => a[i] !== undefined ? a[i] : m);
+const load = src => new Promise((ok, no) => { const s = document.createElement('script'); s.src = BASE + src; s.onload = ok; s.onerror = () => no(new Error('não carregou ' + src)); document.head.appendChild(s); });
+(async () => {
+  try { for (const f of ['lib/three.min.js', 'js/data.js', 'js/world.js', 'js/render3d.js']) await load(f); start(); }
+  catch (e) { document.querySelector('.top p').textContent = 'Erro: ' + e.message; }
+})();
+
+function start() {
+  const V3 = THREE.Vector3;
+  // ---------------- cena ----------------
+  const scene = new THREE.Scene(); scene.background = new THREE.Color('#9cc7e8'); scene.fog = new THREE.Fog('#9cc7e8', 18, 60);
+  scene.add(new THREE.HemisphereLight('#dbeeff', '#6f6145', 0.7));
+  const sun = new THREE.DirectionalLight('#fff3dc', 0.75); sun.position.set(4, 8, 3); scene.add(sun);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80, 20, 20).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: '#7da55a' })); scene.add(ground);
+  for (let i = 0; i < 40; i++) { const t = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.3, 4), new THREE.MeshLambertMaterial({ color: '#5d8a3c', flatShading: true })); t.position.set((Math.random() - 0.5) * 16, 0.15, -2 - Math.random() * 14); scene.add(t); }
+  // pedra (pedra-sabão do jogo)
+  const ROCK = { c: new V3(0.05, 0.5, -2.05), r: 0.58 };
+  const rg = new THREE.IcosahedronGeometry(ROCK.r, 1); { const p = rg.attributes.position; for (let i = 0; i < p.count; i++) { const k = 1 + Math.sin(i * 12.9898) * 0.08; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * 0.85, p.getZ(i) * k); } rg.computeVertexNormals(); }
+  const rock = new THREE.Mesh(rg, new THREE.MeshLambertMaterial({ color: '#bfe3d6', flatShading: true })); rock.position.copy(ROCK.c); scene.add(rock);
+
+  // ---------------- jogador e câmeras ----------------
+  const player = new THREE.Group(); player.position.set(0, 1.6, 0); scene.add(player);
+  const fp = new THREE.PerspectiveCamera(55, 16 / 9, 0.01, 100); fp.rotation.x = -0.3; player.add(fp);
+  const side = new THREE.PerspectiveCamera(38, 16 / 9, 0.01, 100); side.position.set(2.3, 1.55, -0.55); side.lookAt(0.05, 1.3, -0.7); scene.add(side);
+  // corpo (só aparece na vista de lado)
+  const bodyMat = new THREE.MeshLambertMaterial({ color: '#2c4f68' }), skin = new THREE.MeshLambertMaterial({ color: '#d9a27a' });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), skin); player.add(head);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.55, 0.2), bodyMat); torso.position.set(0, -0.48, 0.05); player.add(torso);
+  head.layers.set(1); torso.layers.set(1); side.layers.enable(1);
+
+  // ---------------- braço: ombro -> cotovelo -> pulso (articulações reais) ----------------
+  const L1 = 0.29, L2 = 0.27;
+  const shoulder = new THREE.Group(); shoulder.position.set(0.36, -0.2, -0.25); shoulder.rotation.order = 'YXZ'; fp.add(shoulder); // ombro 'adiantado' (truque de primeira pessoa dos jogos FPS) para o braço e o cotovelo aparecerem
+  const cyl = (r1, r2, len, m) => { const g = new THREE.CylinderGeometry(r2, r1, len, 16, 1); g.rotateX(-Math.PI / 2); g.translate(0, 0, -len / 2); return new THREE.Mesh(g, m); };
+  const shirt = new THREE.MeshLambertMaterial({ color: '#2c4f68' }), cuffM = new THREE.MeshLambertMaterial({ color: '#24425a' }), glove = new THREE.MeshLambertMaterial({ color: '#6b4a2c' });
+  shoulder.add(cyl(0.064, 0.056, L1, shirt));
+  const elbow = new THREE.Group(); elbow.position.z = -L1; shoulder.add(elbow);
+  const ej = new THREE.Mesh(new THREE.SphereGeometry(0.052, 16, 12), skin); elbow.add(ej);
+  const roll = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.016, 8, 18), cuffM); roll.position.z = 0.045; elbow.add(roll); // barra da manga logo acima do cotovelo
+  elbow.add(cyl(0.047, 0.035, L2, skin));
+  const wrist = new THREE.Group(); wrist.position.z = -L2; wrist.rotation.order = 'XZY'; elbow.add(wrist);
+  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.048, 16, 12), glove); fist.scale.set(1.05, 0.95, 1.2); wrist.add(fist);
+  const gcuff = new THREE.Mesh(new THREE.CylinderGeometry(0.043, 0.04, 0.035, 14).rotateX(Math.PI / 2), glove); gcuff.position.z = 0.04; wrist.add(gcuff);
+  const grip = new THREE.Group(); wrist.add(grip); // o martelo fica aqui
+  [shoulder].forEach(o => o.traverse(m => { if (m.isMesh) m.layers.enable(1); }));
+
+  // ---------------- golpes (ângulos das articulações, em radianos) ----------------
+  // sp: ombro levanta  sy: ombro gira p/ dentro(+)/fora(-)  sr: ombro inclina  ef: cotovelo dobra  wp: pulso para trás(+)/frente(-)  wr: pulso gira
+  // poses-base calculadas para que, na tela: o cotovelo apareça no canto de baixo à direita, a mão suba na carga e a cabeça do martelo caia na pedra
+  const B = { rest: { sp: -0.244, sy: -0.325, sr: 1.093, ef: 0.894, wp: 0.524, wr: -0.736 }, upC: { sp: 0.129, sy: -0.231, sr: 0.534, ef: 1.597, wp: -0.485, wr: 0.089 }, upR: { sp: 0.154, sy: -0.376, sr: 0.299, ef: 1.496, wp: -0.035, wr: 0.007 }, upL: { sp: 0.033, sy: 0.373, sr: 0.568, ef: 1.491, wp: -0.6, wr: 0.53 }, hit: { sp: -0.274, sy: 0.189, sr: 0.67, ef: 0.253, wp: -0.021, wr: 0.169 }, hitR: { sp: -0.246, sy: 0.074, sr: 1.037, ef: 0.488, wp: -0.226, wr: 0.01 }, hitL: { sp: -0.307, sy: 0.299, sr: 0.701, ef: 0.343, wp: 0.434, wr: -0.016 } };
+  const REST = B.rest;
+  const mix = (a, b, u, d = {}) => { const o = {}; for (const k in a) o[k] = a[k] + (b[k] - a[k]) * u + (d[k] || 0); return o; };
+  const add = (a, d) => mix(a, a, 0, d);
+  const SW = [
+    { n: 'Diagonal da direita', side: 'R', up: B.upR, hit: B.hit },
+    { n: 'Diagonal da esquerda', side: 'L', up: B.upL, hit: B.hitL },
+    { n: 'Por cima', side: 'C', up: B.upC, hit: B.hit },
+    { n: 'Lateral da direita', side: 'R', up: add(B.upR, { sp: -0.3, sy: -0.25, sr: 0.25 }), hit: B.hitR },
+    { n: 'Lateral da esquerda', side: 'L', up: add(B.upL, { sp: -0.28, sy: 0.22, sr: -0.2 }), hit: B.hitL },
+    { n: 'Curto e rápido', side: 'C', fast: 1, up: mix(B.rest, B.upC, 0.55), hit: B.hit },
+    { n: 'Pesado por cima', side: 'C', heavy: 1, up: add(B.upC, { sp: 0.22, ef: 0.35, wp: -0.15 }), hit: add(B.hit, { ef: -0.08, wp: -0.1 }) },
+    { n: 'De baixo, da direita', side: 'R', up: add(B.rest, { sp: -0.25, sy: -0.4, ef: 0.25 }), hit: B.hitR },
+    { n: 'Cruzado do alto', side: 'L', up: add(mix(B.upL, B.upC, 0.5), { sp: 0.18, ef: 0.15 }), hit: B.hitR },
+    { n: 'Alto com giro do pulso', side: 'R', up: add(B.upR, { sp: 0.15, wr: -0.55 }), hit: B.hitL },
+  ];
+  const lerpPose = (a, b, u) => { const o = {}; for (const k in REST) o[k] = a[k] + (b[k] - a[k]) * u; return o; };
+  const follow = h => Object.assign({}, h, { ef: h.ef + 0.12, wp: h.wp + 0.15, sp: h.sp + 0.05 });
+  const apply = p => { shoulder.rotation.set(p.sp, p.sy, p.sr); elbow.rotation.x = p.ef; wrist.rotation.set(p.wp, 0, p.wr); };
+  const ease = { io: u => u * u * (3 - 2 * u), in: u => u * u * u, out: u => 1 - Math.pow(1 - u, 3) };
+
+  // ---------------- martelo ----------------
+  let L = 20, ham = null, scaleMode = 'new';
+  const hamScale = l => scaleMode === 'new' ? (0.3 + (l - 1) / 60 * 0.22) * ((l >= 31 && l !== 60) ? 0.85 : 1) : 0.42 - l * 0.0035;
+  function setHammer(l) {
+    L = l; if (ham) { grip.remove(ham); }
+    ham = Render.hammerInHand(l); ham.scale.setScalar(hamScale(l));
+    ham.rotation.set(-0.15, 0, 0); ham.position.set(0, -0.03, 0.0);
+    ham.traverse(m => { m.layers.enable(1); }); grip.add(ham);
+    // a mão segura mais embaixo nos cabos compridos: a cabeça fica sempre à mesma distância do punho,
+    // então todo martelo/picareta acerta o mesmo ponto da pedra, só que maior
+    if (ham.userData.head) { grip.updateWorldMatrix(true, true); const hp = grip.worldToLocal(ham.userData.head.getWorldPosition(new V3())), want = hp.clone().setLength(0.3); ham.position.sub(hp.sub(want)); }
+    document.getElementById('lvN').textContent = l;
+    document.getElementById('lvName').textContent = (HAMMERS[l] && HAMMERS[l].n) || '';
+  }
+  const headPos = () => { ham.updateWorldMatrix(true, true); return (ham.userData.head ? ham.userData.head.getWorldPosition(new V3()) : ham.getWorldPosition(new V3())); };
+
+  // ---------------- impacto: lascas (com limite) e faíscas na cor da faixa ----------------
+  const chipGeo = new THREE.BoxGeometry(1, 1, 1), chips = [], sparks = [];
+  const sparkMat = c => new THREE.SpriteMaterial({ map: Render.getGlowTex(), color: c, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  let flash = null; { flash = new THREE.Sprite(sparkMat('#ffd27a')); flash.scale.setScalar(0.01); scene.add(flash); }
+  function impact(click, heavy) {
+    const hp = headPos(), dir = hp.clone().sub(ROCK.c).normalize(), at = ROCK.c.clone().addScaledVector(dir, ROCK.r * 0.98);
+    const look = hammerLook(L), IS = Render.impactStyle(L, look), pw = (heavy ? 1.4 : 1) * (click ? 0.85 : 1);
+    const nChips = Math.min(14, Math.round((3 + L * 0.18) * pw)), nSp = Math.min(70, Math.round((L < 6 ? 0 : 6 + L * 0.9) * pw));
+    const rockCol = ['#bfe3d6', '#8fbfae', '#e4f4ee'];
+    for (let i = 0; i < nChips; i++) {
+      const m = new THREE.Mesh(chipGeo, new THREE.MeshLambertMaterial({ color: rockCol[i % 3], flatShading: true })); const s = 0.018 + Math.random() * 0.03; m.scale.set(s, s * 0.8, s * 1.2);
+      m.position.copy(at); scene.add(m);
+      const v = dir.clone().multiplyScalar(1.2 + Math.random() * 1.5).add(new V3((Math.random() - 0.5) * 2.2, 1.2 + Math.random() * 2, (Math.random() - 0.5) * 2.2)).multiplyScalar(0.7);
+      chips.push({ m, v, t: 0.7 + Math.random() * 0.4, spin: new V3(Math.random() * 9, Math.random() * 9, Math.random() * 9) });
+    }
+    for (let i = 0; i < nSp; i++) {
+      const sp = new THREE.Sprite(sparkMat(i % 4 === 0 ? IS.b : i % 5 === 0 ? IS.c : IS.a)); sp.scale.setScalar(0.03 + Math.random() * 0.03); sp.position.copy(at); scene.add(sp);
+      const v = dir.clone().multiplyScalar(1 + Math.random() * 2).add(new V3((Math.random() - 0.5) * 3, Math.random() * 2.5, (Math.random() - 0.5) * 3)).multiplyScalar(IS.spread);
+      sparks.push({ m: sp, v, t: (0.25 + Math.random() * 0.35) * IS.life, t0: 0, gr: IS.gr });
+    }
+    flash.material.color.set(IS.a); flash.position.copy(at); flash.userData.t = 0.12; flash.userData.k = 0.25 + Math.min(1, L / 50) * 0.35 * IS.glow;
+    shake = 0.012 + L / 61 * 0.012;
+  }
+  function stepFx(dt) {
+    for (let i = chips.length - 1; i >= 0; i--) { const c = chips[i]; c.t -= dt; c.v.y -= 9 * dt; c.m.position.addScaledVector(c.v, dt); c.m.rotation.x += c.spin.x * dt; c.m.rotation.y += c.spin.y * dt; if (c.m.position.y < 0.02) { c.m.position.y = 0.02; c.v.multiplyScalar(0.3); }
+      if (c.t <= 0) { scene.remove(c.m); c.m.material.dispose(); chips.splice(i, 1); } }
+    for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.t -= dt; s.v.y -= s.gr * dt; s.m.position.addScaledVector(s.v, dt); s.m.material.opacity = Math.max(0, Math.min(1, s.t * 4));
+      if (s.t <= 0) { scene.remove(s.m); s.m.material.dispose(); sparks.splice(i, 1); } }
+    const f = flash.userData; if (f.t > 0) { f.t -= dt; flash.scale.setScalar(f.k * (1 - f.t / 0.12 * 0.3)); flash.material.opacity = Math.max(0, f.t / 0.12); } else flash.material.opacity = 0;
+  }
+
+  // ---------------- linha do tempo de um golpe ----------------
+  let cur = 0, sideN = 0, mode = 'hold', speed = 1, paused = false, seq = 'mix', T = 0, hitDone = false, shake = 0;
+  const durs = sw => mode === 'click' ? [sw.fast ? 0.11 : 0.15, 0.055, 0.03, 0.08, 0.16, 0.05] : [sw.fast ? 0.22 : sw.heavy ? 0.42 : 0.34, sw.heavy ? 0.085 : 0.075, 0.045, 0.1, 0.26, 0.18];
+  function poseAt(sw, t) {
+    const [a, b, c, d, e] = durs(sw), up = Object.assign({}, REST, sw.up), hit = Object.assign({}, REST, sw.hit), fo = follow(hit);
+    if (t < a) return [lerpPose(REST, up, ease.io(t / a)), 'carga'];
+    if (t < a + b) return [lerpPose(up, hit, ease.in((t - a) / b)), 'golpe'];
+    if (t < a + b + c) return [hit, 'impacto'];
+    if (t < a + b + c + d) return [lerpPose(hit, fo, ease.out((t - a - b - c) / d)), 'acompanha'];
+    if (t < a + b + c + d + e) return [lerpPose(fo, REST, ease.io((t - a - b - c - d) / e)), 'volta'];
+    return [REST, 'repouso'];
+  }
+  const total = sw => durs(sw).reduce((x, y) => x + y, 0);
+  function nextSwing() {
+    if (seq === 'one') return;
+    const order = ['R', 'L', 'C'], want = order[sideN++ % 3], opts = SW.map((w, i) => i).filter(i => SW[i].side === want && i !== cur);
+    selectSwing(opts[Math.floor(Math.random() * opts.length)], true);
+  }
+
+  // ---------------- interface ----------------
+  const swBox = document.getElementById('swings');
+  SW.forEach((w, i) => { const b = document.createElement('button'); b.textContent = (i + 1) + ' · ' + w.n; b.id = 'sw' + i; b.onclick = () => selectSwing(i); swBox.appendChild(b); });
+  function selectSwing(i, auto) { cur = i; T = 0; hitDone = false; SW.forEach((w, k) => document.getElementById('sw' + k).classList.toggle('on', k === i)); if (!auto) { seq = 'one'; document.getElementById('seqOne').checked = true; } }
+  const jb = document.getElementById('jumps'); [1, 10, 20, 31, 41, 51, 59, 60, 61].forEach(l => { const b = document.createElement('button'); b.textContent = 'Nv ' + l; b.onclick = () => { lvI.value = l; setHammer(l); }; jb.appendChild(b); });
+  const lvI = document.getElementById('lv'); lvI.oninput = () => setHammer(+lvI.value);
+  document.querySelectorAll('input[name=sc]').forEach(r => r.onchange = () => { scaleMode = r.value; setHammer(L); });
+  document.querySelectorAll('input[name=md]').forEach(r => r.onchange = () => { mode = r.value; });
+  document.querySelectorAll('input[name=sp]').forEach(r => r.onchange = () => { speed = +r.value; });
+  document.querySelectorAll('input[name=seq]').forEach(r => r.onchange = () => { seq = r.value; });
+  const pb = document.getElementById('pause'); pb.onclick = () => { paused = !paused; pb.textContent = paused ? 'Continuar' : 'Pausar'; pb.classList.toggle('on', paused); };
+  let stepOnce = false; document.getElementById('step').onclick = () => { paused = true; pb.textContent = 'Continuar'; pb.classList.add('on'); stepOnce = true; };
+
+  // ---------------- render em duas janelas ----------------
+  const renderer = new THREE.WebGLRenderer({ antialias: true }); 
+  const vFp = document.getElementById('vFp'), vSide = document.getElementById('vSide');
+  const r2 = new THREE.WebGLRenderer({ antialias: true }); 
+  vFp.prepend(renderer.domElement); vSide.prepend(r2.domElement);
+  function size() { for (const [r, el, cam] of [[renderer, vFp, fp], [r2, vSide, side]]) { const w = el.clientWidth, h = el.clientHeight; r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); } }
+  addEventListener('resize', size); size();
+
+  setHammer(20); selectSwing(2, true);
+  let last = performance.now();
+  function loop(now) {
+    let dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (paused && !stepOnce) dt = 0; else if (stepOnce) { dt = 1 / 60; stepOnce = false; }
+    dt *= speed;
+    const sw = SW[cur], [a, b] = durs(sw);
+    T += dt;
+    if (!hitDone && T >= a + b) { hitDone = true; impact(mode === 'click', sw.heavy || sw.side === 'C'); }
+    if (T >= total(sw)) { T = 0; hitDone = false; nextSwing(); }
+    const [p, ph] = poseAt(SW[cur], T); apply(p);
+    document.getElementById('phase').textContent = `${SW[cur].n} · ${ph} · ombro ${(p.sp * 57.3).toFixed(0)}° · cotovelo ${(p.ef * 57.3).toFixed(0)}° · pulso ${(p.wp * 57.3).toFixed(0)}°`;
+    stepFx(dt);
+    if (shake > 0) { shake = Math.max(0, shake - dt * 0.12); fp.position.set((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake, 0); } else fp.position.set(0, 0, 0);
+    if (ham && ham.userData && ham.userData.orbit) { ham.userData.orbit.rotation.y += dt * 3; }
+    renderer.render(scene, fp); r2.render(scene, side);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  window.__mock = { SW, setHammer, selectSwing, poseAt, apply, REST, fp, side, renderer, r2, scene, get T() { return T; }, set T(v) { T = v; } };
+}
+</script>
