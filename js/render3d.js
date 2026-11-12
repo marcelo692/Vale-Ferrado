@@ -1037,6 +1037,39 @@ const Render = {
     };
   })(),
 
+  // miniatura (foto pequena) de um material, tirada uma vez do próprio modelo 3D e guardada como imagem
+  resIcon(id) {
+    const C = this._icons || (this._icons = {});
+    if (C[id] !== undefined) return C[id];
+    C[id] = null;
+    try {
+      const res = RES[id], S = 64, r = this.r;
+      if (!this._iconRT) {
+        this._iconRT = new THREE.WebGLRenderTarget(S * 2, S * 2); this._iconRT.texture.encoding = THREE.sRGBEncoding;
+        const sc = this._iconScene = new THREE.Scene(); sc.add(new THREE.HemisphereLight('#ffffff', '#6a5a48', 0.9)); const d = new THREE.DirectionalLight('#ffffff', 1.0); d.position.set(3, 6, 5); sc.add(d);
+        this._iconCam = new THREE.PerspectiveCamera(28, 1, 0.05, 200);
+        this._iconCv = document.createElement('canvas'); this._iconCv.width = this._iconCv.height = S * 2;
+        this._iconOut = document.createElement('canvas'); this._iconOut.width = this._iconOut.height = S;
+      }
+      const n = { x: 0, y: 0, res, size: 1, rare: 1, seed: 0.37, r: res.wild ? 1.1 : 1.5, hp: 1, maxHp: 1, sub: {}, pt: {}, hitT: 0 };
+      const g = this.nodeMesh(n); g.position.set(0, 0, 0); g.scale.setScalar(1);
+      const sprites = []; g.traverse(o => { if (o.isSprite || o.isPoints) sprites.push(o); }); sprites.forEach(o => o.parent.remove(o));
+      this._iconScene.add(g); g.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()), sz = box.getSize(new V3()), dist = Math.max(sz.x, sz.y, sz.z) * 2.3 + 0.2;
+      this._iconCam.position.set(c.x + dist * 0.62, c.y + dist * 0.42, c.z + dist * 0.66); this._iconCam.lookAt(c);
+      const cc = r.getClearColor(new THREE.Color()), ca = r.getClearAlpha();
+      r.setRenderTarget(this._iconRT); r.setClearColor(0x000000, 0); r.clear(); r.render(this._iconScene, this._iconCam);
+      const px = new Uint8Array(S * 2 * S * 2 * 4); r.readRenderTargetPixels(this._iconRT, 0, 0, S * 2, S * 2, px);
+      r.setRenderTarget(null); r.setClearColor(cc, ca);
+      this._iconScene.remove(g); this.disposeObj(g);
+      const g2 = this._iconCv.getContext('2d'), img = g2.createImageData(S * 2, S * 2);
+      for (let y = 0; y < S * 2; y++) img.data.set(px.subarray((S * 2 - 1 - y) * S * 8, (S * 2 - y) * S * 8), y * S * 8); // vira de cabeça para cima
+      g2.putImageData(img, 0, 0);
+      const o = this._iconOut.getContext('2d'); o.clearRect(0, 0, S, S); o.imageSmoothingQuality = 'high'; o.drawImage(this._iconCv, 0, 0, S, S);
+      C[id] = this._iconOut.toDataURL('image/png');
+    } catch (e) { C[id] = null; }
+    return C[id];
+  },
   // libera da placa de vídeo as malhas únicas de um objeto removido (materiais são compartilhados)
   disposeObj(o) {
     o.traverse(c => { if ((c.isMesh || c.isPoints) && c.geometry && !c.isInstancedMesh && !c.userData.sharedGeo) c.geometry.dispose(); if (c.isSprite && c.material && c !== o.userData.badge) c.material.dispose(); });
@@ -1396,11 +1429,16 @@ const Render = {
     this.vmArm = arm; this.vm.add(this.vmRig);
     // manga: sempre liga a mão ao ombro (fora da tela, embaixo à direita), assim o braço nunca parece cortado
     // (afinada no pulso, mais larga no ombro; começa depois do punho, com um punho de manga)
-    const sg = new THREE.CylinderGeometry(0.078, 0.04, 1, 10, 1, true); sg.rotateX(Math.PI / 2); sg.translate(0, 0, 0.5);
-    const slMat = mat('#2c4f68'); slMat.side = THREE.DoubleSide;
-    this.vmSleeve = mesh(sg, slMat, false); this.vm.add(this.vmSleeve);
-    const cg = new THREE.CylinderGeometry(0.056, 0.052, 0.05, 10); cg.rotateX(Math.PI / 2);
-    this.vmCuff = mesh(cg, mat('#1f3a4e'), false); this.vm.add(this.vmCuff);
+    const slMat = new THREE.MeshLambertMaterial({ color: '#2c4f68', side: THREE.DoubleSide });          // manga da camisa (braço)
+    const skin = new THREE.MeshLambertMaterial({ color: '#d9a27a', side: THREE.DoubleSide });            // antebraço com a manga arregaçada
+    const fg = new THREE.CylinderGeometry(0.046, 0.034, 1, 16, 1, true); fg.rotateX(Math.PI / 2); fg.translate(0, 0, 0.5);   // antebraço: fino no pulso
+    const ug = new THREE.CylinderGeometry(0.066, 0.056, 1, 16, 1, true); ug.rotateX(Math.PI / 2); ug.translate(0, 0, 0.5);     // braço: mais grosso no ombro
+    this.vmSleeve = mesh(fg, skin, false); this.vm.add(this.vmSleeve);
+    this.vmUpper = mesh(ug, slMat, false); this.vm.add(this.vmUpper);
+    this.vmElbow = mesh(new THREE.SphereGeometry(0.05, 16, 12), skin, false); this.vm.add(this.vmElbow);
+    this.vmFold = mesh(new THREE.TorusGeometry(0.06, 0.018, 8, 18), new THREE.MeshLambertMaterial({ color: '#24425a' }), false); // barra da manga arregaçada logo acima do cotovelo this.vm.add(this.vmFold);
+    const cg = new THREE.CylinderGeometry(0.043, 0.04, 0.035, 14); cg.rotateX(Math.PI / 2);
+    this.vmCuff = mesh(cg, mat('#5a3d24'), false); this.vm.add(this.vmCuff);
     // ajusta o braço para a batida cair um pouco abaixo da mira
     const hp = new V3(); this.vmCam.updateMatrixWorld(true);
     this.applyVmPose(this.vmPoseAt(0, 0.58));
@@ -1414,16 +1452,36 @@ const Render = {
       this.vm.add(t); this.vmTorch = t;
     }
   },
-  // ---------- animação "Combo de três": direita, esquerda e golpe final por cima ----------
+  // ---------- 10 golpes diferentes, alternando lados (direita, esquerda, por cima) ----------
+  // cada golpe: repouso -> carga (0.42) -> impacto (0.58) -> acompanhamento (0.7) -> volta (1)
+  SWINGS: [
+    { side: 'R', n: 'Diagonal da direita',   up: { x: 0.45, y: -0.33, rx: 0.6, rz: -0.5 },                    hit: { x: 0.16, y: -0.46, rx: -0.85, rz: 0.4, z: -0.68 } },
+    { side: 'L', n: 'Diagonal da esquerda',  up: { x: -0.02, y: -0.33, rx: 0.6, ry: 0.4, rz: 0.6 },           hit: { x: 0.3, y: -0.46, rx: -0.85, ry: -0.3, rz: -0.45, z: -0.68 } },
+    { side: 'C', n: 'Por cima',              up: { x: 0.22, y: -0.12, z: -0.5, rx: 1.45 },                    hit: { x: 0.2, y: -0.5, z: -0.7, rx: -1.05 } },
+    { side: 'R', n: 'Lateral da direita',    up: { x: 0.55, y: -0.36, ry: -0.6, rz: -1.15, rx: 0.25 },        hit: { x: 0.12, y: -0.44, ry: 0.3, rz: 0.85, rx: -0.5, z: -0.66 } },
+    { side: 'L', n: 'Lateral da esquerda',   up: { x: -0.1, y: -0.35, ry: 0.75, rz: 1.15, rx: 0.25 },         hit: { x: 0.32, y: -0.44, ry: -0.35, rz: -0.8, rx: -0.5, z: -0.66 } },
+    { side: 'C', n: 'Curto e rápido',        up: { x: 0.3, y: -0.3, rx: 0.55 },                               hit: { x: 0.22, y: -0.47, rx: -0.72, z: -0.66 }, fast: 1 },
+    { side: 'C', n: 'Pesado por cima',       up: { x: 0.26, y: -0.04, z: -0.42, rx: 1.9, rz: -0.15 },         hit: { x: 0.2, y: -0.52, z: -0.72, rx: -1.15 } },
+    { side: 'R', n: 'De baixo, da direita',  up: { x: 0.44, y: -0.58, rx: -0.25, ry: -0.3, rz: -0.75 },       hit: { x: 0.2, y: -0.44, rx: -0.62, rz: 0.5, z: -0.66 } },
+    { side: 'L', n: 'Cruzado do alto',       up: { x: -0.08, y: -0.16, rx: 1.1, ry: 0.5, rz: 0.9 },           hit: { x: 0.3, y: -0.48, rx: -0.95, ry: -0.2, rz: -0.3, z: -0.7 } },
+    { side: 'R', n: 'Alto com giro do pulso', up: { x: 0.5, y: -0.17, rx: 1.2, ry: -0.4, rz: -0.9 },          hit: { x: 0.18, y: -0.48, rx: -0.95, ry: 0.15, rz: 0.5, z: -0.7 } },
+  ],
+  // próximo golpe: gira direita -> esquerda -> por cima, sorteando dentro de cada lado sem repetir
+  nextSwing(A) {
+    const order = ['R', 'L', 'C'], side = order[(A.n || 0) % 3], opts = [];
+    this.SWINGS.forEach((w, i) => { if (w.side === side && i !== A.combo) opts.push(i); });
+    A.n = (A.n || 0) + 1;
+    return opts.length ? opts[Math.floor(Math.random() * opts.length)] : 0;
+  },
   vmPoseAt(combo, t) {
     const R = { x: 0.34, y: -0.4, z: -0.62, rx: 0, ry: -0.12, rz: 0 }, P = o => Object.assign({}, R, o);
     const sm = u => u * u * (3 - 2 * u), ein = u => u * u * u, eout = u => 1 - Math.pow(1 - u, 3);
-    const K = this._combo || (this._combo = [
-      [[0, P({})], [0.42, P({ x: 0.45, y: -0.33, rx: 0.6, rz: -0.5 }), sm], [0.58, P({ x: 0.16, y: -0.46, rx: -0.85, rz: 0.4, z: -0.68 }), ein], [0.7, P({ x: 0.18, y: -0.44, rx: -0.65, rz: 0.3 }), eout], [1, P({ x: 0.2 }), sm]],
-      [[0, P({ x: 0.2 })], [0.42, P({ x: -0.02, y: -0.33, rx: 0.6, ry: 0.4, rz: 0.6 }), sm], [0.58, P({ x: 0.3, y: -0.46, rx: -0.85, ry: -0.3, rz: -0.45, z: -0.68 }), ein], [0.7, P({ x: 0.28, y: -0.44, rx: -0.65, rz: -0.3 }), eout], [1, P({}), sm]],
-      [[0, P({})], [0.4, P({ x: 0.22, y: -0.12, z: -0.5, rx: 1.45 }), sm], [0.58, P({ x: 0.2, y: -0.5, z: -0.7, rx: -1.05 }), ein], [0.7, P({ x: 0.22, y: -0.47, rx: -0.85 }), eout], [1, P({}), sm]],
-    ]);
-    const keys = K[combo % 3];
+    if (!this._swk) this._swk = this.SWINGS.map(w => {
+      const fol = {}; for (const k in w.hit) fol[k] = w.hit[k] + ((k === 'rx' ? 0.2 : k === 'y' ? 0.02 : 0)); // pequeno recuo depois do impacto
+      const end = { x: R.x + (w.side === 'L' ? -0.08 : w.side === 'R' ? 0.04 : 0) };
+      return [[0, P({})], [w.fast ? 0.48 : 0.42, P(w.up), sm], [0.58, P(w.hit), ein], [0.7, P(fol), eout], [1, P(end), sm]];
+    });
+    const keys = this._swk[combo % this._swk.length];
     let i = 0; while (i < keys.length - 2 && t > keys[i + 1][0]) i++;
     const [t0, a] = keys[i], [t1, b, ease] = keys[i + 1], u = Math.max(0, Math.min(1, (t - t0) / (t1 - t0))), e = ease(u), o = {};
     for (const k in a) o[k] = a[k] + (b[k] - a[k]) * e;
@@ -1439,7 +1497,7 @@ const Render = {
     const P = Game.P, A = this.anim;
     const bob = P.moving ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2)) : 0;
     if (A.stop > 0) A.stop -= dt; // pausa de impacto
-    else if (A.follow > 0) { A.follow -= dt; A.t = 0.58 + (1 - Math.max(0, A.follow) / A.followDur) * 0.42; if (A.follow <= 0) A.t = 0; }
+    else if (A.follow > 0) { A.follow -= dt; A.t = 0.58 + (1 - Math.max(0, A.follow) / A.followDur) * 0.42; if (A.follow <= 0) { A.t = 0; if (A.next !== undefined) { A.combo = A.next; A.next = undefined; } } }
     else if (A.click > 0) { A.click -= dt; A.t = Math.min(0.58, A.t + dt / 0.07 * 0.22); }
     else if (Game.mineT > 0 && P.swing > 0.001) A.t = Math.min(0.575, P.swing * 0.58); // segurando: sobe devagar até o golpe
     else A.t = Math.max(0, A.t - dt * 2);
@@ -1450,10 +1508,20 @@ const Render = {
     this.applyVmPose(A.pose, bob);
     if (this.vmSleeve) {
       this.vmRig.updateMatrixWorld(true);
-      const hand = this.vmGlove.getWorldPosition(this._hv || (this._hv = new V3())), sh = this._sh || (this._sh = new V3(0.42, -0.78, 0.25));
-      const dir = (this._sd || (this._sd = new V3())).copy(sh).sub(hand).normalize(), off = 0.045, st = (this._ss || (this._ss = new V3())).copy(hand).addScaledVector(dir, off);
-      this.vmSleeve.position.copy(st); this.vmSleeve.lookAt(sh); this.vmSleeve.scale.set(1, 1, Math.max(0.1, st.distanceTo(sh)));
-      this.vmCuff.position.copy(st).addScaledVector(dir, 0.02); this.vmCuff.lookAt(sh);
+      // dois ossos (ombro -> cotovelo -> pulso): o cotovelo é calculado por IK e fica sempre virado para baixo e para fora
+      const hand = this.vmGlove.getWorldPosition(this._hv || (this._hv = new V3())), sh = this._sh || (this._sh = new V3(0.15, -0.1, -0.1));
+      const L1 = 0.3, L2 = 0.3, d0 = (this._sd || (this._sd = new V3())).copy(hand).sub(sh), d = Math.min(L1 + L2 - 0.02, Math.max(0.12, d0.length())); d0.normalize();
+      const a = (L1 * L1 - L2 * L2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, L1 * L1 - a * a));
+      const pole = (this._pl || (this._pl = new V3())).set(0.5, -0.5, -0.7).normalize(); pole.addScaledVector(d0, -pole.dot(d0)).normalize();
+      const el = (this._el || (this._el = new V3())).copy(sh).addScaledVector(d0, a).addScaledVector(pole, h);
+      const wdir = (this._wd || (this._wd = new V3())).copy(el).sub(hand).normalize(), st = (this._ss || (this._ss = new V3())).copy(hand).addScaledVector(wdir, 0.045);
+      this.vmSleeve.position.copy(st); this.vmSleeve.lookAt(el); this.vmSleeve.scale.set(1, 1, Math.max(0.05, st.distanceTo(el)));
+      this.vmUpper.position.copy(el); this.vmUpper.lookAt(sh); this.vmUpper.scale.set(1, 1, el.distanceTo(sh));
+      this.vmElbow.position.copy(el);
+      const ud = (this._ud || (this._ud = new V3())).copy(sh).sub(el).normalize();
+      this.vmFold.position.copy(el).addScaledVector(ud, 0.05); this.vmFold.lookAt((this._fl || (this._fl = new V3())).copy(this.vmFold.position).add(ud));
+      this.vmUpper.position.copy(el).addScaledVector(ud, 0.04); this.vmUpper.scale.set(1, 1, Math.max(0.05, el.distanceTo(sh) - 0.04));
+      this.vmCuff.position.copy(st).addScaledVector(wdir, 0.03); this.vmCuff.lookAt(el);
     }
     if (this.vmTorch) this.vmTorch.position.set(-0.32 - bob * 0.01, -0.36 + Math.abs(bob) * 0.012, -0.55);
     // martelo do Vale: cristais girando e brilho pulsando
@@ -1501,8 +1569,8 @@ const Render = {
     if (!this.chips) return;
     const L = Game.S.hammer, A = this.anim;
     // combo: cada golpe troca de lado; o terceiro é o golpe final, com mais partículas
-    const fin = A && A.combo % 3 === 2;
-    if (A) { A.followDur = Math.min(0.26, Math.max(0.12, Game.interval() * (o.click ? 0.3 : 0.25))); A.follow = A.followDur; A.click = 0; A.t = 0.58; A.stop = 0.03 + L / 1200 + (fin ? 0.03 : 0); A.combo = (A.combo + 1) % 3; }
+    const fin = A && this.SWINGS[A.combo % this.SWINGS.length].side === 'C';
+    if (A) { A.followDur = Math.min(0.26, Math.max(0.12, Game.interval() * (o.click ? 0.3 : 0.25))); A.follow = A.followDur; A.click = 0; A.t = 0.58; A.stop = 0.03 + L / 1200 + (fin ? 0.03 : 0); A.next = this.nextSwing(A); }
     let power = (fin ? 1.7 : 1) * (o.broke ? 2 : 1) * (o.click ? 0.85 : 1);
     // ponto do impacto: superfície da pedra virada para o jogador
     const P = Game.P, dx = P.x - n.x, dy = P.y - n.y, dd = Math.hypot(dx, dy) || 1, om = oreMul(n), r = n.r * 0.55 * om.W;

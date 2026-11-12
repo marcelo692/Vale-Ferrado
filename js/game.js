@@ -97,7 +97,7 @@ const Game = {
     this.locked = () => document.pointerLockElement === cv;
     addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
-      if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag') || (k === 't' && UI.open === 'detector')) { e.preventDefault(); UI.close(); } return; }
+      if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag') || (k === 't' && UI.open === 'detector')) { e.preventDefault(); UI.close(k === 'escape'); } return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
       this.keys[k] = true;
       if (k === 'h') this.recall();
@@ -151,10 +151,12 @@ const Game = {
   // prende o mouse usando movimento "cru" (sem aceleração do sistema), que evita giros bruscos
   lock() {
     const cv = document.getElementById('game');
+    // o navegador só deixa prender o mouse depois de um clique/tecla do jogador; se recusar, o clique na tela prende depois
+    const plain = () => { try { const q = cv.requestPointerLock(); if (q && q.catch) q.catch(() => {}); } catch (e) {} };
     try {
       const p = cv.requestPointerLock({ unadjustedMovement: true });
-      if (p && p.catch) p.catch(() => { try { cv.requestPointerLock(); } catch (e) {} });
-    } catch (e) { try { cv.requestPointerLock(); } catch (e2) {} }
+      if (p && p.catch) p.catch(plain);
+    } catch (e) { plain(); }
   },
   jump() {
     if (this.ladder) { this.ladder = null; this.P.vz = 4; this.P.z += 0.01; return; }
@@ -422,6 +424,25 @@ const Game = {
     return HAMMERS[L].mat[0] || resourceForLevel(this.S.hammer).id;
   },
   // materiais que ainda faltam (descontando depósito e mochila), na ordem: martelo, mineração, mochila, movimento, pulo
+  // tudo que as próximas evoluções pedem (martelo, atributos, itens) e o que falta de cada material
+  // total = soma do que cada evolução consome (cada compra gasta o seu), menos o que já está guardado
+  evoNeeds() {
+    const S = this.S, ups = [];
+    if (S.hammer < MAX_LEVEL) ups.push({ label: tt("Martelo"), kind: 'hammer', c: hammerCost(S.hammer + 1) });
+    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, kind: k, c: attrCost(k, S.attrs[k] + 1) });
+    for (const g of this.gadgetUps()) ups.push({ label: g.label, kind: 'gadget', c: g.c });
+    const need = new Map();
+    for (const u of ups) {
+      u.ok = S.money >= u.c.money && u.c.mats.every(m => (S.stock[m.id] || 0) >= m.qty);
+      for (const m of u.c.mats) { const e = need.get(m.id) || { id: m.id, total: 0, f: [] }; e.total += m.qty; if (!e.f.includes(u.label)) e.f.push(u.label); need.set(m.id, e); }
+    }
+    const list = [];
+    for (const e of need.values()) { e.have = S.stock[e.id] || 0; e.bag = S.bag[e.id] || 0; e.miss = Math.max(0, e.total - e.have); e.ideal = RES[e.id].ideal || 0; if (e.miss > 0) list.push(e); }
+    list.sort((a, b) => a.ideal - b.ideal || b.miss - a.miss);
+    // a "missão de evolução": o material mais barato (de nível mais baixo) que ainda falta; os do mesmo nível vão juntos
+    const tier = list.length ? list.filter(e => e.ideal === list[0].ideal) : [];
+    return { ups, list, tier, ready: ups.filter(u => u.ok).length };
+  },
   missingList() {
     const S = this.S, need = this.needs(), seen = new Set(), list = [];
     const ups = [];

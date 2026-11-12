@@ -112,6 +112,7 @@ const Missions = {
     // segredo do fim do jogo: a Picareta 61 leva até a Zona 7
     if (S.hammer >= 61 && !S.seal) return { t: tt("Vá até a Zona 7, a Sudeste, e rompa a Pedra Selada"), cur: 0, max: 1, reward: 0, target: { x: Z7.at(-8, 0).x, y: Z7.at(-8, 0).y, label: tt("Zona 7"), always: true } };
     if (S.mi < MISSION_CHAIN.length) { const m = MISSION_CHAIN[S.mi]; return { n: S.mi + 1, of: MISSION_CHAIN.length, t: m.t, d: m.d, cur: Math.max(0, Math.min(m.max, m.cur(S.mb))), max: m.max, reward: m.reward, target: m.target() }; }
+    if (!S.rot.length) this.fill();
     const m = S.rot[0]; if (!m) return null;
     const T = ROT_TYPES[m.type];
     return { t: T.t(m), cur: Math.max(0, Math.min(m.max, T.cur(m, m.base))), max: m.max, reward: m.reward, target: T.target ? T.target(m) : null };
@@ -163,12 +164,24 @@ const Missions = {
       for (const m of S.rot) { const T = ROT_TYPES[m.type], c = Math.max(0, Math.min(m.max, T.cur(m, m.base))); h += `<li class="cur"><b>▶</b><div><span>${T.t(m)}</span><i class="mpb"><em style="width:${c / m.max * 100}%"></em></i><small>${fmt(c)} / ${fmt(m.max)}</small></div><strong>+${fmt(m.reward)}</strong></li>`; }
       h += `</ul>`;
     }
+    // evoluções: o que cada próxima compra pede, com a foto de cada material
+    const E = Game.evoNeeds();
+    if (E.tier.length) h += tt("<h3 class=\"evoh\">⚒ Missão de evolução</h3><p class=\"hint\">Comece pelo material mais barato que falta; os outros vêm junto.</p>") + '<ul class="evo">' + E.tier.map(e => `<li>${UI.ico(e.id, 28)}<b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)} / ${fmt(e.total)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span></li>`).join('') + '</ul>';
+    if (E.ups.length) {
+      h += tt("<h3 class=\"evoh\">Próximas evoluções</h3>") + '<div class="evotab">';
+      for (const u of E.ups) {
+        h += `<div class="evu ${u.ok ? 'ok' : ''}"><b>${u.ok ? '✔ ' : ''}${u.label}</b><span class="${S.money >= u.c.money ? 'g' : 'r'}"><i class="coin"></i>${fmt(u.c.money)}</span>` +
+          u.c.mats.map(m => { const hv = S.stock[m.id] || 0; return `<span class="${hv >= m.qty ? 'g' : 'r'}" title="${RES[m.id].name}">${UI.ico(m.id, 22)}${fmt(Math.min(hv, m.qty))}/${fmt(m.qty)}</span>`; }).join('') + '</div>';
+      }
+      h += '</div>';
+    }
     h += tt("<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Continuar</button></div></div>");
     $('panel').innerHTML = h; $('panel').classList.remove('hidden');
   },
   // HUD da missão atual
   hud() {
     const el = $('mission'); if (!el) return;
+    el.style.display = 'none'; return; // a missão agora aparece no painel da direita (UI.updateInvHud)
     const c = this.current();
     if (!c || UI.open) { el.style.display = 'none'; return; }
     el.style.display = 'block';

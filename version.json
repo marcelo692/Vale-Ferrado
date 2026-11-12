@@ -1,11 +1,11 @@
 {
-  "version": "3.6.0",
+  "version": "3.7.0",
   "date": "2026-11-11",
   "notes": [
-    "Desempenho: chão distante só até a neblina, árvores em blocos desenhados só perto, minérios com 3 níveis de detalhe (completo, médio e simplificado)",
-    "Peças paradas da vila, Zona 7, nuvens e NPCs juntadas: cerca de 3 vezes menos pedidos de desenho e 5 vezes menos triângulos",
-    "Lanternas e drones removidos (quem comprou recebe as moedas de volta); noite um pouco mais clara",
-    "Luzes do ovo, picareta 61, impacto e porta da Zona 7 viraram brilho falso; resolução limitada a 1,5x; sombra menor e só perto do jogador; modo Leve com neblina mais perto"
+    "Painel da direita sempre mostra a missão do jogo e a missão de evolução (material mais barato que falta), com miniaturas dos materiais",
+    "Botão Missões e evoluções na tela e tela J com o que cada evolução pede",
+    "Braço com cotovelo e 10 golpes diferentes alternando direita, esquerda e por cima",
+    "Corrigido erro do mouse (Pointer Lock) ao apertar ESC"
   ],
   "files": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "path": "index.html",
-      "size": 32777
+      "size": 35085
     },
     {
       "path": "js/audio.js",
@@ -34,7 +34,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 53578
+      "size": 55238
     },
     {
       "path": "js/i18n.js",
@@ -42,19 +42,19 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 53555
+      "size": 53886
     },
     {
       "path": "js/lang/es.js",
-      "size": 55329
+      "size": 55705
     },
     {
       "path": "js/lang/tr.js",
-      "size": 54846
+      "size": 55209
     },
     {
       "path": "js/missions.js",
-      "size": 16956
+      "size": 18197
     },
     {
       "path": "js/platform.js",
@@ -62,7 +62,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 188324
+      "size": 194887
     },
     {
       "path": "js/robots.js",
@@ -70,7 +70,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 33970
+      "size": 34435
     },
     {
       "path": "js/updater.js",
@@ -98,7 +98,7 @@
     },
     {
       "path": "version.json",
-      "size": 1595
+      "size": 2105
     }
   ]
 }

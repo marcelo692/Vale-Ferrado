@@ -48,7 +48,7 @@ const UI = {
     $('panel').classList.remove('hidden');
     this.renderPanel();
   },
-  close() { if (this.open) Snd.close(); this.open = null; $('panel').classList.add('hidden'); Game.lock(); },
+  close(noLock) { if (this.open) Snd.close(); this.open = null; $('panel').classList.add('hidden'); if (!noLock) Game.lock(); },
 
   renderPanel() {
     const S = Game.S, id = this.open;
@@ -233,42 +233,35 @@ const UI = {
   },
 
   // ---------- tabela lateral: próximas evoluções e materiais guardados ----------
+  // miniatura do material (foto); se não der para gerar, uma bolinha na cor dele
+  ico(id, px = 18) { const u = Render.resIcon(id); return u ? `<img class="ri" src="${u}" width="${px}" height="${px}" alt="">` : `<i class="rd" style="background:${RES[id].c2};width:${px * 0.5}px;height:${px * 0.5}px"></i>`; },
+  // painel da direita: sempre mostra a missão do jogo e a missão de evolução (I mostra/esconde os detalhes)
   updateInvHud() {
     const el = $('inv'), S = Game.S;
-    if (!S.showInv) { el.style.display = 'none'; return; }
+    if (UI.open) { el.style.display = 'none'; return; }
     el.style.display = 'block';
-    const rows = [];
-    const bv = Game.bagValue();
-    let html = Object.keys(S.bag).length ? tt("<div class=\"bagv\"><span>🎒 Mochila vale</span><b><i class=\"coin\"></i>{0}</b>{1}</div>", fmt(bv.money), bv.mission ? tt("<small>📜 {0} para a missão</small>", fmt(bv.mission)) : '') : '';
-    if (Robots.list.length) {
-      const carrying = Robots.list.reduce((a, r) => a + r.n, 0);
-      html += tt("<div class=\"bagv\"><span>{0}</span>{1}</div>", Robots.list.length > 1 ? tt("🤖 {0} robôs minerando", Robots.list.length) : tt("🤖 1 robô minerando"), carrying ? tt("<small>trazendo {0}</small>", fmt(carrying)) : '');
-    }
-    // "Falta minerar": um material por linha, com o que ele destrava (martelo e melhorias)
-    const okOf = c => { let st = S.money >= c.money ? 2 : 0; for (const m of c.mats) { const have = S.stock[m.id] || 0, bag = S.bag[m.id] || 0; st = Math.min(st, have >= m.qty ? 2 : have + bag >= m.qty ? 1 : 0); } return st; };
-    const ups = [];
-    if (S.hammer < MAX_LEVEL) ups.push({ label: tt("Martelo"), c: hammerCost(S.hammer + 1) });
-    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, c: attrCost(k, S.attrs[k] + 1) });
-    for (const g of Game.gadgetUps()) ups.push({ label: g.label, c: g.c });
-    const need = new Map(); let ready = 0;
-    for (const u of ups) {
-      if (okOf(u.c) === 2) { ready++; continue; }
-      for (const m of u.c.mats) {
-        const have = S.stock[m.id] || 0; if (have >= m.qty) continue;
-        const e = need.get(m.id) || { id: m.id, q: 0, f: [] };
-        e.q = Math.max(e.q, m.qty); if (!e.f.includes(u.label)) e.f.push(u.label); need.set(m.id, e);
+    let html = '';
+    const c = Missions.current();
+    if (c) html += `<div class="ih">📜 ${c.n ? tt("Missão {0}/{1}", c.n, c.of) : tt("Missão")}${c.reward ? `<small class="rw"><i class="coin"></i>+${fmt(c.reward)}</small>` : ''}</div><div class="mt">${c.t}</div>${c.max > 1 ? `<i class="mpb"><em style="width:${c.cur / c.max * 100}%"></em></i><div class="mc">${fmt(c.cur)} / ${fmt(c.max)}</div>` : ''}`;
+    const E = Game.evoNeeds();
+    if (E.tier.length) {
+      const sum = E.tier.reduce((a, e) => a + e.miss, 0);
+      html += `<div class="ih">${tt("⚒ Evolução")}<small>${tt("faltam {0}", fmt(sum))}</small></div>`;
+      for (const e of E.tier.slice(0, 3)) {
+        const st = e.have + e.bag >= e.total ? 1 : 0;
+        html += `<div class="nr s${st}">${this.ico(e.id, 26)}<b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)}/${fmt(e.total)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span><small>${e.f.slice(0, 3).join(', ')}${e.f.length > 3 ? ' +' + (e.f.length - 3) : ''}</small></div>`;
       }
+      if (E.tier.every(e => e.have + e.bag >= e.total)) html += tt("<div class=\"leg\"><span class=\"s1\">● Falta só entregar: volte à cidade</span></div>");
     }
-    const list = [...need.values()].map(e => { const bag = S.bag[e.id] || 0, have = S.stock[e.id] || 0; return Object.assign(e, { have, bag, st: have + bag >= e.q ? 1 : 0 }); }).sort((x, y) => x.st - y.st);
-    if (list.length) {
-      html += tt("<div class=\"ih\">Falta minerar <kbd>I</kbd></div>");
-      for (const e of list.slice(0, 6)) {
-        html += `<div class="nr s${e.st}"><i style="background:${RES[e.id].c2}"></i><b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)}/${fmt(e.q)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span><small>${e.f.slice(0, 2).join(', ')}${e.f.length > 2 ? '…' : ''}</small></div>`;
-      }
-      if (list.length > 6) html += tt("<div class=\"leg\"><span>+{0} materiais (Tab)</span></div>", list.length - 6);
-      if (list.every(e => e.st === 1)) html += tt("<div class=\"leg\"><span class=\"s1\">● Falta só entregar: volte à cidade</span></div>");
+    if (S.showInv) {
+      const rest = E.list.filter(e => !E.tier.includes(e));
+      if (rest.length) html += `<div class="ih sm">${tt("Depois")}</div><div class="nx">` + rest.slice(0, 8).map(e => `<span title="${RES[e.id].name}">${this.ico(e.id, 20)}${fmt(e.miss)}</span>`).join('') + (rest.length > 8 ? `<span>+${rest.length - 8}</span>` : '') + '</div>';
+      const bv = Game.bagValue();
+      if (Object.keys(S.bag).length) html += tt("<div class=\"bagv\"><span>🎒 Mochila vale</span><b><i class=\"coin\"></i>{0}</b>{1}</div>", fmt(bv.money), bv.mission ? tt("<small>📜 {0} para a missão</small>", fmt(bv.mission)) : '');
+      if (Robots.list.length) { const carrying = Robots.list.reduce((a, r) => a + r.n, 0); html += tt("<div class=\"bagv\"><span>{0}</span>{1}</div>", Robots.list.length > 1 ? tt("🤖 {0} robôs minerando", Robots.list.length) : tt("🤖 1 robô minerando"), carrying ? tt("<small>trazendo {0}</small>", fmt(carrying)) : ''); }
     }
-    if (ready) html += tt("<div class=\"leg\"><span class=\"s2\">{0}</span></div>", ready > 1 ? tt("✔ {0} melhorias prontas para comprar", ready) : tt("✔ 1 melhoria pronta para comprar"));
+    if (E.ready) html += tt("<div class=\"leg\"><span class=\"s2\">{0}</span></div>", E.ready > 1 ? tt("✔ {0} melhorias prontas para comprar", E.ready) : tt("✔ 1 melhoria pronta para comprar"));
+    html += `<div class="leg ft"><span><kbd>J</kbd> ${tt("todas as missões")}</span><span><kbd>I</kbd> ${S.showInv ? tt("menos") : tt("mais")}</span></div>`;
     if (html !== this.invHtml) { el.innerHTML = html; this.invHtml = html; }
   },
   // ---------- recibo do Seu Lauro (o que foi guardado e o que foi vendido) ----------
@@ -366,6 +359,7 @@ const UI = {
     this.updateDetectorHud();
     this.updateInvHud();
     Missions.hud();
+    { const mb = $('missbtn'); if (mb && !mb.dataset.t) { mb.dataset.t = 1; mb.innerHTML = tt("📜 Missões e evoluções") + ' <kbd>J</kbd>'; } if (mb) mb.style.display = !document.pointerLockElement && !this.open && typeof started !== 'undefined' && started ? 'block' : 'none'; }
     { const rb = $('recall'), ok = S.hammer >= RECALL_LVL && !G.inCity && !G.travel && !this.open;
       rb.style.display = ok ? 'inline-flex' : 'none';
       if (ok) { const c = G.recallCost(); $('recallc').innerHTML = `<i class="coin"></i>${fmt(c)}`; rb.classList.toggle('off', S.money < c); }
