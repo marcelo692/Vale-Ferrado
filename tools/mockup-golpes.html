@@ -56,7 +56,7 @@ input[type=range] { width: 100%; accent-color: var(--gold); }
     <div class="chips" id="swings"></div>
     <div class="chips">
       <label><input type="radio" name="seq" id="seqOne" value="one"><span>Repetir este</span></label>
-      <label><input type="radio" name="seq" id="seqMix" value="mix" checked><span>Alternar lados (como no jogo)</span></label>
+      <label><input type="radio" name="seq" id="seqMix" value="mix" checked><span>Alternar 10 → 9 → 7 (aprovados)</span></label>
     </div>
   </div>
   <div class="box">
@@ -128,7 +128,7 @@ function start() {
   shoulder.add(cyl(0.064, 0.056, L1, shirt));
   const elbow = new THREE.Group(); elbow.position.z = -L1; shoulder.add(elbow);
   const ej = new THREE.Mesh(new THREE.SphereGeometry(0.052, 16, 12), skin); elbow.add(ej);
-  const roll = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.016, 8, 18), cuffM); roll.position.z = 0.045; elbow.add(roll); // barra da manga logo acima do cotovelo
+  const roll = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.013, 8, 20), cuffM); roll.position.z = -L1 + 0.05; shoulder.add(roll); // barra da manga arregaçada, presa no braço (não gira com o antebraço)
   elbow.add(cyl(0.047, 0.035, L2, skin));
   const wrist = new THREE.Group(); wrist.position.z = -L2; wrist.rotation.order = 'XZY'; elbow.add(wrist);
   const fist = new THREE.Mesh(new THREE.SphereGeometry(0.048, 16, 12), glove); fist.scale.set(1.05, 0.95, 1.2); wrist.add(fist);
@@ -150,9 +150,9 @@ function start() {
     { n: 'Lateral da direita', side: 'R', up: add(B.upR, { sp: -0.3, sy: -0.25, sr: 0.25 }), hit: B.hitR },
     { n: 'Lateral da esquerda', side: 'L', up: add(B.upL, { sp: -0.28, sy: 0.22, sr: -0.2 }), hit: B.hitL },
     { n: 'Curto e rápido', side: 'C', fast: 1, up: mix(B.rest, B.upC, 0.55), hit: B.hit },
-    { n: 'Pesado por cima', side: 'C', heavy: 1, up: add(B.upC, { sp: 0.22, ef: 0.35, wp: -0.15 }), hit: add(B.hit, { ef: -0.08, wp: -0.1 }) },
+    { n: 'Pesado por cima', side: 'C', heavy: 1, up: add(B.upC, { sp: 0.22, ef: 0.35, wp: -0.515 }), hit: add(B.hit, { ef: -0.08, wp: -0.1 }) },
     { n: 'De baixo, da direita', side: 'R', up: add(B.rest, { sp: -0.25, sy: -0.4, ef: 0.25 }), hit: B.hitR },
-    { n: 'Cruzado do alto', side: 'L', up: add(mix(B.upL, B.upC, 0.5), { sp: 0.18, ef: 0.15 }), hit: B.hitR },
+    { n: 'Cruzado do alto', side: 'L', up: add(mix(B.upL, B.upC, 0.5), { sp: 0.18, ef: 0.15, wp: -0.51 }), hit: B.hitR },
     { n: 'Alto com giro do pulso', side: 'R', up: add(B.upR, { sp: 0.15, wr: -0.55 }), hit: B.hitL },
   ];
   const lerpPose = (a, b, u) => { const o = {}; for (const k in REST) o[k] = a[k] + (b[k] - a[k]) * u; return o; };
@@ -162,7 +162,7 @@ function start() {
 
   // ---------------- martelo ----------------
   let L = 20, ham = null, scaleMode = 'new';
-  const hamScale = l => scaleMode === 'new' ? (0.3 + (l - 1) / 60 * 0.22) * ((l >= 31 && l !== 60) ? 0.85 : 1) : 0.42 - l * 0.0035;
+  const hamScale = l => scaleMode === 'new' ? (0.3 + (l - 1) / 60 * 0.22) * ((l >= 31 && l !== 60) ? 0.74 : 1) : 0.42 - l * 0.0035;
   function setHammer(l) {
     L = l; if (ham) { grip.remove(ham); }
     ham = Render.hammerInHand(l); ham.scale.setScalar(hamScale(l));
@@ -170,7 +170,7 @@ function start() {
     ham.traverse(m => { m.layers.enable(1); }); grip.add(ham);
     // a mão segura mais embaixo nos cabos compridos: a cabeça fica sempre à mesma distância do punho,
     // então todo martelo/picareta acerta o mesmo ponto da pedra, só que maior
-    if (ham.userData.head) { grip.updateWorldMatrix(true, true); const hp = grip.worldToLocal(ham.userData.head.getWorldPosition(new V3())), want = hp.clone().setLength(0.3); ham.position.sub(hp.sub(want)); }
+    if (ham.userData.head) { grip.updateWorldMatrix(true, true); const hp = grip.worldToLocal(ham.userData.head.getWorldPosition(new V3())), want = hp.clone().setLength(0.3); if (hp.length() > 0.3) ham.position.sub(hp.sub(want)); else if (hp.length() < 0.24) ham.scale.multiplyScalar(0.24 / hp.length()); } // cabos curtos ficam na mão; só os compridos deslizam
     document.getElementById('lvN').textContent = l;
     document.getElementById('lvName').textContent = (HAMMERS[l] && HAMMERS[l].n) || '';
   }
@@ -222,8 +222,8 @@ function start() {
   const total = sw => durs(sw).reduce((x, y) => x + y, 0);
   function nextSwing() {
     if (seq === 'one') return;
-    const order = ['R', 'L', 'C'], want = order[sideN++ % 3], opts = SW.map((w, i) => i).filter(i => SW[i].side === want && i !== cur);
-    selectSwing(opts[Math.floor(Math.random() * opts.length)], true);
+    const ROT = [9, 8, 6]; // aprovados: alto com giro (direita), cruzado do alto (esquerda), pesado por cima
+    selectSwing(ROT[sideN++ % ROT.length], true);
   }
 
   // ---------------- interface ----------------
@@ -247,7 +247,7 @@ function start() {
   function size() { for (const [r, el, cam] of [[renderer, vFp, fp], [r2, vSide, side]]) { const w = el.clientWidth, h = el.clientHeight; r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); } }
   addEventListener('resize', size); size();
 
-  setHammer(20); selectSwing(2, true);
+  setHammer(20); selectSwing(9, true);
   let last = performance.now();
   function loop(now) {
     let dt = Math.min(0.05, (now - last) / 1000); last = now;

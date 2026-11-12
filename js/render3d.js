@@ -1411,75 +1411,43 @@ const Render = {
     const sig = L + '|' + gear.glove.era + '|' + gear.glove.lvl + '|' + Game.S.gear.light + Game.S.lightOn;
     if (this.sig.vm === sig) return; this.sig.vm = sig;
     this.vm.clear();
-    const arm = new THREE.Group();
-    const G = gear.glove, gs = 0.075 + G.era * 0.008;
+    // braço articulado: ombro -> cotovelo -> pulso (o ombro fica um pouco à frente da câmera, truque de FPS, para o cotovelo aparecer)
+    const G = gear.glove, L1 = 0.29, L2 = 0.27;
+    const cyl = (r1, r2, len, m) => { const g = new THREE.CylinderGeometry(r2, r1, len, 16, 1); g.rotateX(-Math.PI / 2); g.translate(0, 0, -len / 2); return mesh(g, m, false); };
+    const shirt = new THREE.MeshLambertMaterial({ color: '#2c4f68' }), skin = new THREE.MeshLambertMaterial({ color: '#d9a27a' }), rollM = new THREE.MeshLambertMaterial({ color: '#24425a' });
     const gmat = mat(G.col, G.era === 6 ? { emissive: '#40d0ff', emissiveIntensity: 0.25 } : {});
-    // punho arredondado + polegar, para parecer uma mão fechada no cabo (e não uma caixa)
-    const glove = mesh(new THREE.SphereGeometry(gs * 0.78, 12, 9), gmat, false); glove.scale.set(1.05, 0.95, 1.2); glove.position.z = -0.02; arm.add(glove); this.vmGlove = glove;
-    const thumb = mesh(new THREE.SphereGeometry(gs * 0.3, 8, 6), gmat, false); thumb.scale.set(0.9, 0.9, 1.5); thumb.position.set(-gs * 0.62, gs * 0.18, -gs * 0.25); glove.add(thumb);
-    if (G.era >= 4) { const brace = mesh(new THREE.BoxGeometry(0.13, 0.13, 0.16), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 }), false); brace.position.z = 0.12; arm.add(brace); }
-    if (G.era >= 5) { const pis = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6), mat('#d8dde2', { shininess: 80 }), false); pis.rotation.x = Math.PI / 2; pis.position.set(0.07, 0.05, 0.2); arm.add(pis); }
-    const ham = this.hammerInHand(L);
-    ham.scale.setScalar(0.42 - L * 0.0035);
-    ham.position.set(0, -0.06, 0); ham.rotation.set(-0.45, 0, 0.32);
-    // braço e luva um pouco menores para não tampar a pedra
-    for (const c of arm.children) { c.scale.multiplyScalar(0.62); c.position.multiplyScalar(0.62); }
-    arm.add(ham); this.vmHam = ham;
-    this.vmRig = new THREE.Group(); this.vmRig.add(arm);
-    this.vmArm = arm; this.vm.add(this.vmRig);
-    // manga: sempre liga a mão ao ombro (fora da tela, embaixo à direita), assim o braço nunca parece cortado
-    // (afinada no pulso, mais larga no ombro; começa depois do punho, com um punho de manga)
-    const slMat = new THREE.MeshLambertMaterial({ color: '#2c4f68', side: THREE.DoubleSide });          // manga da camisa (braço)
-    const skin = new THREE.MeshLambertMaterial({ color: '#d9a27a', side: THREE.DoubleSide });            // antebraço com a manga arregaçada
-    const fg = new THREE.CylinderGeometry(0.046, 0.034, 1, 16, 1, true); fg.rotateX(Math.PI / 2); fg.translate(0, 0, 0.5);   // antebraço: fino no pulso
-    const ug = new THREE.CylinderGeometry(0.066, 0.056, 1, 16, 1, true); ug.rotateX(Math.PI / 2); ug.translate(0, 0, 0.5);     // braço: mais grosso no ombro
-    this.vmSleeve = mesh(fg, skin, false); this.vm.add(this.vmSleeve);
-    this.vmUpper = mesh(ug, slMat, false); this.vm.add(this.vmUpper);
-    this.vmElbow = mesh(new THREE.SphereGeometry(0.05, 16, 12), skin, false); this.vm.add(this.vmElbow);
-    this.vmFold = mesh(new THREE.TorusGeometry(0.06, 0.018, 8, 18), new THREE.MeshLambertMaterial({ color: '#24425a' }), false); // barra da manga arregaçada logo acima do cotovelo this.vm.add(this.vmFold);
-    const cg = new THREE.CylinderGeometry(0.043, 0.04, 0.035, 14); cg.rotateX(Math.PI / 2);
-    this.vmCuff = mesh(cg, mat('#5a3d24'), false); this.vm.add(this.vmCuff);
-    // ajusta o braço para a batida cair um pouco abaixo da mira
-    const hp = new V3(); this.vmCam.updateMatrixWorld(true);
-    this.applyVmPose(this.vmPoseAt(0, 0.58));
-    for (let it = 0; it < 8; it++) { this.vmRig.updateMatrixWorld(true); ham.userData.head.getWorldPosition(hp); hp.project(this.vmCam); this.vmRig.position.y += (-0.28 - hp.y) * 0.25; this.vmRig.position.x += (0.1 - hp.x) * 0.3; }
-    this.vmTorch = null;
-    if (false) {
-      const t = new THREE.Group();
-      const hand = mesh(new THREE.BoxGeometry(0.09, 0.08, 0.11), mat(G.col), false); t.add(hand);
-      const tor = this.makeTorch(); tor.position.z = -0.1; tor.scale.setScalar(0.9); t.add(tor);
-      t.position.set(-0.32, -0.36, -0.55); t.rotation.set(0.05, 0.1, 0);
-      this.vm.add(t); this.vmTorch = t;
-    }
+    const shoulder = new THREE.Group(); shoulder.position.set(0.36, -0.2, -0.25); shoulder.rotation.order = 'YXZ'; this.vm.add(shoulder);
+    shoulder.add(cyl(0.064, 0.056, L1, shirt));
+    const roll = mesh(new THREE.TorusGeometry(0.058, 0.013, 8, 20), rollM, false); roll.position.z = -L1 + 0.05; shoulder.add(roll); // manga arregaçada
+    const elbow = new THREE.Group(); elbow.position.z = -L1; shoulder.add(elbow);
+    elbow.add(mesh(new THREE.SphereGeometry(0.052, 16, 12), skin, false));
+    elbow.add(cyl(0.047, 0.035, L2, skin));
+    const wrist = new THREE.Group(); wrist.position.z = -L2; wrist.rotation.order = 'XZY'; elbow.add(wrist);
+    const glove = mesh(new THREE.SphereGeometry(0.048, 16, 12), gmat, false); glove.scale.set(1.05, 0.95, 1.2); wrist.add(glove); this.vmGlove = glove;
+    const gcuff = mesh(new THREE.CylinderGeometry(0.043, 0.04, 0.035, 14).rotateX(Math.PI / 2), gmat, false); gcuff.position.z = 0.04; wrist.add(gcuff);
+    if (G.era >= 4) { const brace = mesh(new THREE.BoxGeometry(0.09, 0.09, 0.1), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 }), false); brace.position.z = 0.09; wrist.add(brace); }
+    if (G.era >= 5) { const pis = mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 6), mat('#d8dde2', { shininess: 80 }), false); pis.rotation.x = Math.PI / 2; pis.position.set(0.05, 0.04, 0.14); wrist.add(pis); }
+    // martelo/picareta: cresce com o nível; nos cabos compridos a mão segura mais embaixo, para todos acertarem o mesmo ponto
+    const ham = this.hammerInHand(L), sc = (0.3 + (L - 1) / 60 * 0.22) * ((L >= 31 && L !== 60) ? 0.74 : 1);
+    ham.scale.setScalar(sc); ham.rotation.set(-0.15, 0, 0); ham.position.set(0, -0.03, 0); wrist.add(ham); this.vmHam = ham;
+    if (ham.userData.head) { wrist.updateWorldMatrix(true, true); const hp = wrist.worldToLocal(ham.userData.head.getWorldPosition(new V3())); if (hp.length() > 0.3) ham.position.sub(hp.sub(hp.clone().setLength(0.3))); else if (hp.length() < 0.24) ham.scale.multiplyScalar(0.24 / hp.length()); } // curtos crescem até alcançar
+    this.vmShoulder = shoulder; this.vmElbowG = elbow; this.vmWrist = wrist;
+    this.vmSleeve = null; this.vmTorch = null;
   },
-  // ---------- 10 golpes diferentes, alternando lados (direita, esquerda, por cima) ----------
-  // cada golpe: repouso -> carga (0.42) -> impacto (0.58) -> acompanhamento (0.7) -> volta (1)
+  // ---------- golpes aprovados: alternam direita -> esquerda -> por cima ----------
+  // sp: ombro levanta  sy: ombro gira  sr: ombro inclina  ef: cotovelo dobra  wp: pulso para trás/frente  wr: pulso gira
+  VM_REST: { sp: -0.244, sy: -0.325, sr: 1.093, ef: 0.894, wp: 0.524, wr: -0.736 },
   SWINGS: [
-    { side: 'R', n: 'Diagonal da direita',   up: { x: 0.45, y: -0.33, rx: 0.6, rz: -0.5 },                    hit: { x: 0.16, y: -0.46, rx: -0.85, rz: 0.4, z: -0.68 } },
-    { side: 'L', n: 'Diagonal da esquerda',  up: { x: -0.02, y: -0.33, rx: 0.6, ry: 0.4, rz: 0.6 },           hit: { x: 0.3, y: -0.46, rx: -0.85, ry: -0.3, rz: -0.45, z: -0.68 } },
-    { side: 'C', n: 'Por cima',              up: { x: 0.22, y: -0.12, z: -0.5, rx: 1.45 },                    hit: { x: 0.2, y: -0.5, z: -0.7, rx: -1.05 } },
-    { side: 'R', n: 'Lateral da direita',    up: { x: 0.55, y: -0.36, ry: -0.6, rz: -1.15, rx: 0.25 },        hit: { x: 0.12, y: -0.44, ry: 0.3, rz: 0.85, rx: -0.5, z: -0.66 } },
-    { side: 'L', n: 'Lateral da esquerda',   up: { x: -0.1, y: -0.35, ry: 0.75, rz: 1.15, rx: 0.25 },         hit: { x: 0.32, y: -0.44, ry: -0.35, rz: -0.8, rx: -0.5, z: -0.66 } },
-    { side: 'C', n: 'Curto e rápido',        up: { x: 0.3, y: -0.3, rx: 0.55 },                               hit: { x: 0.22, y: -0.47, rx: -0.72, z: -0.66 }, fast: 1 },
-    { side: 'C', n: 'Pesado por cima',       up: { x: 0.26, y: -0.04, z: -0.42, rx: 1.9, rz: -0.15 },         hit: { x: 0.2, y: -0.52, z: -0.72, rx: -1.15 } },
-    { side: 'R', n: 'De baixo, da direita',  up: { x: 0.44, y: -0.58, rx: -0.25, ry: -0.3, rz: -0.75 },       hit: { x: 0.2, y: -0.44, rx: -0.62, rz: 0.5, z: -0.66 } },
-    { side: 'L', n: 'Cruzado do alto',       up: { x: -0.08, y: -0.16, rx: 1.1, ry: 0.5, rz: 0.9 },           hit: { x: 0.3, y: -0.48, rx: -0.95, ry: -0.2, rz: -0.3, z: -0.7 } },
-    { side: 'R', n: 'Alto com giro do pulso', up: { x: 0.5, y: -0.17, rx: 1.2, ry: -0.4, rz: -0.9 },          hit: { x: 0.18, y: -0.48, rx: -0.95, ry: 0.15, rz: 0.5, z: -0.7 } },
+    { side: 'R', n: 'Alto com giro do pulso', up: { sp: 0.304, sy: -0.376, sr: 0.299, ef: 1.496, wp: -0.035, wr: -0.543 }, hit: { sp: -0.307, sy: 0.299, sr: 0.701, ef: 0.343, wp: 0.434, wr: -0.016 } },
+    { side: 'L', n: 'Cruzado do alto', up: { sp: 0.261, sy: 0.071, sr: 0.551, ef: 1.694, wp: -1.1, wr: 0.309 }, hit: { sp: -0.246, sy: 0.074, sr: 1.037, ef: 0.488, wp: -0.226, wr: 0.01 } },
+    { side: 'C', n: 'Pesado por cima', up: { sp: 0.349, sy: -0.231, sr: 0.534, ef: 1.947, wp: -1.15, wr: 0.089 }, hit: { sp: -0.274, sy: 0.189, sr: 0.67, ef: 0.173, wp: -0.121, wr: 0.169 } },
   ],
-  // próximo golpe: gira direita -> esquerda -> por cima, sorteando dentro de cada lado sem repetir
-  nextSwing(A) {
-    const order = ['R', 'L', 'C'], side = order[(A.n || 0) % 3], opts = [];
-    this.SWINGS.forEach((w, i) => { if (w.side === side && i !== A.combo) opts.push(i); });
-    A.n = (A.n || 0) + 1;
-    return opts.length ? opts[Math.floor(Math.random() * opts.length)] : 0;
-  },
+  nextSwing(A) { A.n = (A.n || 0) + 1; return A.n % this.SWINGS.length; },
   vmPoseAt(combo, t) {
-    const R = { x: 0.34, y: -0.4, z: -0.62, rx: 0, ry: -0.12, rz: 0 }, P = o => Object.assign({}, R, o);
-    const sm = u => u * u * (3 - 2 * u), ein = u => u * u * u, eout = u => 1 - Math.pow(1 - u, 3);
+    const R = this.VM_REST, sm = u => u * u * (3 - 2 * u), ein = u => u * u * u, eout = u => 1 - Math.pow(1 - u, 3);
     if (!this._swk) this._swk = this.SWINGS.map(w => {
-      const fol = {}; for (const k in w.hit) fol[k] = w.hit[k] + ((k === 'rx' ? 0.2 : k === 'y' ? 0.02 : 0)); // pequeno recuo depois do impacto
-      const end = { x: R.x + (w.side === 'L' ? -0.08 : w.side === 'R' ? 0.04 : 0) };
-      return [[0, P({})], [w.fast ? 0.48 : 0.42, P(w.up), sm], [0.58, P(w.hit), ein], [0.7, P(fol), eout], [1, P(end), sm]];
+      const fol = Object.assign({}, w.hit, { ef: w.hit.ef + 0.12, wp: w.hit.wp + 0.15, sp: w.hit.sp + 0.05 });
+      return [[0, R], [0.42, w.up, sm], [0.58, w.hit, ein], [0.7, fol, eout], [1, R, sm]];
     });
     const keys = this._swk[combo % this._swk.length];
     let i = 0; while (i < keys.length - 2 && t > keys[i + 1][0]) i++;
@@ -1488,8 +1456,9 @@ const Render = {
     return o;
   },
   applyVmPose(p, bob = 0) {
-    this.vmArm.position.set(p.x + bob * 0.012, p.y + Math.abs(bob) * 0.015, p.z);
-    this.vmArm.rotation.set(p.rx, p.ry, p.rz + bob * 0.03);
+    if (!this.vmShoulder) return;
+    this.vmShoulder.position.set(0.36 + bob * 0.006, -0.2 + Math.abs(bob) * 0.008, -0.25);
+    this.vmShoulder.rotation.set(p.sp, p.sy, p.sr + bob * 0.02); this.vmElbowG.rotation.x = p.ef; this.vmWrist.rotation.set(p.wp, 0, p.wr);
   },
   clickSwing() { const A = this.anim; if (!A) return; A.click = 0.07; A.follow = 0; if (A.t < 0.36 || A.t > 0.58) A.t = 0.36; },
   updateViewModel(dt) {
@@ -1506,23 +1475,6 @@ const Render = {
     const k = A.follow > 0 || A.click > 0 ? 1 : Math.min(1, dt * 18);
     for (const key in want) A.pose[key] += (want[key] - A.pose[key]) * k;
     this.applyVmPose(A.pose, bob);
-    if (this.vmSleeve) {
-      this.vmRig.updateMatrixWorld(true);
-      // dois ossos (ombro -> cotovelo -> pulso): o cotovelo é calculado por IK e fica sempre virado para baixo e para fora
-      const hand = this.vmGlove.getWorldPosition(this._hv || (this._hv = new V3())), sh = this._sh || (this._sh = new V3(0.15, -0.1, -0.1));
-      const L1 = 0.3, L2 = 0.3, d0 = (this._sd || (this._sd = new V3())).copy(hand).sub(sh), d = Math.min(L1 + L2 - 0.02, Math.max(0.12, d0.length())); d0.normalize();
-      const a = (L1 * L1 - L2 * L2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, L1 * L1 - a * a));
-      const pole = (this._pl || (this._pl = new V3())).set(0.5, -0.5, -0.7).normalize(); pole.addScaledVector(d0, -pole.dot(d0)).normalize();
-      const el = (this._el || (this._el = new V3())).copy(sh).addScaledVector(d0, a).addScaledVector(pole, h);
-      const wdir = (this._wd || (this._wd = new V3())).copy(el).sub(hand).normalize(), st = (this._ss || (this._ss = new V3())).copy(hand).addScaledVector(wdir, 0.045);
-      this.vmSleeve.position.copy(st); this.vmSleeve.lookAt(el); this.vmSleeve.scale.set(1, 1, Math.max(0.05, st.distanceTo(el)));
-      this.vmUpper.position.copy(el); this.vmUpper.lookAt(sh); this.vmUpper.scale.set(1, 1, el.distanceTo(sh));
-      this.vmElbow.position.copy(el);
-      const ud = (this._ud || (this._ud = new V3())).copy(sh).sub(el).normalize();
-      this.vmFold.position.copy(el).addScaledVector(ud, 0.05); this.vmFold.lookAt((this._fl || (this._fl = new V3())).copy(this.vmFold.position).add(ud));
-      this.vmUpper.position.copy(el).addScaledVector(ud, 0.04); this.vmUpper.scale.set(1, 1, Math.max(0.05, el.distanceTo(sh) - 0.04));
-      this.vmCuff.position.copy(st).addScaledVector(wdir, 0.03); this.vmCuff.lookAt(el);
-    }
     if (this.vmTorch) this.vmTorch.position.set(-0.32 - bob * 0.01, -0.36 + Math.abs(bob) * 0.012, -0.55);
     // martelo do Vale: cristais girando e brilho pulsando
     const u = this.vmHam && this.vmHam.userData;

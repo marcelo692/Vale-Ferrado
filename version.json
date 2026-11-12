@@ -1,11 +1,9 @@
 {
-  "version": "3.7.0",
-  "date": "2026-11-11",
+  "version": "3.7.2",
+  "date": "2026-11-12",
   "notes": [
-    "Painel da direita sempre mostra a missão do jogo e a missão de evolução (material mais barato que falta), com miniaturas dos materiais",
-    "Botão Missões e evoluções na tela e tela J com o que cada evolução pede",
-    "Braço com cotovelo e 10 golpes diferentes alternando direita, esquerda e por cima",
-    "Corrigido erro do mouse (Pointer Lock) ao apertar ESC"
+    "Braço novo com ombro, cotovelo e pulso; golpes aprovados alternando (alto com giro, cruzado do alto, pesado por cima)",
+    "Martelos e picaretas crescem com o nível (a Picareta 61 ficou grande); cabos longos são segurados mais embaixo e os curtos ficam na mão"
   ],
   "files": [
     {
@@ -62,7 +60,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 194887
+      "size": 190754
     },
     {
       "path": "js/robots.js",
@@ -98,7 +96,7 @@
     },
     {
       "path": "version.json",
-      "size": 2105
+      "size": 1905
     }
   ]
 }
