@@ -92,6 +92,7 @@ const Render = {
     this.buildRoadsAndRiver();
     this.buildObstacles();
     this.buildPitWalls();
+    this.buildSpiralWalls(); this.buildCave(); this.buildMineDecor();
     this.buildClimbFx();
     this.buildDecor(); this.buildOreLod(); this.buildEdgeRange(); this.buildBirds();
     this.buildGrass();
@@ -195,6 +196,11 @@ const Render = {
     if (el > -0.04) { this.lightDir = this.sunDir; this.sun.intensity = 1.05 * df; this.sun.color.copy(L('#ff9a50', '#fff1d6', Math.min(1, el * 4))); }
     else { this.lightDir = moon; this.sun.intensity = 0.38 * (1 - df); this.sun.color.set('#a8bcff'); }
     this.cloudMat.color.copy(L('#2a3048', '#ffffff', df)); this.cloudMat.emissive.copy(L('#0a0e18', '#c8d4e0', df)).lerp(new THREE.Color('#e08860'), dusk * 0.4);
+    // dentro da caverna (Mina Velha): tudo escurece e a neblina fica marrom e perto; os lampiões fazem o resto
+    { const P = Game.P, inC = World.ceilingAt(P.x, P.y) !== null && World.height(P.x, P.y) + P.z < -0.5 ? 1 : 0; this.caveK = (this.caveK || 0) + (inC - (this.caveK || 0)) * 0.06;
+      // serra da borda: azulada pela distância (perspectiva aérea), sem virar recorte de papel
+      if (this.edgeRange) this.edgeRange.material.color.set('#3f4e60').lerp(this.scene.fog.color, 0.3);
+      const k = this.caveK; if (k > 0.01) { this.hemi.intensity *= 1 - 0.7 * k; this.sun.intensity *= 1 - 0.85 * k; this.scene.fog.color.lerp(new THREE.Color('#1a120c'), k); this.scene.fog.near *= 1 - 0.7 * k; this.scene.fog.far = this.scene.fog.far * (1 - k) + 75 * k; } }
     for (const m of this.ring.children) m.material.color.copy(m.userData.base).lerp(new THREE.Color('#0d1322'), (1 - df) * 0.85).lerp(new THREE.Color('#c07858'), dusk * 0.25);
     const night = 1 - df;
     this.lampMat.color.copy(L('#555555', '#ffd890', night));
@@ -819,7 +825,7 @@ const Render = {
     this.buildMineRoads();
     // riacho no Leste
     const R = REGIONS[1], pts = [];
-    for (let d = R.dMin - 10; d <= R.dMax + 10; d += 3) { const p = Math.sin(d / 37) * 30 + Math.sin(d / 13) * 6; pts.push([R.ux * d + R.vx * p, R.uy * d + R.vy * p]); }
+    for (let d = R.dMin - 10; d <= R.dMax + 10; d += 3) { const p = riverP(d); pts.push([R.ux * d + R.vx * p, R.uy * d + R.vy * p]); }
     const pos = [], idx = [];
     pts.forEach((p, i) => {
       const q = pts[Math.min(pts.length - 1, i + 1)], o = pts[Math.max(0, i - 1)];
@@ -878,13 +884,119 @@ const Render = {
       for (let k = 0; k <= 10; k++) {
         const b = R.dMin + L * k / 10, half = World.pitHalf(R, b), g = PIT_RW / 2 + 1.2, hp = -half / 2;
         // com rampa no meio, a parede vira duas (uma de cada lado da rampa)
-        const both = (d, top, bot) => { if (P.ramp && k < 10) { wall(d, 1, -half, -g, top, bot); wall(d, 1, g, half, top, bot); } else wall(d, 1, -half, half, top, bot); };
+        // valão: a parede fica do lado de cima (antes da divisa); planalto: do lado de cima também (depois da divisa)
+        const fs = P.up, both = (d, a, c) => { const top = Math.max(a, c), bot = Math.min(a, c); if (P.ramp && k < 10) { wall(d, fs, -half, -g, top, bot); wall(d, fs, g, half, top, bot); } else wall(d, fs, -half, half, top, bot); };
         const H = (dd, pp) => World.height(R.ux * dd + R.vx * pp, R.uy * dd + R.vy * pp);
-        if (k === 0) both(b + 0.05, H(b - 2, hp) + 0.2, H(b + 1.5, hp));
+        if (k === 0) both(b + 0.05 * fs, H(b - 2, hp) + 0.2, H(b + 1.5, hp));
         else if (k < 10) both(b, H(b - 1.2, hp), H(b + 1, hp));
-        else wall(b + 2.2, 1, -half, half, H(b + 3, 0) + 0.2, H(b - 1.5, 0));
+        else { const a = H(b + 3, 0), c = H(b - 1.5, 0); wall(fs > 0 ? b + 2.2 : b - 2.2, fs, -half, half, Math.max(a, c) + 0.2, Math.min(a, c)); }
       }
     }
+  },
+  // ---------- paredes da mina em espiral (Serra dos Cristais) ----------
+  buildSpiralWalls() {
+    const R = REGIONS[5], S = R.spiral; if (!S) return;
+    const tex = this.fossilTex(R); tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    const m = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+    const pos = [], uv = [], idx = []; let base = 0;
+    for (let n = -1; n < S.turns; n++) {
+      const N = 120;
+      for (let i = 0; i <= N; i++) {
+        const f = i / N, a = S.a0 + f * Math.PI * 2, r = S.R0 - S.W * (n + 1 + f), x = S.cx + Math.cos(a) * r, y = S.cy + Math.sin(a) * r;
+        const top = n < 0 ? World.height(x + Math.cos(a) * 1.2, y + Math.sin(a) * 1.2) + 0.3 : -S.H * (n + f) + 0.3, bot = -Math.min(S.H * S.turns, S.H * (n + 1 + f)) - 0.5;
+        pos.push(x, top, y, x, bot, y); const u = f * r * Math.PI * 2 / 9; uv.push(u, top / 9, u, bot / 9);
+        if (i < N) idx.push(base + i * 2, base + i * 2 + 1, base + i * 2 + 2, base + i * 2 + 1, base + i * 2 + 3, base + i * 2 + 2);
+      }
+      base += (N + 1) * 2;
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+    const w = new THREE.Mesh(g, m); w.receiveShadow = true; this.scene.add(w); this.spiralWalls = w;
+  },
+  // ---------- teto da Mina Velha (caverna), lampiões, trilhos e estalactites ----------
+  buildCave() {
+    const R = REGIONS[3]; if (!R.pit) return;
+    const G = new THREE.Group(); this.scene.add(G); this.cave = G;
+    const L = R.pitL, d0 = R.dMin + L * 0.1, d1 = R.dMax - 3, rock = new THREE.MeshLambertMaterial({ color: '#4a3a2e', flatShading: true });
+    const rot = -Math.atan2(R.uy, R.ux), seg = 25, r = rng(303);
+    for (let d = d0; d < d1; d += seg) {
+      const dd = Math.min(seg, d1 - d), dc = d + dd / 2, half = World.pitHalf(R, dc) + 3;
+      // laje do teto: um pouco irregular por cima, com estalactites embaixo
+      const slab = mesh(jitterGeo(new THREE.BoxGeometry(dd + 0.6, 3, half * 2, 3, 1, 4), 0.5, d), rock); slab.position.set(R.ux * dc, -0.2 + 1.5, R.uy * dc); slab.rotation.y = rot; G.add(slab);
+      for (let i = 0; i < 7; i++) { const p = (r() - 0.5) * half * 1.7, dl = d + r() * dd, h = 0.8 + r() * 2.2; const st = mesh(new THREE.ConeGeometry(0.25 + r() * 0.4, h, 6), rock, false); st.rotation.x = Math.PI; st.position.set(R.ux * dl + R.vx * p, -0.2 - h / 2, R.uy * dl + R.vy * p); G.add(st); }
+    }
+    // boca da mina: escoramento de madeira (pilares + viga) logo na entrada, e vigas em cada laje lá dentro
+    { const wood = mat('#5a3e26'), dark = mat('#3e2a18');
+      for (let d = d0; d < d1; d += seg) {
+        const half = World.pitHalf(R, d) - 1.2, entry = d === d0, step = entry ? 7 : half;
+        for (let p = -half; p <= half + 0.01; p += step) {
+          const x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y), top = -0.2, len = top - h;
+          if (len < 1) continue;
+          const post = mesh(new THREE.BoxGeometry(0.45, len, 0.45), wood); post.position.set(x, h + len / 2, y); post.rotation.y = rot; G.add(post);
+        }
+        const beam = mesh(new THREE.BoxGeometry(0.5, 0.55, half * 2 + 1), entry ? wood : dark); beam.position.set(R.ux * d, -0.2 - 0.27, R.uy * d); beam.rotation.y = rot; G.add(beam);
+      }
+      const brow = mesh(jitterGeo(new THREE.BoxGeometry(4, 5, (World.pitHalf(R, d0) + 4) * 2, 2, 3, 8), 0.9, 77), rock); brow.position.set(R.ux * (d0 - 1), 2, R.uy * (d0 - 1)); brow.rotation.y = rot; G.add(brow); }
+    // lampiões nas paredes (brilho falso, sem luz real) e trilho no meio
+    const lampMat = new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#ffb050', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 });
+    const rail = mat('#6a6a70', { shininess: 60 }), sleeper = mat('#4a3424');
+    for (let d = R.dMin + 6; d < R.dMax - 4; d += 14) {
+      const half = World.pitHalf(R, d) - 0.6;
+      for (const sd of [-1, 1]) { const x = R.ux * d + R.vx * half * sd, y = R.uy * d + R.vy * half * sd, h = World.height(R.ux * d + R.vx * (half - 2) * sd, R.uy * d + R.vy * (half - 2) * sd);
+        const box = mesh(new THREE.BoxGeometry(0.22, 0.32, 0.22), mat('#2a2a2a'), false); box.position.set(x, h + 2.4, y); G.add(box);
+        const gl = new THREE.Sprite(lampMat); gl.scale.setScalar(2.6); gl.position.set(x, h + 2.4, y); G.add(gl); }
+    }
+    for (let d = R.dMin + 2; d < R.dMax - 2; d += 1.6) {
+      const p = 9, x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y);
+      const sl = mesh(new THREE.BoxGeometry(0.3, 0.08, 1.5), sleeper, false); sl.position.set(x, h + 0.04, y); sl.rotation.y = rot; G.add(sl);
+    }
+    for (const off of [-0.5, 0.5]) { const pts = []; for (let d = R.dMin + 2; d < R.dMax - 2; d += 4) { const p = 9 + off, x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p; pts.push(new V3(x, World.height(x, y) + 0.12, y)); } const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 0.04, 4), rail); G.add(tube); }
+    this.mergeStatic(G, true);
+  },
+  // ---------- enfeites de cada região: ruínas no planalto, cristais na espiral, blocos na pedreira, seixos no riacho ----------
+  buildMineDecor() {
+    const G = new THREE.Group(); this.scene.add(G); this.mineDecor = G; const r = rng(808);
+    // Vila em Ruínas (planalto): muros quebrados, colunas e arcos nas laterais de cada patamar
+    { const R = REGIONS[2], stone = new THREE.MeshLambertMaterial({ color: '#b0a088', flatShading: true }), moss = new THREE.MeshLambertMaterial({ color: '#6a7a4a', flatShading: true }), rot = -Math.atan2(R.uy, R.ux);
+      for (let k = 0; k < 10; k++) for (const sd of [-1, 1]) {
+        const d = R.dMin + R.pitL * (k + 0.2 + r() * 0.6), half = World.pitHalf(R, d), p = sd * (half - 4 - r() * 6), x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y);
+        const kind = r();
+        if (kind < 0.5) { // pedaço de muro com o topo quebrado
+          const len = 4 + r() * 6, wall = new THREE.Group();
+          for (let i = 0; i < len / 0.8; i++) { const hh = 0.6 + r() * 2.4 * (1 - Math.abs(i / (len / 0.8) - 0.5)); const b = mesh(jitterGeo(new THREE.BoxGeometry(0.78, hh, 0.7), 0.08, i + k * 9), stone); b.position.set(i * 0.8 - len / 2, hh / 2, 0); wall.add(b); if (r() < 0.3) { const mo = mesh(new THREE.BoxGeometry(0.8, 0.1, 0.72), moss, false); mo.position.set(i * 0.8 - len / 2, hh + 0.04, 0); wall.add(mo); } }
+          wall.position.set(x, h, y); wall.rotation.y = rot + Math.PI / 2 + (r() - 0.5) * 0.4; G.add(wall);
+        } else if (kind < 0.8) { // coluna (às vezes caída)
+          const fallen = r() < 0.4, c = mesh(new THREE.CylinderGeometry(0.35, 0.4, 3.4, 10), stone); if (fallen) { c.rotation.z = Math.PI / 2; c.position.set(x, h + 0.38, y); c.rotation.y = r() * 3; } else c.position.set(x, h + 1.7, y); G.add(c);
+          const cap = mesh(new THREE.BoxGeometry(1, 0.3, 1), stone); cap.position.set(x + (fallen ? 2 : 0), h + (fallen ? 0.15 : 3.5), y); G.add(cap);
+        } else { // arco
+          const arch = new THREE.Group(); for (const ax of [-1.4, 1.4]) { const pl = mesh(new THREE.BoxGeometry(0.7, 3, 0.7), stone); pl.position.set(ax, 1.5, 0); arch.add(pl); }
+          const top = mesh(new THREE.TorusGeometry(1.4, 0.35, 6, 10, Math.PI), stone); top.position.y = 3; arch.add(top); arch.position.set(x, h, y); arch.rotation.y = rot + (r() - 0.5); G.add(arch);
+        }
+      } }
+    // Serra dos Cristais (espiral): cristais nas paredes e na rampa, mais e maiores conforme desce
+    { const R = REGIONS[5], S = R.spiral; if (S) {
+      const cg = new THREE.OctahedronGeometry(1, 0); cg.scale(0.35, 1.4, 0.35);
+      const N = 520, cm = new THREE.InstancedMesh(cg, new THREE.MeshLambertMaterial({ emissive: '#3a2a6a', emissiveIntensity: 0.6 }), N), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color(), e = new THREE.Euler();
+      const pal = ['#b89cff', '#7ad8ff', '#ff9ad8', '#c8ffe8'];
+      let i = 0;
+      while (i < N) {
+        const tot = Math.pow(r(), 0.7) * S.turns, f = tot - Math.floor(tot), a = S.a0 + f * Math.PI * 2, rr = S.R0 - S.W * (Math.floor(tot) + 1 + f) + 0.6 + r() * 1.5;
+        const x = S.cx + Math.cos(a) * rr, y = S.cy + Math.sin(a) * rr, h = World.height(x, y), k = 0.5 + tot / S.turns * 1.6;
+        for (let c = 0; c < 3 && i < N; c++, i++) { e.set((r() - 0.5) * 0.9, r() * 6, (r() - 0.5) * 0.9 + (c - 1) * 0.4); q.setFromEuler(e); const sc = k * (0.6 + r() * 0.8); sv.set(sc, sc, sc); pv.set(x + (r() - 0.5), h + sc * 0.6 + r() * 2, y + (r() - 0.5)); m4.compose(pv, q, sv); cm.setMatrixAt(i, m4); col.set(pal[Math.floor(r() * 4)]); cm.setColorAt(i, col); }
+      }
+      cm.frustumCulled = false; G.add(cm); this.crystalDeco = cm;
+    } }
+    // Pedreira Funda: blocos cortados empilhados perto das paredes de cada bancada
+    { const R = REGIONS[4], cut = [new THREE.MeshLambertMaterial({ color: '#b8b6b0' }), new THREE.MeshLambertMaterial({ color: '#a29f99' }), new THREE.MeshLambertMaterial({ color: '#c9c6bf' })];
+      for (let k = 0; k < 10; k++) for (let j = 0; j < 3; j++) {
+        const d = R.dMin + R.pitL * (k + 0.15 + r() * 0.7), half = World.pitHalf(R, d), p = (r() < 0.5 ? -1 : 1) * (half - 3 - r() * 4), x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y);
+        const n = 2 + Math.floor(r() * 4); for (let b = 0; b < n; b++) { const bl = mesh(new THREE.BoxGeometry(1.6, 0.9, 1.1), cut[b % 3]); bl.position.set(x + (b % 2) * 1.7 - 0.8, h + 0.45 + Math.floor(b / 2) * 0.9, y + (r() - 0.5) * 0.3); bl.rotation.y = r() * 0.3; G.add(bl); }
+      } }
+    // Riacho das Pedras: seixos arredondados nas margens
+    { const R = REGIONS[1], N = 900, pg = new THREE.SphereGeometry(1, 8, 6), pm = new THREE.InstancedMesh(pg, new THREE.MeshLambertMaterial({ flatShading: false }), N), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color();
+      for (let i = 0; i < N; i++) { const d = R.dMin - 30 + r() * (R.dMax - R.dMin + 60), side = r() < 0.5 ? -1 : 1, p = riverP(d) + side * (2.8 + r() * 6), x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, s = 0.15 + r() * 0.45;
+        q.setFromAxisAngle(new V3(0, 1, 0), r() * 6); sv.set(s * 1.3, s * 0.6, s); pv.set(x, World.height(x, y) + s * 0.2, y); m4.compose(pv, q, sv); pm.setMatrixAt(i, m4); col.setHSL(0.08, 0.06, 0.45 + r() * 0.25); pm.setColorAt(i, col); }
+      pm.frustumCulled = false; G.add(pm); }
+    this.mergeStatic(G, true);
   },
   // ---------- escadas, camas elásticas, corda do gancho ----------
   buildClimbFx() {
@@ -948,6 +1060,16 @@ const Render = {
         if (o.type === 'tronco') {
           const t = mesh(new THREE.CylinderGeometry(o.h / 2, o.h / 2 * 1.05, L + 0.25, 9), mat(i % 2 ? '#6b4a2e' : '#5f4228')); t.rotation.x = Math.PI / 2; t.position.y = o.h / 2 - 0.05; seg.add(t);
           if (i % 3 === 1) { const knot = mesh(new THREE.CylinderGeometry(o.h * 0.12, o.h * 0.15, o.h * 0.35, 6), mat('#4e3420')); knot.position.set(0, o.h * 0.95, 0); seg.add(knot); }
+        } else if (o.type === 'pedra') {
+          // matacões arredondados de tamanhos diferentes (parece pedra rolada do rio, não um muro)
+          const rr = rng(i * 31 + Math.round(o.dc));
+          for (let k = 0; k < 2; k++) {
+            const hh = o.h * (k ? 0.55 + rr() * 0.25 : 0.9 + rr() * 0.15), rad = Math.max(hh * 0.62, Math.min(L * 0.62, o.t * 0.62));
+            const gb = jitterGeo(new THREE.IcosahedronGeometry(1, 1), 0.12, i * 13 + k * 5 + o.h * 50);
+            const b = mesh(gb, mat(['#7d7a70', '#6f6c63', '#8a867a'][(i + k) % 3])); b.scale.set(rad * (0.9 + rr() * 0.2), hh * 0.6 + sink * 0.5, rad * (0.85 + rr() * 0.25));
+            b.position.set((rr() - 0.5) * o.t * 0.4, hh * 0.45 - sink * 0.3, (k ? 0.5 - rr() : 0) * L * 0.6); b.rotation.y = rr() * 6; b.castShadow = true; seg.add(b);
+          }
+          if (i % 2 === 0) { const moss = mesh(new THREE.SphereGeometry(0.35, 6, 4), mat('#5d7a36')); moss.scale.set(1.4, 0.3, 1.1); moss.position.set(0, o.h * 0.98, 0); seg.add(moss); }
         } else {
           const tall = o.h + sink;
           const geo = jitterGeo(new THREE.BoxGeometry(o.t, tall, L + 0.15, 2, 2, 2), o.type === 'muro' ? 0.1 : 0.35, i * 7 + o.h * 100);
@@ -1016,6 +1138,8 @@ const Render = {
     if (!this.decoChunks) return;
     const P = Game.P, fwd = this.cam.getWorldDirection(this._fwd || (this._fwd = new V3())), view = this.scene.fog.far + 30, R = 142;
     const shadows = this.quality !== 'leve';
+    if (this.crystalDeco) { const S = REGIONS[5].spiral; this.crystalDeco.visible = Math.hypot(P.x - S.cx, P.y - S.cy) < S.R0 + view; }
+    if (this.cave) { const R = REGIONS[3], d = P.x * R.ux + P.y * R.uy; this.cave.visible = d > R.dMin - view - 50 && d < R.dMax + view && Math.abs(P.x * R.vx + P.y * R.vy) < 200 + view; }
     if (this.z7) this.z7.visible = Math.hypot(P.x - Z7.x, P.y - Z7.y) < view + 120; // Zona 7 só quando está perto
     for (const ch of this.decoChunks) {
       const dx = ch.x - P.x, dy = ch.y - P.y, d = Math.hypot(dx, dy), ahead = dx * fwd.x + dy * fwd.z;
@@ -1032,12 +1156,12 @@ const Render = {
   // serra em volta do mapa: avisa que o mundo acaba (só aparece quando você chega perto da borda)
   buildEdgeRange() {
     const g = jitterGeo(new THREE.ConeGeometry(1, 1, 7, 3), 0.18, 31); g.translate(0, 0.5, 0);
-    const N = 150, m = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ flatShading: true }), N * 2), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), c = new THREE.Color(), r = rng(404);
+    const N = 150, m = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ flatShading: true, fog: false }), N * 2), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), c = new THREE.Color(), r = rng(404);
     let i = 0;
     for (let k = 0; k < N; k++) for (const ring of [4420, 4560]) {
-      const a = k / N * Math.PI * 2 + r() * 0.02, rad = ring + r() * 60, x = Math.cos(a) * rad, y = Math.sin(a) * rad, h = (ring > 4500 ? 160 : 95) + r() * 90, w = 110 + r() * 60;
+      const a = k / N * Math.PI * 2 + r() * 0.02, rad = ring + r() * 60, x = Math.cos(a) * rad, y = Math.sin(a) * rad, h = (ring > 4500 ? 150 : 85) + r() * 80, w = 170 + r() * 90;
       q.setFromAxisAngle(new V3(0, 1, 0), r() * 6); pv.set(x, World.height(x, y) - 4, y); sv.set(w, h, w * (0.8 + r() * 0.4)); m4.compose(pv, q, sv); m.setMatrixAt(i, m4);
-      c.setHSL(0.3 - r() * 0.2, 0.12, 0.32 + r() * 0.1); m.setColorAt(i, c); i++;
+      c.setHSL(0.55 + r() * 0.06, 0.08, 0.6 + r() * 0.15); m.setColorAt(i, c); i++;
     }
     m.frustumCulled = false; m.receiveShadow = false; this.scene.add(m); this.edgeRange = m;
   },

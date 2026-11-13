@@ -13,7 +13,7 @@ const REGIONS = [
   { id: 2, era: 3, name: tt("Vila em Ruínas"),         dir: tt("Sul"),      ang: 90,   dMin: 400,  dMax: 800,  jMin: 2,   jMax: 3.5, ground: ['#8a7356', '#97805f', '#7a654b'], obstacle: 'muro' },
   { id: 3, era: 4, name: tt("Mina Velha"),             dir: tt("Oeste"),    ang: 180,  dMin: 800,  dMax: 1500, jMin: 3.5, jMax: 5,   ground: ['#5a4636', '#4d3b2d', '#66503e'], obstacle: 'trilho' },
   { id: 4, era: 5, name: tt("Pedreira Funda"),         dir: tt("Noroeste"), ang: -135, dMin: 1500, dMax: 2500, jMin: 5,   jMax: 8,   ground: ['#8d8b86', '#9a9893', '#7e7c77'], obstacle: 'bancada' },
-  { id: 5, era: 6, name: tt("Serra dos Cristais"),     dir: tt("Nordeste"), ang: -45,  dMin: 2500, dMax: 4000, jMin: 8,   jMax: 12,  ground: ['#4a4560', '#56506e', '#3f3b52'], obstacle: 'penhasco' },
+  { id: 5, era: 6, name: tt("Serra dos Cristais"),     dir: tt("Nordeste"), ang: -45,  dMin: 2500, dMax: 2900, jMin: 8,   jMax: 12,  ground: ['#4a4560', '#56506e', '#3f3b52'], obstacle: 'penhasco' },
 ];
 
 // ---------- Recursos ----------
