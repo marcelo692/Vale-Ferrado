@@ -1,10 +1,9 @@
 {
-  "version": "3.9.1",
+  "version": "3.9.2",
   "date": "2026-11-13",
   "notes": [
-    "Mina Velha: o teto de pedra agora é sólido e acompanha o chão (não dá mais para entrar pela fresta lateral, cair através dele ou subir por dentro com gancho/escada); dá para pular e andar em cima",
-    "Pedras não nascem mais uma dentro da outra nem dentro do rio",
-    "Save antigo de antes das missões com martelo alto não trava mais ao abrir; save estragado volta ao padrão em vez de travar"
+    "Serra dos Cristais: tapada a valeta na borda da espiral (perto do começo da rampa) onde dava para ficar preso",
+    "Pedras não nascem mais grudadas umas nas outras, nem na divisa entre trechos"
   ],
   "files": [
     {
@@ -81,7 +80,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 26436
+      "size": 27014
     },
     {
       "path": "js/zone7.js",
@@ -97,7 +96,7 @@
     },
     {
       "path": "version.json",
-      "size": 1947
+      "size": 1935
     }
   ]
 }
