@@ -74,6 +74,7 @@ const Missions = {
     S.stats = Object.assign({ mined: {}, clicks: 0, sales: 0, hops: 0, powers: 0, veios: 0, peaks: 0, far: 0 }, S.stats || {});
     S.stats.mined = S.stats.mined || {};
     S.ms = S.ms || {};
+    if (!Array.isArray(S.rot)) S.rot = []; // antes da corrente: save antigo que já passou de todas as missões usa a rotação na hora
     // quem já jogava antes das missões começa a corrente onde faz sentido
     if (S.mi === undefined) {
       S.mi = 0;

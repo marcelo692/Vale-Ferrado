@@ -88,7 +88,7 @@ const World = {
     this.buildMountains(rand);
     this.fitObstacles();
     // remove pontos de spawn dentro de obstáculos e nas montanhas (montanha só tem recurso raro)
-    for (const s of this.subs) if (!s.mountain) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p - o.pc) < o.len / 2 + 2) && this.mountainH(pt.x, pt.y) < 2 && this.pitSpawnOk(s.R, pt));
+    for (const s of this.subs) if (!s.mountain) s.spawnPts = s.spawnPts.filter(pt => !this.obstacles.some(o => o.R === s.R && Math.abs(pt.d - o.dc) < o.t / 2 + 2.5 && Math.abs(pt.p - o.pc) < o.len / 2 + 2) && this.mountainH(pt.x, pt.y) < 2 && this.pitSpawnOk(s.R, pt) && !(s.R.terrain === 'valley' && Math.abs(pt.p - riverP(pt.d)) < 5));
     for (const s of this.subs) for (let i = 0; i < s.maxNodes; i++) this.spawn(s);
   },
 
@@ -158,7 +158,10 @@ const World = {
   spawn(sub, forceRes) {
     const free = sub.spawnPts.filter(p => !p.used);
     if (!free.length) return false;
-    const pt = free[Math.floor(Math.random() * free.length)];
+    // escolhe um ponto livre que não fique colado em outra pedra (senão elas nascem uma dentro da outra)
+    let pt = null;
+    for (let t = 0; t < 14 && !pt; t++) { const c = free[Math.floor(Math.random() * free.length)]; if (!sub.nodes.some(n => Math.hypot(n.x - c.x, n.y - c.y) < n.r + 2.6)) pt = c; }
+    if (!pt) pt = free[Math.floor(Math.random() * free.length)];
     let res = forceRes || (sub.mountain && sub.mountain.special);
     if (!res) {
       const ws = this.weights(sub);
@@ -414,11 +417,24 @@ const World = {
 
     // cor do chão (biome)
   // teto da Mina Velha (caverna): altura do teto ou null se não há teto aqui
+  // teto da Mina Velha em lajes de 25 m; cada laje fica logo abaixo do chão mais baixo da beirada daquele trecho (sem fresta dos lados)
+  CAVE_SEG: 25,
+  caveSegs() {
+    const R = REGIONS[3]; if (!R.pit) return null;
+    if (R.caveSegs) return R.caveSegs;
+    const d0 = R.dMin + R.pitL * 0.1, d1 = R.dMax - 3, segs = [];
+    for (let d = d0; d < d1; d += this.CAVE_SEG) {
+      const e = Math.min(d + this.CAVE_SEG, d1); let mn = Infinity;
+      for (let dd = d - 1; dd <= e + 1; dd += 2) { const h = this.pitHalf(R, dd); for (const sd of [-1, 1]) for (const o of [4, 6, 9]) mn = Math.min(mn, this.height(R.ux * dd + R.vx * (h + o) * sd, R.uy * dd + R.vy * (h + o) * sd)); }
+      segs.push({ d0: d, d1: e, c: mn - 0.2 });
+    }
+    return (R.caveSegs = segs);
+  },
   ceilingAt(x, y) {
     const R = REGIONS[3]; if (!R.pit) return null;
-    const d = x * R.ux + y * R.uy; if (d < R.dMin + R.pitL * 0.1 || d > R.dMax - 3) return null;
-    const p = x * R.vx + y * R.vy; if (Math.abs(p) > this.pitHalf(R, d) + 1) return null;
-    return -0.2; // a laje do teto fica rente ao chão de fora
+    const segs = this.caveSegs(), d = x * R.ux + y * R.uy; if (d < segs[0].d0 || d >= segs[segs.length - 1].d1) return null;
+    const p = x * R.vx + y * R.vy; if (Math.abs(p) > this.pitHalf(R, d) + 3) return null; // mesma largura da laje desenhada
+    return segs[Math.min(segs.length - 1, Math.floor((d - segs[0].d0) / this.CAVE_SEG))].c;
   },
   // chão de pedra (sem capim): corredor das minas a partir da 3ª região
   groundRocky(x, y) { const g = this.groundAt(x, y); if (!g || g.edge !== 1) return false; if (g.R.terrain === 'valley') { const pa = this.pitAt(x, y); return pa.valley !== undefined && pa.valley < 9; } return g.R.id >= 2 && g.R.terrain !== 'mesa'; },

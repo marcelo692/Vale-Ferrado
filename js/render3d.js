@@ -197,7 +197,7 @@ const Render = {
     else { this.lightDir = moon; this.sun.intensity = 0.38 * (1 - df); this.sun.color.set('#a8bcff'); }
     this.cloudMat.color.copy(L('#2a3048', '#ffffff', df)); this.cloudMat.emissive.copy(L('#0a0e18', '#c8d4e0', df)).lerp(new THREE.Color('#e08860'), dusk * 0.4);
     // dentro da caverna (Mina Velha): tudo escurece e a neblina fica marrom e perto; os lampiões fazem o resto
-    { const P = Game.P, inC = World.ceilingAt(P.x, P.y) !== null && World.height(P.x, P.y) + P.z < -0.5 ? 1 : 0; this.caveK = (this.caveK || 0) + (inC - (this.caveK || 0)) * 0.06;
+    { const P = Game.P, cC = World.ceilingAt(P.x, P.y), inC = cC !== null && World.height(P.x, P.y) + P.z < cC - 0.5 ? 1 : 0; this.caveK = (this.caveK || 0) + (inC - (this.caveK || 0)) * 0.06;
       // serra da borda: azulada pela distância (perspectiva aérea), sem virar recorte de papel
       if (this.edgeRange) this.edgeRange.material.color.set('#3f4e60').lerp(this.scene.fog.color, 0.3);
       const k = this.caveK; if (k > 0.01) { this.hemi.intensity *= 1 - 0.7 * k; this.sun.intensity *= 1 - 0.85 * k; this.scene.fog.color.lerp(new THREE.Color('#1a120c'), k); this.scene.fog.near *= 1 - 0.7 * k; this.scene.fog.far = this.scene.fog.far * (1 - k) + 75 * k; } }
@@ -916,26 +916,26 @@ const Render = {
   buildCave() {
     const R = REGIONS[3]; if (!R.pit) return;
     const G = new THREE.Group(); this.scene.add(G); this.cave = G;
-    const L = R.pitL, d0 = R.dMin + L * 0.1, d1 = R.dMax - 3, rock = new THREE.MeshLambertMaterial({ color: '#4a3a2e', flatShading: true });
-    const rot = -Math.atan2(R.uy, R.ux), seg = 25, r = rng(303);
-    for (let d = d0; d < d1; d += seg) {
-      const dd = Math.min(seg, d1 - d), dc = d + dd / 2, half = World.pitHalf(R, dc) + 3;
+    const segs = World.caveSegs(), d0 = segs[0].d0, rock = new THREE.MeshLambertMaterial({ color: '#4a3a2e', flatShading: true });
+    const rot = -Math.atan2(R.uy, R.ux), r = rng(303);
+    for (const sg of segs) {
+      const d = sg.d0, dd = sg.d1 - sg.d0, dc = d + dd / 2, half = World.pitHalf(R, dc) + 3, c = sg.c;
       // laje do teto: um pouco irregular por cima, com estalactites embaixo
-      const slab = mesh(jitterGeo(new THREE.BoxGeometry(dd + 0.6, 3, half * 2, 3, 1, 4), 0.5, d), rock); slab.position.set(R.ux * dc, -0.2 + 1.5, R.uy * dc); slab.rotation.y = rot; G.add(slab);
-      for (let i = 0; i < 7; i++) { const p = (r() - 0.5) * half * 1.7, dl = d + r() * dd, h = 0.8 + r() * 2.2; const st = mesh(new THREE.ConeGeometry(0.25 + r() * 0.4, h, 6), rock, false); st.rotation.x = Math.PI; st.position.set(R.ux * dl + R.vx * p, -0.2 - h / 2, R.uy * dl + R.vy * p); G.add(st); }
+      const slab = mesh(jitterGeo(new THREE.BoxGeometry(dd + 0.6, 3, half * 2, 3, 1, 4), 0.5, d), rock); slab.position.set(R.ux * dc, c + 1.5, R.uy * dc); slab.rotation.y = rot; G.add(slab);
+      for (let i = 0; i < 7; i++) { const p = (r() - 0.5) * half * 1.7, dl = d + r() * dd, h = 0.8 + r() * 2.2; const st = mesh(new THREE.ConeGeometry(0.25 + r() * 0.4, h, 6), rock, false); st.rotation.x = Math.PI; st.position.set(R.ux * dl + R.vx * p, c - h / 2, R.uy * dl + R.vy * p); G.add(st); }
     }
     // boca da mina: escoramento de madeira (pilares + viga) logo na entrada, e vigas em cada laje lá dentro
     { const wood = mat('#5a3e26'), dark = mat('#3e2a18');
-      for (let d = d0; d < d1; d += seg) {
-        const half = World.pitHalf(R, d) - 1.2, entry = d === d0, step = entry ? 7 : half;
+      for (const sg of segs) {
+        const d = sg.d0, half = World.pitHalf(R, d) - 1.2, entry = d === d0, step = entry ? 7 : half, top = sg.c;
         for (let p = -half; p <= half + 0.01; p += step) {
-          const x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y), top = -0.2, len = top - h;
+          const x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y), len = top - h;
           if (len < 1) continue;
           const post = mesh(new THREE.BoxGeometry(0.45, len, 0.45), wood); post.position.set(x, h + len / 2, y); post.rotation.y = rot; G.add(post);
         }
-        const beam = mesh(new THREE.BoxGeometry(0.5, 0.55, half * 2 + 1), entry ? wood : dark); beam.position.set(R.ux * d, -0.2 - 0.27, R.uy * d); beam.rotation.y = rot; G.add(beam);
+        const beam = mesh(new THREE.BoxGeometry(0.5, 0.55, half * 2 + 1), entry ? wood : dark); beam.position.set(R.ux * d, top - 0.27, R.uy * d); beam.rotation.y = rot; G.add(beam);
       }
-      const brow = mesh(jitterGeo(new THREE.BoxGeometry(4, 5, (World.pitHalf(R, d0) + 4) * 2, 2, 3, 8), 0.9, 77), rock); brow.position.set(R.ux * (d0 - 1), 2, R.uy * (d0 - 1)); brow.rotation.y = rot; G.add(brow); }
+      const brow = mesh(jitterGeo(new THREE.BoxGeometry(4, 5, (World.pitHalf(R, d0) + 4) * 2, 2, 3, 8), 0.9, 77), rock); brow.position.set(R.ux * (d0 - 1), segs[0].c + 2.2, R.uy * (d0 - 1)); brow.rotation.y = rot; G.add(brow); }
     // lampiões nas paredes (brilho falso, sem luz real) e trilho no meio
     const lampMat = new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#ffb050', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 });
     const rail = mat('#6a6a70', { shininess: 60 }), sleeper = mat('#4a3424');

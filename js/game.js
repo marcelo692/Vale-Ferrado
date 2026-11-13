@@ -9,6 +9,7 @@ const CLICK_COST = 0.08;  // fôlego gasto por golpe de clique
 const CLICK_CD = 0.35;    // clique pode golpear a cada 35% do intervalo normal (quase 3x mais rápido)
 const SWING_ANIM = 0.16;  // duração da animação do golpe rápido
 const STEP_UP = 0.45;     // altura máxima que dá para subir andando (degrau baixinho)
+const ROOF_T = 3;         // espessura da laje do teto da Mina Velha (topo = teto + 3)
 const RECALL_LVL = 20;    // nível do martelo que libera o Voltar à cidade
 
 function newState() {
@@ -29,6 +30,25 @@ function newState() {
     robots: 0,        // robôs auto-mineradores comprados
     cint: 3, olho: 0, // Cintilhas e nível do Olho de Garimpeiro
   };
+}
+
+// save estragado ou de versão antiga: campo nulo, do tipo errado ou número inválido volta ao padrão
+function sanitizeSave(s) {
+  const d = newState(), n = Object.assign({}, d);
+  for (const k in s) {
+    const v = s[k], dv = d[k];
+    if (v === null || v === undefined) continue;
+    if (typeof v === 'number' && !Number.isFinite(v)) continue;
+    if (dv !== undefined && dv !== null) {
+      if (Array.isArray(dv) !== Array.isArray(v) || typeof dv !== typeof v) continue;
+      if (typeof dv === 'object' && !Array.isArray(dv)) { n[k] = Object.assign({}, dv, v); for (const kk in n[k]) if (typeof dv[kk] === 'number' && !Number.isFinite(n[k][kk])) n[k][kk] = dv[kk]; continue; }
+    }
+    n[k] = v;
+  }
+  n.hammer = Math.max(1, Math.min(61, Math.floor(n.hammer) || 1));
+  n.money = Math.max(0, n.money);
+  for (const box of ['bag', 'stock']) for (const id in n[box]) if (!RES[id] || !(n[box][id] > 0)) delete n[box][id];
+  return n;
 }
 
 const Game = {
@@ -396,6 +416,7 @@ const Game = {
 
   // ---------- equipamentos ----------
   buyGadget(type, lvl) {
+    if (!GADGETS[type] || !GADGETS[type].levels[lvl]) return;
     const G = GADGETS[type].levels[lvl], c = { money: G.price, mats: G.mats || [] };
     if (this.S.gear[type] >= lvl || !this.canPay(c)) return;
     this.pay(c); this.S.gear[type] = lvl; Snd.levelUp();
@@ -581,7 +602,7 @@ const Game = {
       if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); if (fall > 0.35) this.landDip = Math.min(0.3, 0.04 + fall * 0.045); }
     } else { P.z = support; P.vz = 0; }
     // teto da caverna: não deixa a cabeça atravessar a rocha (pulo, jetpack, cama elástica)
-    { const ceil = World.ceilingAt(P.x, P.y); if (ceil !== null) { const g0 = World.height(P.x, P.y), maxZ = ceil - 1.85 - g0; if (maxZ > 0 && P.z > maxZ) { P.z = maxZ; if (P.vz > 0) P.vz = 0; } } }
+    { const ceil = World.ceilingAt(P.x, P.y); if (ceil !== null) { const g0 = World.height(P.x, P.y), maxZ = ceil - 1.85 - g0; if (maxZ > 0 && P.z > maxZ && g0 + P.z < ceil - 0.5) { P.z = maxZ; if (P.vz > 0) P.vz = 0; } } }
 
     this.landDip = (this.landDip || 0) * Math.exp(-dt * 9);
     // pulo mais perdoador: 0,1 s de tolerância ao sair de uma borda e 0,12 s de pulo antecipado
@@ -750,9 +771,12 @@ const Game = {
   // ---------- colisão com obstáculos ----------
   inObstacle(o, x, y, m = 0.4) { const { d, p } = World.local(o.R, x, y); return Math.abs(d - o.dc) < o.t / 2 + m && Math.abs(p - o.pc) < o.len / 2 + m; },
   // altura do chão sob o jogador (topo de um obstáculo, se estiver em cima dele)
-  supportAt(x, y) {
+  supportAt(x, y, feet) {
     let h = 0;
     for (const o of World.obstacles) if (o.h > h && this.P.z >= o.h * 0.9 - 0.05 && this.inObstacle(o, x, y, 0.45)) h = o.h;
+    // teto da caverna visto de fora: a laje é chão firme por cima (não dá para cair através dela)
+    const c = World.ceilingAt(x, y);
+    if (c !== null) { const g = World.height(x, y); if ((feet === undefined ? g + this.P.z : feet) >= c - 1) h = Math.max(h, c + ROOF_T - g); }
     return h;
   },
   onGround() { return this.P.vz <= 0 && this.P.z <= this.supportAt(this.P.x, this.P.y) + 0.01; },
@@ -767,6 +791,7 @@ const Game = {
     // degraus e paredes dos valões: subir andando só o que for baixinho; o resto é pulo, escada, gancho...
     const h0 = World.height(P.x, P.y), h1 = World.height(nx, ny), feet = h0 + P.z;
     const run = Math.hypot(dx, dy) || 0.01, rise = h1 - feet;
+    { const c = World.ceilingAt(nx, ny); if (c !== null && feet > c - 1.85 && feet < c + ROOF_T - STEP_UP) { this.wallT = this.S.time; return; } } // lateral da laje do teto: parede
     if (rise > STEP_UP || (rise > 0.004 && rise / run > 1.1)) { this.wallT = this.S.time; return; } // parede: mais de ~48° não sobe andando
     // o corpo tem largura: não deixa encostar a cara na parede (senão a câmera entra nela)
     const px = nx + dx / run * 0.6, py = ny + dy / run * 0.6, hp = World.height(px, py);
@@ -774,7 +799,7 @@ const Game = {
     const grounded = P.vz <= 0 && P.z <= this.supportAt(P.x, P.y) + 0.01;
     P.x = nx; P.y = ny;
     // em cima de tronco/muro: continua apoiado nele; fora dele, desce rampas e morros grudado no chão
-    const sup = this.supportAt(nx, ny);
+    const sup = this.supportAt(nx, ny, feet);
     let z = feet - h1;
     if (z < sup) z = sup; else if (grounded && z - sup < 0.6) z = sup;
     if (z < 0) z = 0;
@@ -791,6 +816,7 @@ const Game = {
     let e = wall, h = World.height(P.x + fx * e, P.y + fy * e);
     for (let i = 0; i < 60; i++) { const h2 = World.height(P.x + fx * (e + 0.3), P.y + fy * (e + 0.3)); if (h2 - h < 0.08) break; e += 0.3; h = h2; }
     const lx = P.x + fx * (e + 1), ly = P.y + fy * (e + 1), top = World.height(lx, ly);
+    { const c = World.ceilingAt(lx, ly); if (c !== null && top > c - 1.85) return null; } // na Mina Velha a beirada fica embaixo do teto de rocha: não sobe por dentro dele
     if (top - feet > maxUp) return { tooHigh: true, rise: top - feet };
     return { wx: P.x + fx * Math.max(0.3, wall - 0.5), wy: P.y + fy * Math.max(0.3, wall - 0.5), lx, ly, top, base: World.height(P.x, P.y), rise: top - feet, yaw: P.yaw };
   },
@@ -891,7 +917,7 @@ const Game = {
   // ---------- salvamento ----------
   save() { if (this.resetting) return; try { this.S.lastSeen = Date.now(); this.S.world = World.serialize(); localStorage.setItem(SAVE_KEY, JSON.stringify(this.S)); } catch (e) {} },
   load() {
-    try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.hammer) { const n = Object.assign(newState(), s); n.gear = Object.assign({ detector: 0, ride: 0, light: 0, climb: 0 }, s.gear || {}); return n; } } catch (e) {}
+    try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object' && s.hammer) return sanitizeSave(s); } catch (e) {}
     return null;
   },
   // correção (v2.5): versões antigas vendiam recurso raro quando a próxima evolução ainda não pedia; devolve o que foi vendido nas últimas entregas

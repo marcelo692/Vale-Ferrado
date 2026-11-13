@@ -1,10 +1,10 @@
 {
-  "version": "3.9.0",
+  "version": "3.9.1",
   "date": "2026-11-13",
   "notes": [
-    "Cada região agora tem seu jeito: Riacho num vale com rio, Vila em Ruínas num planalto alto com patamares, Mina Velha numa caverna escorada com lampiões e trilho, Pedreira Funda aberta e Serra dos Cristais numa mina em espiral descendo (o jetpack ajuda a subir)",
-    "Obstáculos naturais: troncos e pedras roladas só de um lado, dá para contornar ou pular",
-    "Serra no horizonte com cor de montanha distante"
+    "Mina Velha: o teto de pedra agora é sólido e acompanha o chão (não dá mais para entrar pela fresta lateral, cair através dele ou subir por dentro com gancho/escada); dá para pular e andar em cima",
+    "Pedras não nascem mais uma dentro da outra nem dentro do rio",
+    "Save antigo de antes das missões com martelo alto não trava mais ao abrir; save estragado volta ao padrão em vez de travar"
   ],
   "files": [
     {
@@ -33,7 +33,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 55533
+      "size": 57213
     },
     {
       "path": "js/i18n.js",
@@ -53,7 +53,7 @@
     },
     {
       "path": "js/missions.js",
-      "size": 18197
+      "size": 18334
     },
     {
       "path": "js/platform.js",
@@ -81,7 +81,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 25195
+      "size": 26436
     },
     {
       "path": "js/zone7.js",
@@ -97,7 +97,7 @@
     },
     {
       "path": "version.json",
-      "size": 1882
+      "size": 1947
     }
   ]
 }
