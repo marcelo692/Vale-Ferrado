@@ -1,9 +1,10 @@
 {
-  "version": "3.8.1",
+  "version": "3.9.0",
   "date": "2026-11-13",
   "notes": [
-    "Vendedores novos: cada um com roupa, cabelo e chapéu próprios, mais detalhados, respirando, olhando para você e com um gesto (o ferreiro bate na bigorna)",
-    "Produtos expostos no balcão: martelos no ferreiro, luvas/botas/mochila na tropeira, detector/patins/corda/robô no bazar, caixotes e balança no armazém, poções e caldeirão na botica"
+    "Cada região agora tem seu jeito: Riacho num vale com rio, Vila em Ruínas num planalto alto com patamares, Mina Velha numa caverna escorada com lampiões e trilho, Pedreira Funda aberta e Serra dos Cristais numa mina em espiral descendo (o jetpack ajuda a subir)",
+    "Obstáculos naturais: troncos e pedras roladas só de um lado, dá para contornar ou pular",
+    "Serra no horizonte com cor de montanha distante"
   ],
   "files": [
     {
@@ -32,7 +33,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 55238
+      "size": 55533
     },
     {
       "path": "js/i18n.js",
@@ -60,7 +61,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 215187
+      "size": 228242
     },
     {
       "path": "js/robots.js",
@@ -80,7 +81,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 21130
+      "size": 25195
     },
     {
       "path": "js/zone7.js",
@@ -96,7 +97,7 @@
     },
     {
       "path": "version.json",
-      "size": 1951
+      "size": 1882
     }
   ]
 }
