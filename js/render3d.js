@@ -480,11 +480,9 @@ const Render = {
       const roof = mesh(new THREE.BoxGeometry(5.4, 0.18, 3.2), mat(n.color)); roof.position.set(0, 2.85, 0); roof.rotation.x = -0.18; g.add(roof);
       for (let i = 0; i < 5; i++) { const st = mesh(new THREE.BoxGeometry(1.08, 0.2, 3.22), mat(i % 2 ? '#e8dcc0' : n.color), false); st.position.set(-2.16 + i * 1.08, 2.86, 0); st.rotation.x = -0.18; g.add(st); }
       const counter = mesh(new THREE.BoxGeometry(4.2, 1, 0.8), mat('#7a5a3a')); counter.position.set(0, 0.5, 0.9); g.add(counter);
-      const goods = { ferreiro: '#5f666e', tropeira: '#c49a6c', botica: '#7a3fa0', armazem: '#a07a2a', bazar: '#e0a020' }[n.id];
-      for (let i = 0; i < 4; i++) { const it = mesh(n.id === 'botica' ? new THREE.CylinderGeometry(0.12, 0.12, 0.4, 6) : new THREE.BoxGeometry(0.4, 0.3, 0.3), mat(goods)); it.position.set(-1.4 + i * 0.9, 1.15, 0.9); g.add(it); }
-      if (n.id === 'ferreiro') { const anvil = mesh(new THREE.BoxGeometry(0.9, 0.5, 0.45), mat('#3a3d42', { shininess: 40 })); anvil.position.set(1.6, 0.25, -0.9); g.add(anvil); }
-      const person = this.makePerson({ shirt: n.color, skin: n.id === 'tropeira' ? '#a8754f' : '#c48c62', hair: n.id === 'ferreiro' ? '#d8d8d8' : '#3a2a1c' });
-      person.position.set(0, 0, -0.3); g.add(person);
+      g.add(this.makeWares(n.id));
+      const person = this.makeVendor(n.id);
+      person.position.set(n.id === 'ferreiro' ? -0.5 : 0, 0, -0.35); g.add(person);
       // placa com o que a barraca vende
       const signTex = canvasTex(512, 128, (c, w, h) => {
         c.fillStyle = '#3a2614'; c.beginPath(); c.roundRect(4, 4, w - 8, h - 8, 14); c.fill();
@@ -494,7 +492,7 @@ const Render = {
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshBasicMaterial({ map: signTex, transparent: true }));
       sign.position.set(0, 3.55, 1.25); sign.rotation.x = -0.12; g.add(sign);
       const signBack = sign.clone(); signBack.rotation.y = Math.PI; signBack.position.z = 1.24; g.add(signBack);
-      const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? tt("Mineração · mochila · movimento · pulo") : n.role, '#f5e6c8', 0.8); lab.position.set(0, 2.25, 1.6); lab.material.depthTest = false; lab.renderOrder = 5; g.add(lab);
+      const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? tt("Mineração · mochila · movimento · pulo") : n.role, '#f5e6c8', 0.62); lab.position.set(0, 2.62, 1.5); lab.material.depthTest = false; lab.renderOrder = 5; g.add(lab);
       // símbolo girando em cima da barraca
       const icon = this.shopIcon(n.id); icon.position.set(0, 5.4, 0); g.add(icon);
       const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex || (this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); })), color: n.color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 }));
@@ -613,6 +611,124 @@ const Render = {
     else if (id === 'armazem') { const c = mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.16, 24), mat('#ffcf30', { emissive: '#a07000', emissiveIntensity: 0.4, shininess: 120 })); c.rotation.x = Math.PI / 2; g.add(c); const r = mesh(new THREE.TorusGeometry(0.6, 0.05, 6, 24), mat('#c08a00', { shininess: 120 })); r.position.z = 0.09; g.add(r); const r2 = r.clone(); r2.position.z = -0.09; g.add(r2); }
     else { const box = mesh(new THREE.BoxGeometry(1, 1, 1), mat('#2a9ad0')); g.add(box); const rb1 = mesh(new THREE.BoxGeometry(1.03, 1.03, 0.2), mat('#ffd34d')); g.add(rb1); const rb2 = mesh(new THREE.BoxGeometry(0.2, 1.03, 1.03), mat('#ffd34d')); g.add(rb2); for (const s of [-1, 1]) { const bow = mesh(new THREE.TorusGeometry(0.2, 0.07, 6, 12), mat('#ffd34d')); bow.position.set(s * 0.18, 0.65, 0); bow.rotation.y = Math.PI / 2; bow.rotation.x = s * 0.6; g.add(bow); } }
     return g;
+  },
+  // ---------- vendedores: corpo com mais polígonos, roupa e cabelo de cada um, e um movimento de "vida" ----------
+  makeVendor(id) {
+    const S = {
+      ferreiro: { skin: '#c48c62', shirt: '#9a3a22', pants: '#3a3434', hair: '#e2e2e2', apron: '#5a3a22', beard: '#e8e8e8', bald: true, big: 1.12 },
+      tropeira: { skin: '#a8754f', shirt: '#3f7a4a', pants: '#6a4a2a', hair: '#2a1a10', skirt: '#7a5232', hat: 'straw', braid: true, big: 0.95 },
+      bazar:    { skin: '#d4a17a', shirt: '#2a6a8a', pants: '#3a3f4a', hair: '#3a2a1c', vest: '#e0a020', cap: '#c0302a', mustache: '#3a2a1c', big: 1 },
+      armazem:  { skin: '#c48c62', shirt: '#e0c890', pants: '#4a3a2a', hair: '#7a7a7a', apron: '#f0ece0', flatcap: '#5a4a3a', mustache: '#9a9a9a', big: 1.05 },
+      botica:   { skin: '#e0b090', shirt: '#5a2a7a', pants: '#2a1a3a', hair: '#1a1a1a', robe: '#6a3a8a', glasses: true, goatee: '#1a1a1a', pointy: '#4a1a6a', big: 0.98 },
+    }[id];
+    const M = c => new THREE.MeshLambertMaterial({ color: c }), g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+    const sk = M(S.skin), sh = M(S.shirt);
+    // pernas e sapatos
+    for (const x of [-0.12, 0.12]) { const l = mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.82, 10), M(S.pants)); l.position.set(x, 0.43, 0); g.add(l); const sho = mesh(new THREE.SphereGeometry(0.1, 10, 8), M('#2a1e14')); sho.scale.set(1, 0.6, 1.5); sho.position.set(x, 0.05, 0.04); g.add(sho); }
+    if (S.skirt) { const sk2 = mesh(new THREE.CylinderGeometry(0.2, 0.36, 0.6, 14), M(S.skirt)); sk2.position.y = 0.62; g.add(sk2); }
+    if (S.robe) { const rb = mesh(new THREE.CylinderGeometry(0.24, 0.38, 0.95, 14), M(S.robe)); rb.position.y = 0.5; g.add(rb); }
+    // tronco (respira)
+    const torso = mesh(new THREE.CylinderGeometry(0.25, 0.22, 0.62, 14), sh); torso.position.y = 1.18; body.add(torso);
+    const belly = mesh(new THREE.SphereGeometry(0.235, 14, 10), sh); belly.scale.set(1, 0.6, 0.95); belly.position.y = 0.9; body.add(belly);
+    const shoulders = mesh(new THREE.SphereGeometry(0.25, 14, 10), sh); shoulders.scale.set(1.12, 0.5, 0.85); shoulders.position.y = 1.47; body.add(shoulders);
+    if (S.apron) { const ap = mesh(new THREE.BoxGeometry(0.42, 0.72, 0.03), M(S.apron)); ap.position.set(0, 1.0, 0.23); body.add(ap); const st = mesh(new THREE.TorusGeometry(0.2, 0.012, 4, 16, Math.PI), M(S.apron)); st.position.set(0, 1.4, 0.12); st.rotation.x = -0.4; body.add(st); }
+    if (S.vest) for (const x of [-0.13, 0.13]) { const v = mesh(new THREE.BoxGeometry(0.16, 0.6, 0.04), M(S.vest)); v.position.set(x, 1.18, 0.22); body.add(v); }
+    // cabeça (olha para o jogador)
+    const head = new THREE.Group(); head.position.y = 1.78; body.add(head);
+    const neck = mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.14, 10), sk); neck.position.y = -0.16; head.add(neck);
+    const skull = mesh(new THREE.SphereGeometry(0.17, 18, 14), sk); skull.scale.set(1, 1.1, 1.02); head.add(skull);
+    const nose = mesh(new THREE.ConeGeometry(0.03, 0.08, 8), sk); nose.rotation.x = Math.PI / 2; nose.position.set(0, -0.01, 0.18); head.add(nose);
+    for (const x of [-0.06, 0.06]) { const e = mesh(new THREE.SphereGeometry(0.022, 8, 6), M('#1a1410'), false); e.position.set(x, 0.04, 0.15); head.add(e); const br = mesh(new THREE.BoxGeometry(0.06, 0.012, 0.02), M(S.hair), false); br.position.set(x, 0.085, 0.155); head.add(br); const ear = mesh(new THREE.SphereGeometry(0.035, 8, 6), sk, false); ear.scale.set(0.5, 1, 0.8); ear.position.set(x * 2.8, 0.01, 0); head.add(ear); }
+    const mouth = mesh(new THREE.BoxGeometry(0.06, 0.01, 0.01), M('#7a3a2a'), false); mouth.position.set(0, -0.07, 0.16); head.add(mouth);
+    if (!S.bald) { const hr = mesh(new THREE.SphereGeometry(0.18, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), M(S.hair)); hr.position.y = 0.02; hr.rotation.x = -0.25; head.add(hr); }
+    else for (const x of [-1, 1]) { const tuft = mesh(new THREE.SphereGeometry(0.07, 8, 6), M(S.hair)); tuft.scale.set(0.6, 1, 1.2); tuft.position.set(x * 0.15, 0.0, -0.05); head.add(tuft); }
+    if (S.beard) { const b = mesh(new THREE.SphereGeometry(0.15, 14, 10, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55), M(S.beard)); b.position.set(0, -0.03, 0.03); b.scale.set(1, 1.3, 1); head.add(b); }
+    if (S.mustache) { const m = mesh(new THREE.TorusGeometry(0.05, 0.016, 6, 12, Math.PI), M(S.mustache), false); m.position.set(0, -0.045, 0.165); head.add(m); }
+    if (S.goatee) { const gt = mesh(new THREE.ConeGeometry(0.03, 0.08, 8), M(S.goatee), false); gt.rotation.x = Math.PI; gt.position.set(0, -0.15, 0.13); head.add(gt); }
+    if (S.glasses) for (const x of [-0.06, 0.06]) { const gl = mesh(new THREE.TorusGeometry(0.035, 0.007, 6, 14), M('#d8c070'), false); gl.position.set(x, 0.04, 0.165); head.add(gl); }
+    if (S.braid) { for (let i = 0; i < 4; i++) { const bd = mesh(new THREE.SphereGeometry(0.045 - i * 0.006, 8, 6), M(S.hair)); bd.position.set(0, -0.06 - i * 0.07, -0.17); head.add(bd); } }
+    if (S.hat === 'straw') { const brim = mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.02, 20), M('#d8b860')); brim.position.y = 0.12; head.add(brim); const top = mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.14, 16), M('#d8b860')); top.position.y = 0.2; head.add(top); const band = mesh(new THREE.CylinderGeometry(0.172, 0.172, 0.035, 16), M('#9a3a22')); band.position.y = 0.15; head.add(band); }
+    if (S.cap) { const c = mesh(new THREE.SphereGeometry(0.185, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), M(S.cap)); c.position.y = 0.04; head.add(c); const v = mesh(new THREE.BoxGeometry(0.22, 0.015, 0.14), M(S.cap)); v.position.set(0, 0.06, 0.2); head.add(v); }
+    if (S.flatcap) { const c = mesh(new THREE.CylinderGeometry(0.19, 0.2, 0.08, 16), M(S.flatcap)); c.position.set(0, 0.13, 0.02); c.rotation.x = 0.15; head.add(c); const v = mesh(new THREE.BoxGeometry(0.2, 0.015, 0.1), M(S.flatcap)); v.position.set(0, 0.1, 0.2); head.add(v); }
+    if (S.pointy) { const c = mesh(new THREE.ConeGeometry(0.2, 0.42, 16), M(S.pointy)); c.position.y = 0.3; c.rotation.z = 0.15; head.add(c); const brim = mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.02, 20), M(S.pointy)); brim.position.y = 0.11; head.add(brim); }
+    // braços: ombro -> cotovelo -> mão (animados)
+    const arms = [];
+    for (const sd of [-1, 1]) {
+      const sh0 = new THREE.Group(); sh0.position.set(sd * 0.32, 1.45, 0); body.add(sh0);
+      const up = mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.34, 10), sh); up.position.y = -0.17; sh0.add(up);
+      const el = new THREE.Group(); el.position.y = -0.34; sh0.add(el);
+      const fo = mesh(new THREE.CylinderGeometry(0.062, 0.05, 0.3, 10), S.robe || S.apron ? sh : sh); fo.position.y = -0.15; el.add(fo);
+      const hand = mesh(new THREE.SphereGeometry(0.06, 10, 8), sk); hand.position.y = -0.32; el.add(hand);
+      sh0.rotation.z = sd * 0.12; el.rotation.x = -0.5;
+      arms.push({ sh0, el, sd, hand });
+    }
+    if (id === 'ferreiro') { const hm = this.hammerInHand(12); hm.scale.setScalar(0.55); hm.rotation.set(Math.PI / 2, 0, 0); hm.position.set(0, -0.36, 0.06); arms[1].el.add(hm); }
+    g.scale.setScalar(S.big);
+    g.userData.anim = { id, body, head, torso, arms, ph: Math.random() * 6 };
+    // junta as peças de cada parte que se mexe junto (cabeça, antebraços, pernas) para pesar menos
+    this.mergeStatic(head, true); for (const a of arms) this.mergeStatic(a.el, true); this.mergeStatic(g, true);
+    return g;
+  },
+  // o que cada barraca vende, exposto no balcão de frente para quem chega
+  makeWares(id) {
+    const g = new THREE.Group(), top = 1.0, z = 0.95;
+    const put = (o, x, y = 0, s = 1, ry = 0, rx = 0) => { o.scale.multiplyScalar(s); o.position.set(x, top + y, z); o.rotation.set(rx, ry, 0); g.add(o); return o; };
+    if (id === 'ferreiro') {
+      // suporte com martelos de níveis diferentes + bigorna ao lado
+      const rack = mesh(new THREE.BoxGeometry(3.4, 0.08, 0.3), mat('#5a3d24')); rack.position.set(0, top + 0.05, z - 0.1); g.add(rack);
+      [6, 16, 26, 38, 50].forEach((L, i) => { const h = this.hammerInHand(L); h.scale.setScalar(0.42 + i * 0.03); h.position.set(-1.4 + i * 0.7, top + 0.1, z); h.rotation.set(0, 0, 0.25); g.add(h); });
+      const anvil = new THREE.Group(); const ab = mesh(new THREE.BoxGeometry(0.5, 0.42, 0.34), mat('#3a3d42', { shininess: 40 })); ab.position.y = 0.21; anvil.add(ab);
+      const at = mesh(new THREE.BoxGeometry(0.9, 0.16, 0.36), mat('#4a4e55', { shininess: 70 })); at.position.y = 0.5; anvil.add(at); const horn = mesh(new THREE.ConeGeometry(0.12, 0.38, 8), mat('#4a4e55', { shininess: 70 })); horn.rotation.z = Math.PI / 2; horn.position.set(-0.6, 0.5, 0); anvil.add(horn);
+      anvil.position.set(0.55, 0, -0.55); g.add(anvil);
+      const fire = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#ff7a2a', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 })); fire.scale.setScalar(0.6); fire.position.set(0.55, 1.12, -0.55); g.add(fire); g.userData.fire = fire;
+    } else if (id === 'tropeira') {
+      put(this.makeGloveItem({ col: '#8a5a32', era: 2 }), -1.45, 0.25, 0.9);
+      put(this.makeBootItem({ col: '#6b4a2c', sole: '#2a1a10', era: 3 }), -0.45, 0.04, 0.95, 0.4);
+      const bag = new THREE.Group(); const bb = mesh(new THREE.BoxGeometry(0.55, 0.62, 0.32), mat('#7a5a32')); bb.position.y = 0.31; bag.add(bb); const fl = mesh(new THREE.BoxGeometry(0.57, 0.22, 0.34), mat('#5a3d24')); fl.position.y = 0.55; bag.add(fl); const pk = mesh(new THREE.BoxGeometry(0.36, 0.2, 0.08), mat('#6a4a2a')); pk.position.set(0, 0.22, 0.19); bag.add(pk); for (const x of [-0.15, 0.15]) { const st = mesh(new THREE.TorusGeometry(0.16, 0.025, 4, 12, Math.PI), mat('#3a2a1a')); st.position.set(x, 0.62, -0.1); st.rotation.y = Math.PI / 2; bag.add(st); }
+      put(bag, 0.6, 0, 1);
+      const spring = mesh(new THREE.TorusGeometry(0.1, 0.025, 6, 20), mat('#c8ccd2', { shininess: 80 })); for (let i = 0; i < 4; i++) { const r = spring.clone(); r.rotation.x = Math.PI / 2; r.position.set(1.45, top + 0.06 + i * 0.07, z); g.add(r); }
+    } else if (id === 'bazar') {
+      put(this.makeDetector(2), -1.5, 0.05, 1.1, 0.3);
+      put(this.makeSkate(), -0.55, 0.05, 0.9, 0.6);
+      const rope = this.makeClimbItem(1); put(rope, 0.35, 0.25, 1.3, 0, Math.PI / 2.4);
+      const rb = this.makeRobot(0); put(rb, 1.35, 0, 0.55, -0.3);
+    } else if (id === 'armazem') {
+      const crate = c => { const b = mesh(new THREE.BoxGeometry(0.5, 0.42, 0.42), mat(c)); b.position.y = 0.21; return b; };
+      for (const [x, c] of [[-1.5, '#a07a4a'], [-0.95, '#8a6a3a']]) { const cr = crate(c); cr.position.set(x, top + 0.21, z); g.add(cr); const ore = mesh(jitterGeo(new THREE.IcosahedronGeometry(0.14, 0), 0.04, x * 10), mat(x < -1 ? '#b8b0a0' : '#c9822a')); ore.position.set(x, top + 0.46, z); g.add(ore); }
+      for (const [x, c] of [[-0.25, '#b89a6a'], [0.15, '#a88a5a']]) { const sack = mesh(jitterGeo(new THREE.SphereGeometry(0.17, 10, 8), 0.03, x * 7), mat(c)); sack.scale.set(1, 1.3, 0.9); sack.position.set(x, top + 0.2, z); g.add(sack); }
+      const scale = new THREE.Group(); const post = mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.5, 6), mat('#b8a060', { shininess: 80 })); post.position.y = 0.25; scale.add(post); const beam = mesh(new THREE.BoxGeometry(0.6, 0.02, 0.02), mat('#b8a060', { shininess: 80 })); beam.position.y = 0.5; scale.add(beam); for (const x of [-0.28, 0.28]) { const pan = mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.03, 12), mat('#b8a060', { shininess: 80 })); pan.position.set(x, 0.36, 0); scale.add(pan); }
+      put(scale, 1.2, 0, 1.1); g.userData.scaleBeam = beam;
+      const coins = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.12, 12), mat('#e8c040', { shininess: 90, emissive: '#5a4000', emissiveIntensity: 0.3 })); coins.position.set(0.85, top + 0.06, z + 0.1); g.add(coins);
+    } else if (id === 'botica') {
+      ['tonico', 'cafe', 'elixir'].forEach((p, i) => { if (!POWERUPS[p]) return; put(this.makeFlask(p, 2.2), -1.2 + i * 0.9, 0.24, 1); });
+      for (let i = 0; i < 5; i++) { const jar = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.16, 10), mat(['#9ad0a0', '#e0b0d8', '#a0c8f0', '#f0d090', '#d0a080'][i], { transparent: true, opacity: 0.8 })); jar.position.set(-1.6 + i * 0.25, top + 0.08, z - 0.25); g.add(jar); }
+      const caul = mesh(new THREE.SphereGeometry(0.28, 14, 10, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.65), mat('#2a2a30')); caul.position.set(1.35, top + 0.18, z); g.add(caul);
+      const brew = mesh(new THREE.CircleGeometry(0.22, 16).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#7af06a' })); brew.position.set(1.35, top + 0.3, z); g.add(brew);
+      const bub = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#7af06a', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.6 })); bub.scale.setScalar(0.7); bub.position.set(1.35, top + 0.45, z); g.add(bub); g.userData.bub = bub;
+    }
+    g.userData.wares = id; return g;
+  },
+  // vendedores se mexem: respiram, olham para você, e cada um tem um gesto (o ferreiro bate na bigorna)
+  updateVendors(dt) {
+    if (!this.npcObjs) return;
+    const t = this.t, P = Game.P;
+    for (const g of this.npcObjs) {
+      const p = g.userData.person; if (!p || !p.userData.anim) continue;
+      const A = p.userData.anim, near = Math.hypot(g.position.x - P.x, g.position.z - P.y) < 22;
+      if (!near) continue;
+      A.torso.scale.set(1 + Math.sin(t * 1.6 + A.ph) * 0.015, 1, 1 + Math.sin(t * 1.6 + A.ph) * 0.02);
+      // cabeça vira devagar para o jogador (limitado)
+      const wp = p.getWorldPosition(this._vp || (this._vp = new V3())), ang = Math.atan2(P.x - wp.x, P.y - wp.z), base = g.rotation.y + (g.parent ? g.parent.rotation.y : 0);
+      let rel = Math.atan2(Math.sin(ang - base), Math.cos(ang - base)); rel = Math.max(-0.9, Math.min(0.9, rel));
+      A.head.rotation.y += (rel - A.head.rotation.y) * Math.min(1, dt * 3); A.head.rotation.x = Math.sin(t * 0.7 + A.ph) * 0.05;
+      const [L, Rr] = A.arms;
+      if (A.id === 'ferreiro') { const k = Math.max(0, Math.sin(t * 3.2)); Rr.sh0.rotation.x = -0.4 - k * 1.1; Rr.el.rotation.x = -0.9 + k * 0.5; L.sh0.rotation.x = -0.3; L.el.rotation.x = -1.0; }
+      else if (A.id === 'botica') { const k = Math.sin(t * 2 + A.ph); Rr.sh0.rotation.x = -0.6 + k * 0.15; Rr.el.rotation.x = -1.2 + k * 0.2; L.sh0.rotation.x = -0.2; L.el.rotation.x = -0.4; }
+      else { const wave = Math.max(0, Math.sin(t * 0.6 + A.ph)) ** 6; Rr.sh0.rotation.x = -0.3 - wave * 1.6; Rr.sh0.rotation.z = 0.12 + wave * 0.5; Rr.el.rotation.x = -0.5 - wave * 0.8; L.sh0.rotation.x = -0.25 + Math.sin(t + A.ph) * 0.05; L.el.rotation.x = -0.6; }
+      const w = g.children.find(c => c.userData && c.userData.wares);
+      if (w && w.userData.fire) w.userData.fire.material.opacity = 0.6 + Math.sin(t * 9) * 0.25;
+      if (w && w.userData.bub) w.userData.bub.material.opacity = 0.45 + Math.sin(t * 5) * 0.2;
+    }
   },
   makePerson(o) {
     const g = new THREE.Group();
@@ -2100,7 +2216,7 @@ const Render = {
     this.t += dt;
     const P = Game.P;
     this.updateDayNight();
-    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
+    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;

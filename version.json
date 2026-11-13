@@ -1,11 +1,9 @@
 {
-  "version": "3.8.0",
+  "version": "3.8.1",
   "date": "2026-11-13",
   "notes": [
-    "Martelo descansa baixo (só a ponta aparece) e sobe quando há pedra na mira ou você está batendo",
-    "Capim em tufos de verdade, flores, pinheiros, arbustos e matas no mapa todo; sem capim no chão de pedra das minas",
-    "Serra em volta do mundo, bandos de pássaros de dia e textura do chão nova",
-    "Telas: cards sem sobra na grade, letra maior, avisos atrás da pausa, placas sem corte, Mina Velha traduzida"
+    "Vendedores novos: cada um com roupa, cabelo e chapéu próprios, mais detalhados, respirando, olhando para você e com um gesto (o ferreiro bate na bigorna)",
+    "Produtos expostos no balcão: martelos no ferreiro, luvas/botas/mochila na tropeira, detector/patins/corda/robô no bazar, caixotes e balança no armazém, poções e caldeirão na botica"
   ],
   "files": [
     {
@@ -62,7 +60,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 200812
+      "size": 215187
     },
     {
       "path": "js/robots.js",
@@ -98,7 +96,7 @@
     },
     {
       "path": "version.json",
-      "size": 1795
+      "size": 1951
     }
   ]
 }
