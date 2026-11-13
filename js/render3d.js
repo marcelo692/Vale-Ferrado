@@ -515,8 +515,32 @@ const Render = {
     this.houses = new THREE.Group(); this.city.add(this.houses); this.houseEra = -1;
     this.buildCityDeco();
   },
+  // ---------- baú diário ao lado da fonte ----------
+  buildChest() {
+    const g = new THREE.Group(); g.position.set(CHEST_POS.x, 0, CHEST_POS.y); g.rotation.y = Math.atan2(-CHEST_POS.x, -CHEST_POS.y);
+    const wood = mat('#7a4a22'), dark = mat('#4a2c12'), gold = mat('#e8b04a', { shininess: 90, specular: '#fff2c0' });
+    const base = mesh(new THREE.BoxGeometry(1.3, 0.62, 0.85), wood); base.position.y = 0.31; g.add(base);
+    for (const x of [-0.5, 0.5]) { const b = mesh(new THREE.BoxGeometry(0.1, 0.66, 0.9), gold); b.position.set(x, 0.33, 0); g.add(b); }
+    const lid = new THREE.Group(); lid.position.set(0, 0.62, -0.42); g.add(lid);
+    const top = mesh(new THREE.CylinderGeometry(0.43, 0.43, 1.3, 10, 1, false, 0, Math.PI), wood); top.rotation.z = Math.PI / 2; top.rotation.y = Math.PI / 2; top.position.z = 0.42; lid.add(top);
+    for (const x of [-0.5, 0.5]) { const b = mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.1, 10, 1, false, 0, Math.PI), gold); b.rotation.z = Math.PI / 2; b.rotation.y = Math.PI / 2; b.position.set(x, 0, 0.42); lid.add(b); }
+    const lock = mesh(new THREE.BoxGeometry(0.18, 0.22, 0.06), gold); lock.position.set(0, 0.5, 0.45); g.add(lock);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#ffd76a', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); glow.scale.setScalar(3.2); glow.position.y = 1; g.add(glow);
+    const lab = labelSprite(tt("Baú diário"), tt("um prêmio por dia"), '#ffd76a', 0.55); lab.position.y = 2.1; g.add(lab);
+    this.city.add(g); this.chest = { g, lid, glow, lab, dark };
+    World.solids.push({ x: CHEST_POS.x, y: CHEST_POS.y, r: 0.75, chest: true });
+  },
+  updateChest() {
+    const C = this.chest; if (!C) return;
+    const on = Daily.unlocked(); C.g.visible = on; if (!on) return;
+    const av = Daily.available();
+    C.lid.rotation.x += ((av ? -0.35 - Math.sin(this.t * 3) * 0.08 : 0) - C.lid.rotation.x) * 0.15;
+    C.glow.visible = av; C.glow.material.opacity = 0.55 + Math.sin(this.t * 4) * 0.25;
+    if (av && Math.random() < 0.08) Game.fxBurst(CHEST_POS.x + (Math.random() - 0.5), CHEST_POS.y + (Math.random() - 0.5), '#ffe27a', 1, 0.5);
+  },
   // ---------- enfeites da vila: fonte, trilhas de pedra, bandeirolas, canteiros, bancos e a picareta 61 ----------
   buildCityDeco() {
+    this.buildChest();
     const C = this.city, T = () => performance.now() / 1000, gtex = this.getGlowTex();
     const stone = '#8a8070', light = '#b9ad98';
     // piso: anéis de pedra clara em volta da fonte e trilhas até cada barraca
@@ -2375,7 +2399,7 @@ const Render = {
     this.t += dt;
     const P = Game.P;
     this.updateDayNight();
-    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
+    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateChest(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;

@@ -211,6 +211,19 @@
   body.cine::before, body.cine::after { content: ''; position: fixed; left: 0; right: 0; height: 9vh; background: #000; z-index: 11; animation: bars .6s ease-out; }
   body.cine::before { top: 0; } body.cine::after { bottom: 0; }
   @keyframes bars { from { height: 0; } }
+  .modes { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 14px; }
+  .modes .opt { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .modes select { margin-left: 26px; max-width: 320px; }
+  .rlist { margin: 0 0 8px; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+  #fakead { position: fixed; inset: 0; z-index: 50; background: #0b0b0e; color: #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-family: system-ui, sans-serif; }
+  #fakead b { font-size: 26px; letter-spacing: .1em; color: #ffd76a; } #fakead span { opacity: .7; } #fakead i { font: 900 64px system-ui; font-style: normal; }
+  .adbtn { background: linear-gradient(180deg, #ffd76a, #e8a830) !important; color: #3a2400 !important; }
+  .adbtn::before { content: '▶ '; }
+  .daily .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0; }
+  .daily .d { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 8px 4px; text-align: center; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+  .daily .d span { opacity: .7; } .daily .d b { font-size: 13px; } .daily .d em { font-style: normal; font-size: 11px; color: #9ff3ff; }
+  .daily .d.done { opacity: .45; } .daily .d.now { border-color: #ffd76a; background: rgba(255,215,106,.15); box-shadow: 0 0 14px rgba(255,215,106,.35); }
+  .daily .d:last-child b { color: #ffd76a; }
 </style>
 </head>
 <body class="pre">
@@ -283,6 +296,7 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
 <script src="js/ui.js"></script>
 <script src="js/missions.js"></script>
 <script src="js/cine.js"></script>
+<script src="js/daily.js"></script>
 <script src="lib/three.min.js"></script>
 <script src="js/render3d.js"></script>
 <script src="js/zone7.js"></script>

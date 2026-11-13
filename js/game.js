@@ -89,7 +89,7 @@ const Game = {
     const S = this.S;
     if ((S.robots || 0) > 0 && lastSeen && (S.robotTime || 0) > 60 && S.robotValue > 0) {
       const away = Math.min(8 * 3600, (Date.now() - lastSeen) / 1000);
-      if (away > 120) { const gain = Math.round(S.robotValue / S.robotTime * away * 0.5); if (gain > 0) { S.money += gain; S.earned += gain; this.offline = { gain, away, robots: S.robots }; } }
+      if (away > 120) { const perSec = Robots.rate() > 0 ? Robots.rate() / 60 : S.robotValue / S.robotTime, gain = Math.round(perSec * away * 0.5); if (gain > 0) { S.money += gain; S.earned += gain; this.offline = { gain, away, robots: S.robots }; } }
     }
     this.inCity = this.wasInCity = Math.hypot(this.P.x, this.P.y) < CITY_R;
     this.bindInput();
@@ -226,7 +226,7 @@ const Game = {
   },
   interact() {
     const n = this.npcNear();
-    if (n) UI.openNpc(n.id); else if (this.pickNear()) this.takePick61();
+    if (n) UI.openNpc(n.id); else if (Daily.near()) Daily.open(); else if (this.pickNear()) this.takePick61();
   },
 
   // ---------- power-ups ----------
@@ -308,8 +308,8 @@ const Game = {
     const missionN = Object.values(mission).reduce((a, b) => a + b, 0);
     for (const id in bag) {
       const q = bag[id], want = this.sellMode() === 'guardar' ? q : this.keepWant(id, need, sneed);
-      const k = Math.min(want, this.keepCap(id, q));
-      money += (q - k) * RES[id].value; all += q * RES[id].value; kept += k;
+      const k = Math.min(want, this.keepCap(id, q)), ord = Orders.take(id, q - k, true);
+      money += (q - k - ord) * RES[id].value; all += q * RES[id].value; kept += k;
     }
     return { money, all, kept, mission: missionN };
   },
@@ -327,7 +327,7 @@ const Game = {
       const want = mode === 'guardar' ? q : this.keepWant(id, need, sneed);
       const k = Math.min(want, this.keepCap(id, q));
       if (k > 0) { this.S.stock[id] = (this.S.stock[id] || 0) + k; kept += k; }
-      const sq = q - k, money = sq * RES[id].value;
+      const ord = Orders.take(id, q - k), sq = q - k - ord, money = sq * RES[id].value; // encomendas pegam do que ia ser vendido
       if (sq > 0) { earned += money; sold += sq; }
       let why;
       if (mode === 'guardar') why = tt("modo guardar tudo");
@@ -797,7 +797,7 @@ const Game = {
   moveBy(dx, dy) {
     const P = this.P;
     const nx = P.x + dx, ny = P.y + dy;
-    for (const o of World.solids) if (Math.hypot(nx - o.x, ny - o.y) < o.r + 0.4) return;
+    for (const o of World.solids) if (!(o.chest && !Daily.unlocked()) && Math.hypot(nx - o.x, ny - o.y) < o.r + 0.4) return;
     for (const o of World.obstacles) {
       if (P.z >= o.h * 0.9) continue; // está acima do obstáculo: pode passar (ou andar por cima)
       if (this.inObstacle(o, nx, ny)) return; // bloqueado

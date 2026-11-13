@@ -7,17 +7,39 @@
 
 const ROBOT_MAX = 10;
 const ROBOT_NAMES = ['Zico', 'Tuca', 'Bolota', 'Faísca', 'Pipoca', 'Rebite', 'Chiclete', 'Parafuso', 'Toquinho', 'Biscoito'];
-function robotPrice(n) { return Math.round(2000 * Math.pow(3, n)); } // preço do robô número n+1
+// preço do robô número n+1: o primeiro é barato (sai nos primeiros minutos); a equipe é que fica cara
+function robotPrice(n) { return n === 0 ? ROBOT_FIRST : Math.round(ROBOT_FIRST * 12 * Math.pow(3, n - 1)); }
+const ROBOT_FIRST = 120;
+// evoluções da equipe (valem para todos os robôs)
+const ROBOT_UPS = {
+  arm:   { name: tt("Braço"),   icon: '💪', desc: tt("bate mais forte"),   max: 15, base: 90,  grow: 2.15, eff: l => 1 + 0.4 * (l - 1) },
+  wheel: { name: tt("Rodas"),   icon: '🛞', desc: tt("anda mais rápido"),  max: 15, base: 70,  grow: 2.05, eff: l => 1 + 0.15 * (l - 1) },
+  cart:  { name: tt("Caçamba"), icon: '🧺', desc: tt("carrega mais"),      max: 15, base: 80,  grow: 2.1,  eff: l => 1 + 0.3 * (l - 1) },
+};
+function robotUpCost(k, lvl) { const U = ROBOT_UPS[k]; return Math.round(U.base * Math.pow(U.grow, lvl - 2)); } // custo para chegar ao nível lvl
 
 const Robots = {
   list: [], claimed: new Set(), report: null, reportT: 0,
 
-  // atributos dos robôs crescem com a era do seu martelo
+  lvl(k) { return (Game.S.robotUp && Game.S.robotUp[k]) || 1; },
+  // atributos dos robôs: crescem com a era do seu martelo e com as evoluções da oficina
   era() { return eraOf(Game.S.hammer); },
-  force() { return Math.max(1, HAMMERS[Game.S.hammer].f * 0.3); },
+  force() { return Math.max(1, HAMMERS[Game.S.hammer].f * 0.3) * ROBOT_UPS.arm.eff(this.lvl('arm')); },
   interval() { return 1.5; },
-  speed() { return 4 + this.era() * 3; },
-  cap() { return 6 + this.era() * 4; },
+  speed() { return (4 + this.era() * 3) * ROBOT_UPS.wheel.eff(this.lvl('wheel')); },
+  cap() { return Math.round((6 + this.era() * 4) * ROBOT_UPS.cart.eff(this.lvl('cart'))); },
+  buyUp(k) {
+    const S = Game.S, l = this.lvl(k), U = ROBOT_UPS[k]; if (l >= U.max) return;
+    const c = robotUpCost(k, l + 1); if (S.money < c) return;
+    S.money -= c; S.robotUp = Object.assign({}, S.robotUp, { [k]: l + 1 });
+    Snd.levelUp(); this.chirp(); UI.toast(tt("🔧 {0} dos robôs agora no nível {1}!", U.name, l + 1), 'level'); Game.save();
+  },
+  // moedas por minuto da equipe (últimos 10 minutos de entregas)
+  rate() {
+    const S = Game.S, h = S.robotHist || []; if (!h.length) return 0;
+    const span = Math.max(60, S.time - h[0][0]); let v = 0; for (const e of h) v += e[1];
+    return v / span * 60;
+  },
 
   sync() {
     const want = Math.min(ROBOT_MAX, Game.S.robots || 0);
@@ -43,12 +65,16 @@ const Robots = {
 
   // o que os robôs procuram: materiais que faltam (que o martelo atual já quebra bem); senão, o mais valioso do seu nível
   wanted() {
-    const lvl = Game.S.hammer, ids = [];
+    const S = Game.S, lvl = S.hammer, mode = S.robotMode || 'auto';
+    const best = resourceForLevel(lvl).id; // o mais valioso que o martelo quebra
+    if (mode === 'res' && S.robotRes && RES[S.robotRes] && RES[S.robotRes].ideal <= lvl) return { ids: [S.robotRes], fallback: null };
+    if (mode === 'valor') return { ids: [], fallback: best };
+    const ids = [];
     for (const m of Game.missingList()) { const r = RES[m.id]; if (!r.special && r.ideal <= lvl) ids.push(m.id); }
     // desconta o que os robôs já carregam
     const carried = {}; for (const r of this.list) for (const id in r.carry) carried[id] = (carried[id] || 0) + r.carry[id];
     const miss = Game.missingList(), out = ids.filter(id => { const m = miss.find(x => x.id === id); return m && m.falta - (carried[id] || 0) > 0; });
-    return { ids: out, fallback: out.length ? null : resourceForLevel(lvl).id };
+    return { ids: out, fallback: out.length ? null : best };
   },
 
   pick(r) {
@@ -122,7 +148,9 @@ const Robots = {
         r.t -= dt;
         if (r.t > 0) break;
         r.t = this.interval(); r.swing = 1;
-        n.hp -= this.force(); n.hitT = 0.15;
+        const rule = levelRule(n.res.ideal, Game.S.hammer, n.res);
+        if (rule.blocked) { this.release(r); r.st = 'idle'; r.t = 0.5; break; }
+        n.hp -= this.force() / rule.mult; n.hitT = 0.15; // mesma curva de golpes do jogador
         const near = Math.hypot(n.x - Game.P.x, n.y - Game.P.y);
         if (near < 22) { Game.fxBurst(n.x, n.y, n.res.c2, 3, 0.6); if (near < 14) Snd.hit(n.res.kind, 1, false); }
         if (n.hp <= 0) {
@@ -166,6 +194,8 @@ const Robots = {
       R.items[id] = (R.items[id] || 0) + q; S.robotValue = (S.robotValue || 0) + q * RES[id].value;
     }
     S.robotTotal = (S.robotTotal || 0) + r.n;
+    let val = 0; for (const id in r.carry) val += r.carry[id] * RES[id].value;
+    S.robotHist = (S.robotHist || []).filter(e => S.time - e[0] < 600); S.robotHist.push([S.time, val]);
     r.carry = {}; r.n = 0;
     if (this.reportT < 1.5) this.reportT = 1.5;
     Game.save();
