@@ -196,8 +196,8 @@ function attrLabel(key, lvl) {
 function hammerCost(L) { // custo para chegar ao nível L
   const h = HAMMERS[L];
   // primeiros martelos bem baratos: a primeira evolução sai em menos de 1 minuto
-  const qty = L <= 4 ? L : 3 + Math.floor(L / 2);
-  const money = L <= 4 ? [0, 0, 0, 20, 32][L] : Math.round(25 * Math.pow(1.31, L - 2));
+  const qty = L <= 4 ? L : L <= 12 ? Math.round(2 + L * 0.4) : 3 + Math.floor(L / 2); // 5 a 12: menos material (a pedra do seu nível é a lenta)
+  const money = L <= 4 ? [0, 0, 0, 20, 32][L] : Math.round(25 * Math.pow(1.31, L - 2) * Math.min(1, 0.55 + (L - 4) * 0.05)); // martelos 5 a 12 mais baratos: o Martelo 10 sai perto dos 10 minutos
   const mats = h.mat.map(id => ({ id, qty }));
   if (SPECIAL_AT[L]) mats.push({ id: SPECIAL_AT[L], qty: 5 });
   return { money, mats };

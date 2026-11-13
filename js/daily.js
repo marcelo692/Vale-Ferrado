@@ -5,7 +5,7 @@
 
 const CHEST_POS = { x: 3.2, y: 6.6 };     // ao lado da fonte, virado para ela
 const DAILY_FROM = 3;                       // o baú aparece a partir do Martelo 3
-const ORDERS_FROM = 4;                      // encomendas a partir do Martelo 4
+const ORDERS_FROM = 8;                      // encomendas a partir do Martelo 8 (antes disso elas comeriam as primeiras vendas)
 // prêmio de cada dia da sequência (fração do preço do próximo martelo + extras)
 const DAILY_DAYS = [
   { k: 0.35, cint: 0 },
@@ -92,6 +92,7 @@ const Orders = {
     S.orders = { day: Daily.today(), list };
   },
   // na chegada à vila: as encomendas pegam do que IA SER VENDIDO (nunca do que falta para suas evoluções)
+  // cada unidade entregue já paga na hora (o dobro da venda normal); completar dá o bônus. Nunca deixa o jogador sem dinheiro.
   take(id, qty, quiet) {
     const S = Game.S; let left = qty;
     for (const o of this.list()) {
@@ -99,12 +100,15 @@ const Orders = {
       const k = Math.min(left, o.qty - o.got); if (!k) continue;
       left -= k; if (quiet) continue;
       o.got += k;
+      const pay = Math.round(k * RES[id].value * 2); S.money += pay; S.earned += pay;
       if (o.got >= o.qty) {
-        o.done = true; S.money += o.reward; S.earned += o.reward; S.cint = (S.cint || 0) + o.cint;
+        o.done = true; const bonus = Math.round(o.reward * 0.35); S.money += bonus; S.earned += bonus; S.cint = (S.cint || 0) + o.cint;
         const n = NPCS.find(v => v.id === o.npc);
-        UI.toast(tt("📦 Encomenda entregue para {0}: +{1} moedas · ✦{2}", n ? n.name.split(',')[0] : '', fmt(o.reward), o.cint), 'level'); Snd.coins(o.reward);
-      } else UI.toast(tt("📦 Encomenda: {0}/{1} {2}", o.got, o.qty, RES[o.res].name));
+        UI.toast(tt("📦 Encomenda entregue para {0}: +{1} moedas · ✦{2}", n ? n.name.split(',')[0] : '', fmt(pay + bonus), o.cint), 'level'); Snd.coins(pay + bonus);
+      } else UI.toast(tt("📦 Encomenda: {0}/{1} {2} · +{3} moedas", o.got, o.qty, RES[o.res].name, fmt(pay)));
     }
     return qty - left;
   },
+  // valor que a prévia da mochila deve mostrar (paga o dobro por unidade)
+  bonusValue(id, qty) { return this.take(id, qty, true) * RES[id].value * 2; },
 };

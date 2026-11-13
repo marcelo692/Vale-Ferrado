@@ -277,7 +277,14 @@ const Game = {
   },
   // modo de entrega na vila: 'sobra' guarda o que as evoluções precisam e vende o resto; 'guardar' guarda tudo; 'vender' vende tudo
   sellMode() { return this.S.sellMode || 'sobra'; },
-  keepCap(id, q) { const m = this.sellMode(); return m === 'guardar' ? q : m === 'vender' ? 0 : RES[id].special || this.S.hammer < 6 ? q : Math.floor(q * 0.6); }, // 'sobra': até 60% (para sempre entrar dinheiro)
+  // 'sobra': o que o PRÓXIMO MARTELO pede fica inteiro; o resto (melhorias, equipamentos) até 60%, para sempre entrar dinheiro
+  keepCap(id, q) {
+    const m = this.sellMode(); if (m === 'guardar') return q; if (m === 'vender') return 0;
+    if (RES[id].special || this.S.hammer < 3) return q;
+    const hm = this.S.hammer < MAX_LEVEL ? hammerCost(this.S.hammer + 1).mats.find(x => x.id === id) : null;
+    const forHammer = hm ? Math.max(0, hm.qty - (this.S.stock[id] || 0)) : 0;
+    return Math.max(Math.min(q, forHammer), Math.floor(q * 0.6));
+  },
   cycleSellMode() {
     const order = ['sobra', 'guardar', 'vender'], m = order[(order.indexOf(this.sellMode()) + 1) % 3];
     this.S.sellMode = m; Snd.toggle(true); if (this.unloadT !== undefined) this.unloadT = Math.max(this.unloadT, 1.2);
@@ -310,7 +317,7 @@ const Game = {
     for (const id in bag) {
       const q = bag[id], want = this.sellMode() === 'guardar' ? q : this.keepWant(id, need, sneed);
       const k = Math.min(want, this.keepCap(id, q)), ord = Orders.take(id, q - k, true);
-      money += (q - k - ord) * RES[id].value; all += q * RES[id].value; kept += k;
+      money += (q - k - ord) * RES[id].value + ord * RES[id].value * 2; all += q * RES[id].value; kept += k;
     }
     return { money, all, kept, mission: missionN };
   },
@@ -336,7 +343,7 @@ const Game = {
       else if (RES[id].special && sneed[id] && k > 0) why = tt("recurso raro: guardei para martelos e equipamentos futuros");
       else if (!need[id] && !(RES[id].special && sneed[id])) why = tt("nenhuma evolução próxima usa");
       else if (want === 0) why = tt("o depósito já tem o suficiente");
-      else if (k < want) why = tt("guardei {0}; faltam {1}", this.S.hammer < 6 ? tt("o que veio") : tt("60% da carga, para sempre entrar dinheiro"), fmt(want - k));
+      else if (k < want) why = tt("guardei {0}; faltam {1}", tt("60% da carga, para sempre entrar dinheiro"), fmt(want - k));
       else why = tt("guardei tudo que faltava");
       lines.push({ id, q, k, sq, money, why, for: by[id] || [] });
     }
