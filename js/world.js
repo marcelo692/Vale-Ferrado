@@ -372,6 +372,8 @@ const World = {
   },
 
     // cor do chão (biome)
+  // chão de pedra (sem capim): corredor das minas a partir da 3ª região
+  groundRocky(x, y) { const g = this.groundAt(x, y); return !!(g && g.edge === 1 && g.R.id >= 2); },
   groundAt(x, y) {
     const dist = Math.hypot(x, y);
     if (dist < CITY_R) return null; // cidade é desenhada à parte

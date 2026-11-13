@@ -5,6 +5,7 @@ I18N.tr = {
 "Leste": "Doğu",
 "Vila em Ruínas": "Harabe Köy",
 "Sul": "Güney",
+"Mina Velha": "Eski Maden",
 "Oeste": "Batı",
 "Pedreira Funda": "Derin Taş Ocağı",
 "Noroeste": "Kuzeybatı",

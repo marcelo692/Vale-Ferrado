@@ -5,6 +5,7 @@ I18N.es = {
 "Leste": "Este",
 "Vila em Ruínas": "Aldea en Ruinas",
 "Sul": "Sur",
+"Mina Velha": "Mina Vieja",
 "Oeste": "Oeste",
 "Pedreira Funda": "Cantera Profunda",
 "Noroeste": "Noroeste",

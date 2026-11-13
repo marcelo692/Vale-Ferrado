@@ -1,9 +1,11 @@
 {
-  "version": "3.7.2",
-  "date": "2026-11-12",
+  "version": "3.8.0",
+  "date": "2026-11-13",
   "notes": [
-    "Braço novo com ombro, cotovelo e pulso; golpes aprovados alternando (alto com giro, cruzado do alto, pesado por cima)",
-    "Martelos e picaretas crescem com o nível (a Picareta 61 ficou grande); cabos longos são segurados mais embaixo e os curtos ficam na mão"
+    "Martelo descansa baixo (só a ponta aparece) e sobe quando há pedra na mira ou você está batendo",
+    "Capim em tufos de verdade, flores, pinheiros, arbustos e matas no mapa todo; sem capim no chão de pedra das minas",
+    "Serra em volta do mundo, bandos de pássaros de dia e textura do chão nova",
+    "Telas: cards sem sobra na grade, letra maior, avisos atrás da pausa, placas sem corte, Mina Velha traduzida"
   ],
   "files": [
     {
@@ -16,7 +18,7 @@
     },
     {
       "path": "index.html",
-      "size": 35085
+      "size": 35618
     },
     {
       "path": "js/audio.js",
@@ -28,7 +30,7 @@
     },
     {
       "path": "js/data.js",
-      "size": 24688
+      "size": 24692
     },
     {
       "path": "js/game.js",
@@ -40,15 +42,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 53886
+      "size": 53912
     },
     {
       "path": "js/lang/es.js",
-      "size": 55705
+      "size": 55733
     },
     {
       "path": "js/lang/tr.js",
-      "size": 55209
+      "size": 55237
     },
     {
       "path": "js/missions.js",
@@ -60,7 +62,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 190754
+      "size": 200812
     },
     {
       "path": "js/robots.js",
@@ -68,7 +70,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 34435
+      "size": 35074
     },
     {
       "path": "js/updater.js",
@@ -80,7 +82,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 20953
+      "size": 21130
     },
     {
       "path": "js/zone7.js",
@@ -96,7 +98,7 @@
     },
     {
       "path": "version.json",
-      "size": 1905
+      "size": 1795
     }
   ]
 }

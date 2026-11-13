@@ -23,7 +23,7 @@ function labelSprite(text, sub, color = '#f5e6c8', scale = 1) {
   const tex = canvasTex(512, 128, (g, w, h) => {
     g.fillStyle = 'rgba(20,14,8,0.72)'; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 18); g.fill();
     g.textAlign = 'center'; g.fillStyle = color; let fs = 46; g.font = `700 ${fs}px Georgia, serif`; while (g.measureText(text).width > w - 44 && fs > 20) { fs -= 2; g.font = `700 ${fs}px Georgia, serif`; } g.fillText(text, w / 2, sub ? 62 : 80);
-    if (sub) { g.font = '30px system-ui, sans-serif'; g.fillStyle = '#d8c8a8'; g.fillText(sub, w / 2, 104); }
+    if (sub) { let ss = 30; g.font = `${ss}px system-ui, sans-serif`; while (g.measureText(sub).width > w - 40 && ss > 16) { ss -= 2; g.font = `${ss}px system-ui, sans-serif`; } g.fillStyle = '#d8c8a8'; g.fillText(sub, w / 2, 104); }
   });
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, fog: true }));
   sp.scale.set(4 * scale, 1 * scale, 1);
@@ -76,8 +76,13 @@ const Render = {
     this.scene.add(this.sun, this.sun.target);
 
     this.grassTex = canvasTex(256, 256, (g, w, h) => {
-      g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, w, h);
-      for (let i = 0; i < 2600; i++) { const v = 120 + Math.random() * 120 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 3, 1 + Math.random() * 3); }
+      // tons de cinza (a cor vem do vértice): manchas grandes + fiapos de capim + pedrinhas
+      g.fillStyle = '#a0a0a0'; g.fillRect(0, 0, w, h);
+      const r = rng(77);
+      for (let i = 0; i < 46; i++) { const x = r() * w, y = r() * h, rr = 14 + r() * 40, v = 132 + r() * 70 | 0; for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) { const gg = g.createRadialGradient(x + dx, y + dy, 1, x + dx, y + dy, rr); gg.addColorStop(0, `rgba(${v},${v},${v},.55)`); gg.addColorStop(1, `rgba(${v},${v},${v},0)`); g.fillStyle = gg; g.fillRect(x + dx - rr, y + dy - rr, rr * 2, rr * 2); } }
+      g.lineCap = 'round';
+      for (let i = 0; i < 1500; i++) { const x = r() * w, y = r() * h, l = 2 + r() * 5, a = -Math.PI / 2 + (r() - 0.5) * 1.2, v = 95 + r() * 130 | 0; g.strokeStyle = `rgba(${v},${v},${v},.8)`; g.lineWidth = 0.7 + r() * 0.9; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+      for (let i = 0; i < 160; i++) { const x = r() * w, y = r() * h, v = 150 + r() * 80 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.beginPath(); g.ellipse(x, y, 1 + r() * 1.6, 0.8 + r() * 1.2, r() * 3, 0, 7); g.fill(); g.fillStyle = 'rgba(40,40,40,.35)'; g.fillRect(x - 1, y + 1, 2, 1); }
     }, 1);
 
     this.buildSky();
@@ -88,7 +93,7 @@ const Render = {
     this.buildObstacles();
     this.buildPitWalls();
     this.buildClimbFx();
-    this.buildDecor(); this.buildOreLod();
+    this.buildDecor(); this.buildOreLod(); this.buildEdgeRange(); this.buildBirds();
     this.buildGrass();
     this.buildFx();
     this.buildHitFx();
@@ -489,7 +494,7 @@ const Render = {
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshBasicMaterial({ map: signTex, transparent: true }));
       sign.position.set(0, 3.55, 1.25); sign.rotation.x = -0.12; g.add(sign);
       const signBack = sign.clone(); signBack.rotation.y = Math.PI; signBack.position.z = 1.24; g.add(signBack);
-      const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? tt("Mineração · mochila · movimento · pulo") : n.role, '#f5e6c8', 0.8); lab.position.set(0, 2.25, 1.6); g.add(lab);
+      const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? tt("Mineração · mochila · movimento · pulo") : n.role, '#f5e6c8', 0.8); lab.position.set(0, 2.25, 1.6); lab.material.depthTest = false; lab.renderOrder = 5; g.add(lab);
       // símbolo girando em cima da barraca
       const icon = this.shopIcon(n.id); icon.position.set(0, 5.4, 0); g.add(icon);
       const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex || (this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); })), color: n.color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 }));
@@ -840,7 +845,7 @@ const Render = {
 
   // ---------- árvores, pedregulhos e capim ----------
   buildDecor() {
-    const trunks = [], crowns = [], rocks = [];
+    const trunks = [], crowns = [], rocks = [], pines = [], bushes = [];
     const r = rng(42);
     const ok = (x, y) => {
       const d = Math.hypot(x, y); if (d < CITY_R + 6) return false;
@@ -848,23 +853,35 @@ const Render = {
       for (const o of World.obstacles) { const l = World.local(o.R, x, y); if (Math.abs(l.d - o.dc) < o.t + 3 && Math.abs(l.p - o.pc) < o.len / 2 + 3) return false; }
       return true;
     };
-    for (let i = 0; i < 26000; i++) {
-      const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 1800, x = Math.cos(a) * d, y = Math.sin(a) * d;
+    for (let i = 0; i < 52000; i++) {
+      const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 4250, x = Math.cos(a) * d, y = Math.sin(a) * d;
+      if (Math.hypot(x - Z7.x, y - Z7.y) < Z7.flatR) continue;
       if (!ok(x, y)) continue;
       if (World.mountainH(x, y) > 4) { if (r() < 0.12) rocks.push([x, y, 0.6 + r() * 1.6, '#6a645c']); continue; }
       const g = World.groundAt(x, y);
       if (g && g.edge === 1) { if (g.R.id >= 1 && r() < 0.06) rocks.push([x, y, 0.6 + r() * 1.8, g.R.ground[2]]); continue; }
       const nearBosque = (g && g.R.id === 0) || d < 260;
-      if (nearBosque ? r() < 0.55 : r() < 0.12) { const s = 0.7 + r() * 0.9; trunks.push([x, y, s]); crowns.push([x, y, s, r()]); }
-      else if (r() < 0.08) rocks.push([x, y, 0.5 + r() * 1.5, '#7a786f']);
+      // bosquezinhos: o ruído decide onde ficam as matas (fora delas, campo aberto com arbustos)
+      const mata = Math.sin(x * 0.009 + 1.7) * Math.cos(y * 0.011 - 0.4) + Math.sin((x - y) * 0.004) * 0.6;
+      const pTree = nearBosque ? 0.55 : mata > 0.55 ? 0.35 : mata > 0.1 ? 0.06 : 0.015;
+      if (r() < pTree) { const s = 0.7 + r() * 0.9, pine = r() < (d > 1500 ? 0.65 : 0.35); if (pine) pines.push([x, y, s * 1.1, r()]); else { trunks.push([x, y, s]); crowns.push([x, y, s, r()]); } }
+      else if (r() < 0.05) bushes.push([x, y, 0.5 + r() * 0.6, r()]);
+      else if (r() < 0.035) rocks.push([x, y, 0.5 + r() * 1.5, '#7a786f']);
     }
     const tGeo = new THREE.CylinderGeometry(0.22, 0.32, 3, 6); tGeo.translate(0, 1.5, 0);
     const cGeo = jitterGeo(new THREE.IcosahedronGeometry(2.2, 0), 0.6, 3); cGeo.translate(0, 4.4, 0);
     const rGeo = jitterGeo(new THREE.DodecahedronGeometry(1, 0), 0.35, 11);
+    // pinheiro: tronco + 4 andares de copa (cones que encaixam), com a cor mais escura embaixo
+    const pGeo = (() => { const parts = []; const tr = new THREE.CylinderGeometry(0.16, 0.24, 2.2, 6); tr.translate(0, 1.1, 0); parts.push([tr, [0.35, 0.24, 0.14]]);
+      [[2.3, 2.4, 1.6], [1.85, 2.2, 2.9], [1.35, 2.0, 4.1], [0.85, 1.7, 5.2]].forEach(([rad, hh, y], i) => { const c = jitterGeo(new THREE.ConeGeometry(rad, hh, 8, 1), 0.12, i + 4); c.translate(0, y + hh / 2, 0); const k = 0.75 + i * 0.09; parts.push([c, [0.2 * k, 0.42 * k, 0.22 * k]]); });
+      const P = [], N = [], C = []; for (const [gg, cc] of parts) { const ni = gg.toNonIndexed(); ni.computeVertexNormals(); P.push(...ni.attributes.position.array); N.push(...ni.attributes.normal.array); for (let i = 0; i < ni.attributes.position.count; i++) C.push(...cc); }
+      const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); out.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); out.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); return out; })();
+    const pMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+    const bGeo = jitterGeo(new THREE.IcosahedronGeometry(1, 1), 0.25, 21); bGeo.scale(1.2, 0.75, 1.1); bGeo.translate(0, 0.45, 0);
     const tMat = mat('#5a3d24'), cMat = new THREE.MeshLambertMaterial({ flatShading: true }), rMat = new THREE.MeshLambertMaterial({ flatShading: true });
     // árvores e pedregulhos divididos em blocos de 200 m: cada bloco só é desenhado quando está perto e na frente da câmera
-    const CH = 200, cells = new Map(), cell = (x, y) => { const k = Math.floor(x / CH) + ',' + Math.floor(y / CH); if (!cells.has(k)) cells.set(k, { t: [], c: [], r: [], cx: (Math.floor(x / CH) + 0.5) * CH, cy: (Math.floor(y / CH) + 0.5) * CH }); return cells.get(k); };
-    trunks.forEach(t => cell(t[0], t[1]).t.push(t)); crowns.forEach(c => cell(c[0], c[1]).c.push(c)); rocks.forEach(r => cell(r[0], r[1]).r.push(r));
+    const CH = 200, cells = new Map(), cell = (x, y) => { const k = Math.floor(x / CH) + ',' + Math.floor(y / CH); if (!cells.has(k)) cells.set(k, { t: [], c: [], r: [], p: [], b: [], cx: (Math.floor(x / CH) + 0.5) * CH, cy: (Math.floor(y / CH) + 0.5) * CH }); return cells.get(k); };
+    trunks.forEach(t => cell(t[0], t[1]).t.push(t)); crowns.forEach(c => cell(c[0], c[1]).c.push(c)); rocks.forEach(r => cell(r[0], r[1]).r.push(r)); pines.forEach(v => cell(v[0], v[1]).p.push(v)); bushes.forEach(v => cell(v[0], v[1]).b.push(v));
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color(), up = new V3(0, 1, 0);
     this.decoChunks = [];
     for (const C of cells.values()) {
@@ -872,6 +889,8 @@ const Render = {
       if (C.t.length) { const tm = new THREE.InstancedMesh(tGeo, tMat, C.t.length); C.t.forEach(([x, y, s2], i) => { q.identity(); pv.set(x, World.height(x, y) - 0.1, y); sv.set(s2, s2, s2); m4.compose(pv, q, sv); tm.setMatrixAt(i, m4); }); ch.tm = tm; ch.list.push(tm); }
       if (C.c.length) { const cm = new THREE.InstancedMesh(cGeo, cMat, C.c.length); C.c.forEach(([x, y, s2, v], i) => { q.setFromAxisAngle(up, v * 6); pv.set(x, World.height(x, y) - 0.1, y); sv.set(s2, s2 * (0.9 + v * 0.3), s2); m4.compose(pv, q, sv); cm.setMatrixAt(i, m4); col.setHSL(0.23 + v * 0.07, 0.45, 0.22 + v * 0.1); cm.setColorAt(i, col); }); ch.cm = cm; ch.list.push(cm); }
       if (C.r.length) { const rm = new THREE.InstancedMesh(rGeo, rMat, C.r.length); q.identity(); C.r.forEach(([x, y, s2, c], i) => { pv.set(x, World.height(x, y) + s2 * 0.2, y); sv.set(s2, s2 * 0.7, s2 * 1.1); m4.compose(pv, q, sv); rm.setMatrixAt(i, m4); col.set(c); col.offsetHSL(0, 0, -0.05); rm.setColorAt(i, col); }); ch.rm = rm; ch.list.push(rm); }
+      if (C.p.length) { const pm = new THREE.InstancedMesh(pGeo, pMat, C.p.length); C.p.forEach(([x, y, s2, v], i) => { q.setFromAxisAngle(up, v * 6); pv.set(x, World.height(x, y) - 0.15, y); sv.set(s2, s2 * (0.85 + v * 0.4), s2); m4.compose(pv, q, sv); pm.setMatrixAt(i, m4); col.setHSL(0.3 + v * 0.06, 0.25, 0.75 + v * 0.3); pm.setColorAt(i, col); }); ch.cm2 = pm; ch.list.push(pm); }
+      if (C.b.length) { const bm = new THREE.InstancedMesh(bGeo, cMat, C.b.length); C.b.forEach(([x, y, s2, v], i) => { q.setFromAxisAngle(up, v * 6); pv.set(x, World.height(x, y) - 0.1, y); sv.set(s2, s2, s2); m4.compose(pv, q, sv); bm.setMatrixAt(i, m4); col.setHSL(0.24 + v * 0.08, 0.42, 0.2 + v * 0.1); bm.setColorAt(i, col); }); ch.bm = bm; ch.list.push(bm); }
       for (const o of ch.list) { o.frustumCulled = false; o.receiveShadow = true; o.castShadow = false; o.visible = false; this.scene.add(o); }
       this.decoChunks.push(ch);
     }
@@ -886,10 +905,55 @@ const Render = {
       const dx = ch.x - P.x, dy = ch.y - P.y, d = Math.hypot(dx, dy), ahead = dx * fwd.x + dy * fwd.z;
       const vis = d - R < view && (ahead > -R || d < R * 1.2);
       if (ch.cm) ch.cm.visible = vis;
+      if (ch.cm2) ch.cm2.visible = vis;
+      if (ch.bm) ch.bm.visible = vis && d - R < 220;
       if (ch.rm) ch.rm.visible = vis;
       if (ch.tm) ch.tm.visible = vis && d - R < 170;
       const sh = shadows && d - R < 50;
       for (const o of ch.list) o.castShadow = sh;
+    }
+  },
+  // serra em volta do mapa: avisa que o mundo acaba (só aparece quando você chega perto da borda)
+  buildEdgeRange() {
+    const g = jitterGeo(new THREE.ConeGeometry(1, 1, 7, 3), 0.18, 31); g.translate(0, 0.5, 0);
+    const N = 150, m = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ flatShading: true }), N * 2), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), c = new THREE.Color(), r = rng(404);
+    let i = 0;
+    for (let k = 0; k < N; k++) for (const ring of [4420, 4560]) {
+      const a = k / N * Math.PI * 2 + r() * 0.02, rad = ring + r() * 60, x = Math.cos(a) * rad, y = Math.sin(a) * rad, h = (ring > 4500 ? 160 : 95) + r() * 90, w = 110 + r() * 60;
+      q.setFromAxisAngle(new V3(0, 1, 0), r() * 6); pv.set(x, World.height(x, y) - 4, y); sv.set(w, h, w * (0.8 + r() * 0.4)); m4.compose(pv, q, sv); m.setMatrixAt(i, m4);
+      c.setHSL(0.3 - r() * 0.2, 0.12, 0.32 + r() * 0.1); m.setColorAt(i, c); i++;
+    }
+    m.frustumCulled = false; m.receiveShadow = false; this.scene.add(m); this.edgeRange = m;
+  },
+  // pássaros de dia: bandos em V voando devagar em volta do jogador, batendo as asas
+  buildBirds() {
+    const wing = new THREE.BufferGeometry();
+    wing.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.25, 0, 0, 0.3, 1, 0.08, 0.05], 3)); wing.computeVertexNormals();
+    const body = new THREE.ConeGeometry(0.12, 0.7, 4); body.rotateX(Math.PI / 2);
+    const mt = new THREE.MeshBasicMaterial({ color: '#2a2a30', side: THREE.DoubleSide, fog: true });
+    this.birds = [];
+    for (let f = 0; f < 3; f++) {
+      const flock = new THREE.Group(), n = 5 + f * 2, list = [];
+      for (let i = 0; i < n; i++) {
+        const b = new THREE.Group(), L = new THREE.Mesh(wing, mt), Rw = new THREE.Mesh(wing, mt); Rw.scale.x = -1; b.add(new THREE.Mesh(body, mt), L, Rw);
+        const row = Math.ceil(i / 2), side = i % 2 ? 1 : -1; b.position.set(side * row * 2.2, (Math.random() - 0.5) * 0.6, row * 2.4);
+        b.scale.setScalar(1.6); flock.add(b); list.push({ b, L, Rw, ph: Math.random() * 6 });
+      }
+      flock.userData = { a: Math.random() * 6.28, r: 120 + f * 90, h: 38 + f * 14, sp: (0.05 + f * 0.015) * (f % 2 ? -1 : 1), list };
+      this.scene.add(flock); this.birds.push(flock);
+    }
+  },
+  updateBirds(dt) {
+    if (!this.birds) return;
+    const day = this.day === undefined ? 1 : this.day, P = Game.P, t = this.t;
+    for (const f of this.birds) {
+      const u = f.userData; u.a += u.sp * dt; f.visible = day > 0.35;
+      if (!u.cx || Math.hypot(u.cx - P.x, u.cy - P.y) > 600) { u.cx = P.x; u.cy = P.y; }
+      u.cx += (P.x - u.cx) * dt * 0.02; u.cy += (P.y - u.cy) * dt * 0.02;
+      const x = u.cx + Math.cos(u.a) * u.r, y = u.cy + Math.sin(u.a) * u.r;
+      f.position.set(x, World.height(x, y) + u.h + Math.sin(t * 0.3 + u.r) * 4, y);
+      f.rotation.y = -u.a + (u.sp > 0 ? 0 : Math.PI);
+      for (const b of u.list) { const w = Math.sin(t * 7 + b.ph) * 0.7; b.L.rotation.z = w; b.Rw.rotation.z = -w; }
     }
   },
   // ---------- minérios de longe: versão simplificada (poucos polígonos, na cor do minério) ----------
@@ -947,10 +1011,21 @@ const Render = {
   },
   nodeNear() { return this.quality === 'leve' ? 85 : 130; },
   buildGrass() {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute([-0.25, 0, 0, 0.25, 0, 0, 0, 0.55, 0, 0, 0, -0.25, 0, 0, 0.25, 0.04, 0.5, 0], 3));
-    g.computeVertexNormals();
-    this.grass = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), 3500);
+    // tufo: 7 folhas finas inclinadas, base escura e ponta clara
+    const pos = [], col = [], rr = rng(9);
+    for (let i = 0; i < 7; i++) {
+      const a = i / 7 * Math.PI * 2 + rr() * 0.6, lean = 0.12 + rr() * 0.22, hgt = 0.32 + rr() * 0.3, w = 0.035 + rr() * 0.02, ox = Math.cos(a) * 0.05, oz = Math.sin(a) * 0.05;
+      const px = -Math.sin(a) * w, pz = Math.cos(a) * w, tx = ox + Math.cos(a) * lean, tz = oz + Math.sin(a) * lean;
+      pos.push(ox - px, 0, oz - pz, ox + px, 0, oz + pz, tx, hgt, tz); col.push(0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 1.25, 1.25, 1.1);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+    { const n = g.attributes.normal; for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0); } // luz de cima: folhas não ficam pretas de um lado
+    this.grass = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, vertexColors: true }), 4200);
+    // flores: miolo + pétalas (estrela achatada)
+    const fg = new THREE.ConeGeometry(0.09, 0.05, 5, 1); fg.rotateX(Math.PI); fg.translate(0, 0.3, 0);
+    const stem = new THREE.CylinderGeometry(0.008, 0.008, 0.3, 3); stem.translate(0, 0.15, 0);
+    this.flowers = new THREE.InstancedMesh(fg, new THREE.MeshLambertMaterial({ emissive: '#222222' }), 700); this.flowers.count = 0; this.scene.add(this.flowers);
+    this.flowerStems = new THREE.InstancedMesh(stem, mat('#4f7a2e'), 700); this.flowerStems.count = 0; this.scene.add(this.flowerStems);
     this.grass.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.scene.add(this.grass); this.grassAt = null;
   },
@@ -960,18 +1035,28 @@ const Render = {
     if (this.grassAt && this.grassAt[0] === sx && this.grassAt[1] === sy) return;
     this.grassAt = [sx, sy];
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new V3(), p = new V3(), c = new THREE.Color(), up = new V3(0, 1, 0);
-    let n = 0;
-    for (let gx = -40; gx <= 40 && n < 3500; gx += 1.6) for (let gy = -40; gy <= 40 && n < 3500; gy += 1.6) {
-      const cx = Math.floor((sx + gx) / 1.6), cy = Math.floor((sy + gy) / 1.6), h = hash2(cx, cy);
-      if (h > 0.55) continue;
-      const x = cx * 1.6 + hash2(cx * 3, cy) * 1.6, y = cy * 1.6 + hash2(cx, cy * 5) * 1.6;
+    let n = 0, nf = 0;
+    const FC = ['#ffd84a', '#ffffff', '#c58cff', '#ff7a8a', '#ffa03a', '#8ad0ff'].map(v => new THREE.Color(v));
+    for (let gx = -40; gx <= 40 && n < 4200; gx += 1.3) for (let gy = -40; gy <= 40 && n < 4200; gy += 1.3) {
+      const cx = Math.floor((sx + gx) / 1.3), cy = Math.floor((sy + gy) / 1.3), h = hash2(cx, cy);
+      if (h > 0.6) continue;
+      const x = cx * 1.3 + hash2(cx * 3, cy) * 1.3, y = cy * 1.3 + hash2(cx, cy * 5) * 1.3;
       if (Math.hypot(x, y) < CITY_R + 1 || World.mountainH(x, y) > 6) continue;
+      if (World.pitAt(x, y).inside > 0.15 || World.groundRocky(x, y)) continue; // chão de pedra das minas: sem capim
       const gr = World.groundAt(x, y), id = gr ? gr.R.id : -1;
       if (id >= 2 && gr.edge === 1) continue;
-      q.setFromAxisAngle(up, h * 20); s.set(0.5 + h * 0.6, 0.35 + h * 0.9, 0.5 + h * 0.6); p.set(x, World.height(x, y), y);
+      q.setFromAxisAngle(up, h * 20); s.set(0.8 + h * 0.7, 0.7 + h * 1.0, 0.8 + h * 0.7); p.set(x, World.height(x, y) - 0.02, y);
       m4.compose(p, q, s); this.grass.setMatrixAt(n, m4);
-      c.setHSL(0.2 + h * 0.08, 0.4, 0.2 + h * 0.12); this.grass.setColorAt(n, c); n++;
+      c.setHSL(0.21 + h * 0.07, 0.42, 0.24 + h * 0.1); this.grass.setColorAt(n, c); n++;
+      // canteirinhos de flores espalhados (manchas)
+      const fz = Math.sin(x * 0.07 + Math.cos(y * 0.05) * 2) * Math.sin(y * 0.061 - 1.2);
+      if (fz > 0.55 && nf < 700 && hash2(cx * 7, cy * 11) < 0.55) {
+        const fx = x + 0.35, fy = y - 0.2, fh = World.height(fx, fy), fsz = 0.8 + hash2(cx, cy * 3) * 0.6;
+        q.identity(); s.set(fsz, fsz, fsz); p.set(fx, fh, fy); m4.compose(p, q, s); this.flowers.setMatrixAt(nf, m4); this.flowerStems.setMatrixAt(nf, m4);
+        this.flowers.setColorAt(nf, FC[Math.floor(hash2(Math.floor(x / 9), Math.floor(y / 9)) * FC.length)]); nf++;
+      }
     }
+    this.flowers.count = this.flowerStems.count = nf; this.flowers.instanceMatrix.needsUpdate = this.flowerStems.instanceMatrix.needsUpdate = true; if (this.flowers.instanceColor) this.flowers.instanceColor.needsUpdate = true;
     this.grass.count = n; this.grass.instanceMatrix.needsUpdate = true; if (this.grass.instanceColor) this.grass.instanceColor.needsUpdate = true;
   },
 
@@ -1436,6 +1521,8 @@ const Render = {
   },
   // ---------- golpes aprovados: alternam direita -> esquerda -> por cima ----------
   // sp: ombro levanta  sy: ombro gira  sr: ombro inclina  ef: cotovelo dobra  wp: pulso para trás/frente  wr: pulso gira
+  // repouso longe da pedra: braço baixo, só a ponta do martelo aparece no canto (no máximo ~5% da tela)
+  VM_IDLE: { sp: -0.95, sy: -0.4, sr: 1.1, ef: 0.55, wp: -1.1, wr: -0.6 },
   VM_REST: { sp: -0.244, sy: -0.325, sr: 1.093, ef: 0.894, wp: 0.524, wr: -0.736 },
   SWINGS: [
     { side: 'R', n: 'Alto com giro do pulso', up: { sp: 0.304, sy: -0.376, sr: 0.299, ef: 1.496, wp: -0.035, wr: -0.543 }, hit: { sp: -0.307, sy: 0.299, sr: 0.701, ef: 0.343, wp: 0.434, wr: -0.016 } },
@@ -1470,8 +1557,12 @@ const Render = {
     else if (A.click > 0) { A.click -= dt; A.t = Math.min(0.58, A.t + dt / 0.07 * 0.22); }
     else if (Game.mineT > 0 && P.swing > 0.001) A.t = Math.min(0.575, P.swing * 0.58); // segurando: sobe devagar até o golpe
     else A.t = Math.max(0, A.t - dt * 2);
-    const want = this.vmPoseAt(A.combo, A.t);
-    if (!A.pose) A.pose = want;
+    // levanta o martelo quando há pedra na mira ou está batendo; abaixa quando está só andando
+    const busy = A.t > 0.001 || A.follow > 0 || A.click > 0 || A.stop > 0 || Game.mineT > 0 || !!Game.target || (Game.mouse && Game.mouse.down);
+    A.ready = (A.ready || 0) + ((busy ? 1 : 0) - (A.ready || 0)) * Math.min(1, dt * (busy ? 12 : 3));
+    let want = this.vmPoseAt(A.combo, A.t);
+    if (A.ready < 0.999) { const I = this.VM_IDLE, o = {}; for (const k in want) o[k] = I[k] + (want[k] - I[k]) * A.ready; want = o; }
+    if (!A.pose) A.pose = Object.assign({}, want);
     const k = A.follow > 0 || A.click > 0 ? 1 : Math.min(1, dt * 18);
     for (const key in want) A.pose[key] += (want[key] - A.pose[key]) * k;
     this.applyVmPose(A.pose, bob);
@@ -2009,7 +2100,7 @@ const Render = {
     this.t += dt;
     const P = Game.P;
     this.updateDayNight();
-    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
+    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;

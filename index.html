@@ -112,6 +112,12 @@
   .toast.out { opacity: 0; transform: translateY(-8px); } .toast.money { border-color: #a08a3a; color: #ffe9a8; } .toast.level { border-color: #6a9a4a; color: #c9f0b0; } .toast.warn { border-color: #a04a3a; color: #ffc0b0; } .toast.veio { border-color: var(--gold); color: var(--gold); font-weight: 600; } .toast.power { border-color: #3a8ef0; color: #b8d8ff; }
   #panel { position: fixed; inset: 0; background: rgba(10,6,2,.55); display: flex; align-items: center; justify-content: center; z-index: 10; }
   #panel.hidden { display: none; }
+  /* avisos e barra da vila ficam atrás do menu de pausa */
+  #lockhint { z-index: 9 !important; } #toasts, #citybar { z-index: 4; }
+  /* letra um pouco maior nos painéis em telas de computador */
+  @media (min-width: 1100px) { #panel > div { zoom: 1.12; } #inv { zoom: 1.08; } }
+  .grid.c2 { grid-template-columns: repeat(2, 1fr); } .grid.c3 { grid-template-columns: repeat(3, 1fr); } .grid.c4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 700px) { .grid.c2, .grid.c3, .grid.c4 { grid-template-columns: 1fr; } }
   #panel > div { background: #2a2016; border: 2px solid var(--edge); border-radius: 14px; width: min(760px, 94vw); max-height: 88vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
   .ph { display: flex; gap: 14px; align-items: center; padding: 16px 20px; border-bottom: 1px solid #4a3a28; background: linear-gradient(90deg, color-mix(in srgb, var(--npc) 35%, #2a2016), #2a2016); position: sticky; top: 0; z-index: 2; }
   .ph h2 { margin: 0; font: 700 20px Georgia, serif; } .ph p { margin: 2px 0 0; font-size: 13px; opacity: .8; }

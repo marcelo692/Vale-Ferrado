@@ -5,6 +5,7 @@
 
 const $ = id => document.getElementById(id);
 
+document.addEventListener('DOMContentLoaded', () => { const p = document.getElementById('panel'); if (p) new MutationObserver(() => UI.fixGrids()).observe(p, { childList: true, subtree: false }); });
 const UI = {
   open: null, hudT: 0,
 
@@ -233,6 +234,14 @@ const UI = {
   },
 
   // ---------- tabela lateral: próximas evoluções e materiais guardados ----------
+  // grades de cards: escolhe 2, 3 ou 4 colunas para nenhuma linha ficar com um card sozinho
+  fixGrids() {
+    for (const g of document.querySelectorAll('#panel .grid')) {
+      const n = g.children.length; g.classList.remove('c2', 'c3', 'c4'); if (n < 2) continue;
+      const pick = [3, 4, 2].find(c => n % c === 0) || [3, 4, 2].sort((a, b) => (n % b || b) - (n % a || a))[0];
+      g.classList.add('c' + Math.min(pick, n));
+    }
+  },
   // miniatura do material (foto); se não der para gerar, uma bolinha na cor dele
   ico(id, px = 18) { const u = Render.resIcon(id); return u ? `<img class="ri" src="${u}" width="${px}" height="${px}" alt="">` : `<i class="rd" style="background:${RES[id].c2};width:${px * 0.5}px;height:${px * 0.5}px"></i>`; },
   // painel da direita: sempre mostra a missão do jogo e a missão de evolução (I mostra/esconde os detalhes)

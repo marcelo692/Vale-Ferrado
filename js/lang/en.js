@@ -5,6 +5,7 @@ I18N.en = {
 "Leste": "East",
 "Vila em Ruínas": "Ruined Village",
 "Sul": "South",
+"Mina Velha": "Old Mine",
 "Oeste": "West",
 "Pedreira Funda": "Deep Quarry",
 "Noroeste": "Northwest",
