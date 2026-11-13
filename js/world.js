@@ -62,7 +62,9 @@ const World = {
           const idx = (k - 1) / 2; // 0..4
           const h = R.jMin + (R.jMax - R.jMin) * idx / 4;
           const thick = R.obstacle === 'penhasco' ? 4 : R.obstacle === 'bancada' ? 3 : 1.6;
-          this.obstacles.push({ R, dc: d1 - thick / 2 - 0.5, t: thick, len: w * 0.72, pc: 0, h, type: R.obstacle });
+          // natural: só cobre parte da largura (dá para contornar ou pular), alternando o lado
+          const side = idx % 2 ? 1 : -1, len = w * (R.obstacle === 'pedra' ? 0.38 : 0.45);
+          this.obstacles.push({ R, dc: d1 - thick / 2 - 0.5, t: R.obstacle === 'pedra' ? 2.6 : thick, len, pc: side * w * 0.17, h, type: R.obstacle });
         }
         if (R.spiral) { // trechos da espiral: cada um é um pedaço da rampa (mais fundo = nível maior)
           const S = R.spiral; sub.spiral = [k / 10 * S.turns, (k + 1) / 10 * S.turns]; sub.maxNodes = 26;
