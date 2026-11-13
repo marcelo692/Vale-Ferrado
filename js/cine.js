@@ -47,7 +47,7 @@ const Vendors = {
   },
   pending() { return NPCS.find(n => n.unlock > 1 && Game.S.hammer >= n.unlock && !Game.S.npcOpen[n.id]); },
   update() {
-    if (Cine.busy() || UI.open || Game.travel || !Game.inCity) return;
+    if (Cine.busy() || UI.open || Game.travel || !Game.inCity || Tutorial.active || (Tutorial.endT && Game.S.time - Tutorial.endT < 3.8)) return;
     const n = this.pending(); if (n) this.reveal(n);
   },
   reveal(n) {

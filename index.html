@@ -224,6 +224,16 @@
   .daily .d span { opacity: .7; } .daily .d b { font-size: 13px; } .daily .d em { font-style: normal; font-size: 11px; color: #9ff3ff; }
   .daily .d.done { opacity: .45; } .daily .d.now { border-color: #ffd76a; background: rgba(255,215,106,.15); box-shadow: 0 0 14px rgba(255,215,106,.35); }
   .daily .d:last-child b { color: #ffd76a; }
+  #tutbox { position: fixed; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 13; display: flex; align-items: center; gap: 14px; padding: 12px 18px 12px 22px; border-radius: 14px; background: rgba(28,18,8,.9); border: 2px solid #e8b04a; box-shadow: 0 8px 30px rgba(0,0,0,.45); color: #f5e6c8; font: 600 20px system-ui, sans-serif; max-width: 92vw; }
+  #tutbox.top { bottom: auto; top: 3%; }
+  #tutbox.pop { animation: tutpop .35s ease-out; }
+  @keyframes tutpop { from { transform: translateX(-50%) translateY(14px) scale(.94); opacity: 0; } }
+  #tutbox p { margin: 0; } #tutbox b { color: #ffd76a; }
+  #tutbox kbd { display: inline-block; min-width: 22px; padding: 1px 7px; border-radius: 6px; background: #f5e6c8; color: #2a1a08; font: 800 15px system-ui; text-align: center; }
+  #tutbox button { background: none; border: 1px solid rgba(245,230,200,.35); color: rgba(245,230,200,.7); border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  body.tut #tl, body.tut #tr, body.tut #inv, body.tut #minimap, body.tut #bottom, body.tut #mission, body.tut #clock, body.tut #stamwrap, body.tut #equip, body.tut #missbtn, body.tut #recall, body.tut #citybar, body.tut #tinfo, body.tut #toasts, body.tut #pws { display: none !important; }
+  body.tut button[onclick*="buyHammer"] { animation: tutglow 1s ease-in-out infinite; }
+  @keyframes tutglow { 50% { box-shadow: 0 0 0 4px rgba(255,215,106,.6), 0 0 24px rgba(255,215,106,.8); transform: scale(1.04); } }
 </style>
 </head>
 <body class="pre">
@@ -297,6 +307,7 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
 <script src="js/missions.js"></script>
 <script src="js/cine.js"></script>
 <script src="js/daily.js"></script>
+<script src="js/tutorial.js"></script>
 <script src="lib/three.min.js"></script>
 <script src="js/render3d.js"></script>
 <script src="js/zone7.js"></script>
@@ -337,7 +348,8 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
     try { Snd.start(); } catch (e) { showErr('Som: ' + e.message); }
     document.getElementById('title').remove(); document.body.classList.remove('pre'); started = true;
     try { Game.lock(); } catch (e) { showErr('Mouse: ' + e.message); }
-    if (!Game.S.seen[1]) UI.story(1);
+    if (Tutorial.shouldStart()) { /* o tutorial começa sozinho */ }
+    else if (!Game.S.seen[1]) UI.story(1);
     else if (Game.offline) setTimeout(() => UI.offlinePanel(), 400);
   };
   addEventListener('beforeunload', () => Game.save());

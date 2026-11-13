@@ -197,7 +197,7 @@ function hammerCost(L) { // custo para chegar ao nível L
   const h = HAMMERS[L];
   // primeiros martelos bem baratos: a primeira evolução sai em menos de 1 minuto
   const qty = L <= 4 ? L : 3 + Math.floor(L / 2);
-  const money = L <= 4 ? [0, 0, 10, 20, 32][L] : Math.round(25 * Math.pow(1.31, L - 2));
+  const money = L <= 4 ? [0, 0, 0, 20, 32][L] : Math.round(25 * Math.pow(1.31, L - 2));
   const mats = h.mat.map(id => ({ id, qty }));
   if (SPECIAL_AT[L]) mats.push({ id: SPECIAL_AT[L], qty: 5 });
   return { money, mats };

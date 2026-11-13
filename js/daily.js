@@ -79,7 +79,7 @@ const Orders = {
   },
   generate() {
     const S = Game.S, L = S.hammer, mine = RESOURCES.filter(r => !r.special && r.ideal <= L);
-    const pick = gap => { let best = mine[0]; for (const r of mine) if (r.ideal <= L - gap) best = r; return best; };
+    const pick = k => mine[Math.max(0, mine.length - 1 - k)]; // k recursos abaixo do mais valioso que o martelo quebra
     const who = ['ferreiro', 'tropeira', 'botica', 'bazar', 'armazem'].filter(id => Vendors.isOpen(id));
     const spec = [ // fácil (muito, pedra bem abaixo) · médio · difícil (pedra do seu nível)
       { r: pick(2), qty: 30 + L, mul: 2.2, cint: 1 },

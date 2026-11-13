@@ -131,6 +131,7 @@ const Game = {
       if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag') || (k === 't' && UI.open === 'detector')) { e.preventDefault(); UI.close(k === 'escape'); } return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
       if (Cine.busy()) { if (k !== 'escape') Cine.skip(); return; }
+      if (!Tutorial.allowKey(k)) return;
       this.keys[k] = true;
       if (k === 'h') this.recall();
       if (k === 'q') this.useHook();
@@ -540,7 +541,7 @@ const Game = {
     // timers
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= dt; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
     World.update(dt);
-    Cine.update(dt); Vendors.update();
+    Cine.update(dt); Tutorial.update(dt); Vendors.update();
     Robots.update(dt);
     Missions.update(dt);
     const wasNight = this.isNight();

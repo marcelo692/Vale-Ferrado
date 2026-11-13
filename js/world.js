@@ -248,7 +248,7 @@ const World = {
   WORLD_V: 2,
   serialize() {
     const nodes = [];
-    for (const n of this.nodes) { if (n.res.wild || n.res.sealed) continue; const s = this.subs.indexOf(n.sub); nodes.push([s, n.sub.spawnPts.indexOf(n.pt), n.res.id, n.size, n.rare, Math.round(n.hp)]); }
+    for (const n of this.nodes) { if (n.res.wild || n.res.sealed || n.sub.wild) continue; const s = this.subs.indexOf(n.sub); nodes.push([s, n.sub.spawnPts.indexOf(n.pt), n.res.id, n.size, n.rare, Math.round(n.hp)]); }
     return { v: this.WORLD_V, nodes, pending: this.pending.map(p => [Math.round(p.t), p.s, p.f || 0, p.rescue ? 1 : 0]) };
   },
   restore(w) {
