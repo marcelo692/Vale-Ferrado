@@ -1,9 +1,13 @@
 {
-  "version": "3.9.2",
+  "version": "3.10.0",
   "date": "2026-11-13",
   "notes": [
-    "Serra dos Cristais: tapada a valeta na borda da espiral (perto do começo da rampa) onde dava para ficar preso",
-    "Pedras não nascem mais grudadas umas nas outras, nem na divisa entre trechos"
+    "Primeiras pedras (nozes) bem mais rápidas de quebrar: a primeira evolução sai em menos de 1 minuto",
+    "Pulo com a mesma altura em qualquer monitor (60, 144, 165 Hz…)",
+    "Teclas pela posição no teclado (funciona no teclado francês AZERTY)",
+    "Se o jogo ficar lento, o gráfico leve liga sozinho",
+    "Telas e painéis se ajustam a janelas pequenas",
+    "Menu de pausa traduzido por completo"
   ],
   "files": [
     {
@@ -16,7 +20,7 @@
     },
     {
       "path": "index.html",
-      "size": 35618
+      "size": 36587
     },
     {
       "path": "js/audio.js",
@@ -28,11 +32,11 @@
     },
     {
       "path": "js/data.js",
-      "size": 24692
+      "size": 24693
     },
     {
       "path": "js/game.js",
-      "size": 57213
+      "size": 57710
     },
     {
       "path": "js/i18n.js",
@@ -40,15 +44,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 53912
+      "size": 54174
     },
     {
       "path": "js/lang/es.js",
-      "size": 55733
+      "size": 55986
     },
     {
       "path": "js/lang/tr.js",
-      "size": 55237
+      "size": 55478
     },
     {
       "path": "js/missions.js",
@@ -56,11 +60,11 @@
     },
     {
       "path": "js/platform.js",
-      "size": 990
+      "size": 1731
     },
     {
       "path": "js/render3d.js",
-      "size": 228242
+      "size": 228717
     },
     {
       "path": "js/robots.js",
@@ -96,7 +100,7 @@
     },
     {
       "path": "version.json",
-      "size": 1935
+      "size": 1726
     }
   ]
 }
