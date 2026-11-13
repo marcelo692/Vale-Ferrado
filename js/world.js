@@ -162,7 +162,10 @@ const World = {
     let pt = null;
     const near = sub.R && sub.k !== undefined ? this.subs.filter(o => o.R === sub.R && Math.abs(o.k - sub.k) <= 1) : [sub]; // inclui os trechos vizinhos (divisa)
     for (let t = 0; t < 14 && !pt; t++) { const c = free[Math.floor(Math.random() * free.length)]; if (!near.some(o => o.nodes.some(n => Math.hypot(n.x - c.x, n.y - c.y) < n.r + 2.6))) pt = c; }
-    if (!pt) pt = free[Math.floor(Math.random() * free.length)];
+    if (!pt) { // trecho lotado: fica com o ponto livre mais afastado das outras pedras
+      let best = -Infinity;
+      for (const c of free) { let gap = Infinity; for (const o of near) for (const n of o.nodes) gap = Math.min(gap, Math.hypot(n.x - c.x, n.y - c.y) - n.r); if (gap > best) { best = gap; pt = c; } }
+    }
     let res = forceRes || (sub.mountain && sub.mountain.special);
     if (!res) {
       const ws = this.weights(sub);
