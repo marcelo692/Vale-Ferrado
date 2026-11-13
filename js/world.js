@@ -160,8 +160,12 @@ const World = {
     if (!free.length) return false;
     // escolhe um ponto livre que não fique colado em outra pedra (senão elas nascem uma dentro da outra)
     let pt = null;
-    for (let t = 0; t < 14 && !pt; t++) { const c = free[Math.floor(Math.random() * free.length)]; if (!sub.nodes.some(n => Math.hypot(n.x - c.x, n.y - c.y) < n.r + 2.6)) pt = c; }
-    if (!pt) pt = free[Math.floor(Math.random() * free.length)];
+    const near = sub.R && sub.k !== undefined ? this.subs.filter(o => o.R === sub.R && Math.abs(o.k - sub.k) <= 1) : [sub]; // inclui os trechos vizinhos (divisa)
+    for (let t = 0; t < 14 && !pt; t++) { const c = free[Math.floor(Math.random() * free.length)]; if (!near.some(o => o.nodes.some(n => Math.hypot(n.x - c.x, n.y - c.y) < n.r + 2.6))) pt = c; }
+    if (!pt) { // trecho lotado: fica com o ponto livre mais afastado das outras pedras
+      let best = -Infinity;
+      for (const c of free) { let gap = Infinity; for (const o of near) for (const n of o.nodes) gap = Math.min(gap, Math.hypot(n.x - c.x, n.y - c.y) - n.r); if (gap > best) { best = gap; pt = c; } }
+    }
     let res = forceRes || (sub.mountain && sub.mountain.special);
     if (!res) {
       const ws = this.weights(sub);
@@ -350,7 +354,8 @@ const World = {
     const sr = (S.R0 - r) / S.W;
     const n = Math.floor(sr - f), toWall = (sr - f - n) * S.W; // distância (0..W) até a parede de dentro da faixa
     let tot, cur, next;
-    if (n < 0) { tot = 0; cur = 0; next = S.H * f; }                       // borda de cima, antes de a rampa começar
+    if (n < -1) { tot = 0; cur = next = 0; }                                // fora do anel (perto da emenda da rampa): chão plano, sem buraco
+    else if (n < 0) { tot = 0; cur = 0; next = S.H * f; }                  // borda de cima, antes de a rampa começar
     else if (n + f >= S.turns) { tot = S.turns; cur = next = S.H * S.turns; } // fundo plano
     else { tot = n + f; cur = S.H * tot; next = Math.min(S.H * S.turns, S.H * (tot + 1)); }
     const depth = cur + (next - cur) * smooth01(S.W - 0.35, S.W, toWall); // queda reta nos últimos 0,35 m
