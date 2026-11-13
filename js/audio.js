@@ -125,6 +125,7 @@ const Snd = {
   pickup() { this.tone(660, 0.08, { vol: 0.12, type: 'triangle' }); this.tone(990, 0.12, { vol: 0.1, type: 'triangle', at: 0.06 }); },
   coins(n) { const k = Math.min(10, 3 + Math.floor(Math.log10(1 + n))); for (let i = 0; i < k; i++) { this.tone(this.rnd(2400, 3600), 0.12, { vol: 0.07, type: 'square', filter: { f: 5000 }, at: i * 0.045 }); } this.tone(1046, 0.25, { vol: 0.1, type: 'triangle', at: k * 0.045 }); },
   levelUp() { [523, 659, 784, 1046].forEach((f, i) => { this.tone(f, 0.35, { vol: 0.16, type: 'triangle', at: i * 0.09 }); this.tone(f / 2, 0.35, { vol: 0.08, at: i * 0.09 }); }); },
+  rumble() { for (let i = 0; i < 6; i++) { this.noise(0.5, { vol: 0.22, f: 160 + i * 20, at: 0.9 + i * 0.4 }); this.tone(55 + i * 4, 0.45, { vol: 0.08, type: 'sawtooth', at: 0.9 + i * 0.4 }); } },
   forge() { for (let i = 0; i < 3; i++) { this.tone(1200 + i * 60, 0.4, { vol: 0.14, type: 'triangle', at: i * 0.18 }); this.noise(0.05, { vol: 0.2, f: 3000, at: i * 0.18 }); } this.levelUp(); },
   buy() { this.tone(880, 0.08, { vol: 0.1, type: 'triangle' }); this.tone(1320, 0.14, { vol: 0.1, type: 'triangle', at: 0.07 }); },
   power(id) { const base = id === 'tonico' ? 220 : id === 'cafe' ? 330 : 262; this.tone(base, 0.6, { vol: 0.15, type: 'sawtooth', slide: 4, filter: { f: 2000 } }); this.noise(0.4, { vol: 0.1, f: 2000, fEnd: 6000 }); this.tone(base * 4, 0.5, { vol: 0.08, at: 0.3 }); },

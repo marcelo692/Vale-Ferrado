@@ -203,6 +203,14 @@
     #minimap { zoom: .62; }
     #panel > div { zoom: .74; max-height: calc(96vh / .74); width: min(760px, calc(97vw / .74)); }
   }
+  #banner { position: fixed; left: 50%; top: 11%; transform: translate(-50%, -10px) scale(.9); opacity: 0; pointer-events: none; z-index: 12; text-align: center; padding: 14px 34px 16px; border-radius: 16px; background: linear-gradient(180deg, rgba(58,36,14,.92), rgba(30,18,6,.92)); border: 2px solid #e8b04a; box-shadow: 0 10px 40px rgba(0,0,0,.5), 0 0 30px rgba(255,200,90,.25); transition: opacity .35s, transform .35s; }
+  #banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  #banner b { display: block; font: 900 30px Georgia, serif; color: #ffd76a; text-shadow: 0 2px 0 #5a3a00; }
+  #banner span { display: block; margin-top: 4px; font: 600 15px system-ui, sans-serif; color: #f5e6c8; }
+  body.cine #tl, body.cine #tr, body.cine #inv, body.cine #minimap, body.cine #bottom, body.cine #mission, body.cine #clock, body.cine #stamwrap, body.cine #equip, body.cine #missbtn, body.cine #recall, body.cine #citybar, body.cine #objarrow, body.cine #tinfo, body.cine #cross { opacity: 0; transition: opacity .4s; }
+  body.cine::before, body.cine::after { content: ''; position: fixed; left: 0; right: 0; height: 9vh; background: #000; z-index: 11; animation: bars .6s ease-out; }
+  body.cine::before { top: 0; } body.cine::after { bottom: 0; }
+  @keyframes bars { from { height: 0; } }
 </style>
 </head>
 <body class="pre">
@@ -274,6 +282,7 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
 <script src="js/robots.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/missions.js"></script>
+<script src="js/cine.js"></script>
 <script src="lib/three.min.js"></script>
 <script src="js/render3d.js"></script>
 <script src="js/zone7.js"></script>

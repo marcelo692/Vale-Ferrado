@@ -76,6 +76,7 @@ const Game = {
     World.build();
     this.fixSoldSpecials();
     Missions.init();
+    Vendors.init();
     if (this.S.world) World.restore(this.S.world);
     World.setupSeal();
     // lanternas e drones saíram do jogo (v3.6): devolve o que o jogador pagou
@@ -129,6 +130,7 @@ const Game = {
       const k = keyOf(e);
       if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag') || (k === 't' && UI.open === 'detector')) { e.preventDefault(); UI.close(k === 'escape'); } return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
+      if (Cine.busy()) { if (k !== 'escape') Cine.skip(); return; }
       this.keys[k] = true;
       if (k === 'h') this.recall();
       if (k === 'q') this.useHook();
@@ -156,7 +158,7 @@ const Game = {
     addEventListener('keyup', e => { const k = keyOf(e); this.keys[k] = false; if (k === 'g') { if (this.gHold) { clearTimeout(this.gHold); this.gHold = null; if (!UI.open) this.toggleDetector(); } this.gMenu = false; } });
     addEventListener('blur', () => { this.keys = {}; this.mouse.down = false; });
     addEventListener('mousemove', e => {
-      if (!this.locked() || this.travel) return;
+      if (!this.locked() || this.travel || Cine.busy()) return;
       let dx = e.movementX || 0, dy = e.movementY || 0;
       // o Chrome às vezes manda saltos gigantes no movimento do mouse (principalmente logo depois de prender o cursor)
       if (this.lookSkip > 0) { this.lookSkip--; return; }
@@ -171,6 +173,7 @@ const Game = {
       if (UI.open) return;
       Snd.start();
       if (!this.locked()) { Game.lock(); return; }
+      if (Cine.busy()) { Cine.skip(); return; }
       if (e.button === 0) { this.mouse.down = true; this.mouse.holdT = 0; this.clickStrike(); }
     });
     addEventListener('mouseup', e => { if (e.button === 0) this.mouse.down = false; });
@@ -218,7 +221,7 @@ const Game = {
 
   npcNear() {
     let best = null, bd = 4;
-    for (const n of NPCS) { const d = Math.hypot(n.x - this.P.x, n.y - this.P.y); if (d < bd) { bd = d; best = n; } }
+    for (const n of NPCS) { if (!Vendors.isOpen(n.id)) continue; const d = Math.hypot(n.x - this.P.x, n.y - this.P.y); if (d < bd) { bd = d; best = n; } }
     return best;
   },
   interact() {
@@ -460,8 +463,8 @@ const Game = {
   evoNeeds() {
     const S = this.S, ups = [];
     if (S.hammer < MAX_LEVEL) ups.push({ label: tt("Martelo"), kind: 'hammer', c: hammerCost(S.hammer + 1) });
-    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, kind: k, c: attrCost(k, S.attrs[k] + 1) });
-    for (const g of this.gadgetUps()) ups.push({ label: g.label, kind: 'gadget', c: g.c });
+    if (Vendors.isOpen('tropeira')) for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, kind: k, c: attrCost(k, S.attrs[k] + 1) });
+    if (Vendors.isOpen('bazar')) for (const g of this.gadgetUps()) ups.push({ label: g.label, kind: 'gadget', c: g.c });
     const need = new Map();
     for (const u of ups) {
       u.ok = S.money >= u.c.money && u.c.mats.every(m => (S.stock[m.id] || 0) >= m.qty);
@@ -479,7 +482,7 @@ const Game = {
     const ups = [];
     if (S.hammer < MAX_LEVEL) ups.push(hammerCost(S.hammer + 1));
     for (const k of ['mine', 'bag', 'move', 'jump']) if (S.attrs[k] < MAX_LEVEL) ups.push(attrCost(k, S.attrs[k] + 1));
-    for (const g of this.gadgetUps()) ups.push(g.c);
+    if (Vendors.isOpen('bazar')) for (const g of this.gadgetUps()) ups.push(g.c);
     for (const c of ups) for (const m of c.mats) {
       if (seen.has(m.id)) continue; seen.add(m.id);
       const falta = need[m.id] - (S.stock[m.id] || 0) - (S.bag[m.id] || 0);
@@ -537,6 +540,7 @@ const Game = {
     // timers
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= dt; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
     World.update(dt);
+    Cine.update(dt); Vendors.update();
     Robots.update(dt);
     Missions.update(dt);
     const wasNight = this.isNight();

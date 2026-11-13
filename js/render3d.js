@@ -720,8 +720,28 @@ const Render = {
     g.userData.wares = id; return g;
   },
   // vendedores se mexem: respiram, olham para você, e cada um tem um gesto (o ferreiro bate na bigorna)
+  // barraca escondida embaixo do chão (k = 0) até surgir (k = 1); settle = tremedeira enquanto sobe
+  setStallRise(id, k, settle) {
+    const g = (this.npcObjs || []).find(o => o.userData.npc.id === id); if (!g) return;
+    const U = g.userData; if (!U.base) U.base = g.position.clone();
+    const sh = (settle || 0) * (k > 0 && k < 1 ? 1 : 0.4);
+    g.position.set(U.base.x + Math.sin(this.t * 41) * 0.12 * sh, -7.5 * (1 - k) + Math.abs(Math.sin(this.t * 23)) * 0.1 * sh, U.base.z + Math.cos(this.t * 37) * 0.12 * sh);
+    g.rotation.z = Math.sin(this.t * 29) * 0.03 * sh;
+    g.visible = k > 0.001; U.rising = k < 1;
+    if (U.lockSign) U.lockSign.visible = k < 0.02;
+  },
   updateVendors(dt) {
     if (!this.npcObjs) return;
+    for (const g of this.npcObjs) {
+      const id = g.userData.npc.id;
+      if (!Vendors.isOpen(id)) {
+        if (!g.userData.lockSign) { // plaquinha no lugar: o que vai abrir aqui e quando
+          const n = g.userData.npc, sg = labelSprite('🔒 ' + n.shop, tt("abre no Martelo {0}", n.unlock), n.color, 0.6);
+          sg.position.set(n.x, 1.6, n.y); this.city.add(sg); g.userData.lockSign = sg;
+        }
+        if (Vendors.revealing !== id) this.setStallRise(id, 0, 0);
+      } else if (g.userData.lockSign && g.userData.lockSign.visible && !Cine.busy()) { this.setStallRise(id, 1, 0); }
+    }
     const t = this.t, P = Game.P;
     for (const g of this.npcObjs) {
       const p = g.userData.person; if (!p || !p.userData.anim) continue;
@@ -2391,10 +2411,11 @@ const Render = {
     this.stars.position.copy(this.cam.position);
     this.updateNightFx(dt);
 
+    Cine.apply(this.cam);
     this.r.clear();
     this.r.render(this.scene, this.cam);
     this.updateArrow();
-    if (!UI.open) {
+    if (!UI.open && !Cine.busy()) {
       const fpv = this.view === 'fp'; this.vm.visible = fpv;
       if (fpv) this.updateViewModel(dt);
       if (fpv || this.arrowPivot.visible) { this.r.clearDepth(); this.r.render(this.vmScene, this.vmCam); }

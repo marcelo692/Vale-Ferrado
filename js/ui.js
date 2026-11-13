@@ -153,6 +153,13 @@ const UI = {
     Game.save(); this.renderPanel();
   },
 
+  // faixa grande no meio da tela (vendedor novo, tutorial, baú…)
+  banner(title, sub, ms) {
+    let el = $('banner'); if (!el) { el = document.createElement('div'); el.id = 'banner'; document.body.appendChild(el); }
+    el.innerHTML = `<b>${title}</b>${sub ? `<span>${sub}</span>` : ''}`;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    clearTimeout(this.bannerT); this.bannerT = setTimeout(() => el.classList.remove('show'), ms || 2600);
+  },
   story(L) {
     const st = STORY[L]; if (!st) return;
     Game.S.seen[L] = true; Game.save();
