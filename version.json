@@ -1,13 +1,14 @@
 {
-  "version": "3.10.0",
+  "version": "3.11.0",
   "date": "2026-11-13",
   "notes": [
-    "Primeiras pedras (nozes) bem mais rápidas de quebrar: a primeira evolução sai em menos de 1 minuto",
-    "Pulo com a mesma altura em qualquer monitor (60, 144, 165 Hz…)",
-    "Teclas pela posição no teclado (funciona no teclado francês AZERTY)",
-    "Se o jogo ficar lento, o gráfico leve liga sozinho",
-    "Telas e painéis se ajustam a janelas pequenas",
-    "Menu de pausa traduzido por completo"
+    "Curva nova de golpes: a pedra do seu nível leva uns 8 golpes, a de 1 nível abaixo 3, e 2 ou mais abaixo cai num golpe só (cada martelo novo se sente na mão)",
+    "Começo novo: você começa com uma colher de sopa; o primeiro martelinho de madeira sai em segundos, num tutorial rapidinho",
+    "Os vendedores aparecem aos poucos: cada um surge do chão com uma cena quando você chega no martelo certo",
+    "Oficina dos robôs: o primeiro robô é barato, a equipe evolui (braço, rodas, caçamba), mostra quanto rende e você escolhe o que eles mineram",
+    "Baú diário na fonte (sequência de 7 dias) e encomendas do dia dos vendedores",
+    "Bem-vindo de volta: dá para dobrar o que os robôs juntaram vendo um anúncio (na versão do PC é um anúncio de teste)",
+    "Venda na vila: o que o próximo martelo pede fica guardado inteiro, o resto até 60%, para sempre entrar dinheiro"
   ],
   "files": [
     {
@@ -20,23 +21,31 @@
     },
     {
       "path": "index.html",
-      "size": 36587
+      "size": 41067
     },
     {
       "path": "js/audio.js",
-      "size": 17560
+      "size": 17757
     },
     {
       "path": "js/backup.js",
       "size": 6675
     },
     {
+      "path": "js/cine.js",
+      "size": 4233
+    },
+    {
+      "path": "js/daily.js",
+      "size": 7301
+    },
+    {
       "path": "js/data.js",
-      "size": 24693
+      "size": 25556
     },
     {
       "path": "js/game.js",
-      "size": 57710
+      "size": 58674
     },
     {
       "path": "js/i18n.js",
@@ -44,35 +53,39 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 54174
+      "size": 59456
     },
     {
       "path": "js/lang/es.js",
-      "size": 55986
+      "size": 61467
     },
     {
       "path": "js/lang/tr.js",
-      "size": 55478
+      "size": 60941
     },
     {
       "path": "js/missions.js",
-      "size": 18334
+      "size": 18464
     },
     {
       "path": "js/platform.js",
-      "size": 1731
+      "size": 3230
     },
     {
       "path": "js/render3d.js",
-      "size": 228717
+      "size": 233211
     },
     {
       "path": "js/robots.js",
-      "size": 8394
+      "size": 10734
+    },
+    {
+      "path": "js/tutorial.js",
+      "size": 5900
     },
     {
       "path": "js/ui.js",
-      "size": 35074
+      "size": 40259
     },
     {
       "path": "js/updater.js",
@@ -84,7 +97,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 27014
+      "size": 27083
     },
     {
       "path": "js/zone7.js",
@@ -100,7 +113,7 @@
     },
     {
       "path": "version.json",
-      "size": 1726
+      "size": 1941
     }
   ]
 }
