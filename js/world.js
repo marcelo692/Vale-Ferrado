@@ -9,9 +9,14 @@ const Z7 = { ang: 45, d: 2600, flatR: 75 };
 Z7.ux = Math.cos(Z7.ang * Math.PI / 180); Z7.uy = Math.sin(Z7.ang * Math.PI / 180); Z7.vx = -Z7.uy; Z7.vy = Z7.ux; Z7.x = Z7.ux * Z7.d; Z7.y = Z7.uy * Z7.d;
 Z7.at = (a, b) => ({ x: Z7.x + Z7.ux * a + Z7.vx * b, y: Z7.y + Z7.uy * a + Z7.vy * b }); // a: para longe da cidade, b: para o lado
 Z7.WALL_A = 32; // a muralha da porta fica 32 m além do centro
-// valões: cada região (menos a primeira) é uma cava em 10 degraus, cada uma mais funda que a anterior
-const PIT_REGIONS = [1, 2, 3, 4, 5];
+// cada região tem um tipo de terreno:
+// 0 bosque (plano) · 1 vale do riacho · 2 planalto em degraus (ruínas lá em cima) · 3 caverna (valão com teto)
+// 4 pedreira em bancadas (valão) · 5 mina redonda em espiral
+const TERRAIN = ['forest', 'valley', 'mesa', 'cave', 'quarry', 'spiral'];
+const PIT_REGIONS = [2, 3, 4];   // regiões em 10 degraus (o planalto usa os mesmos degraus, só que subindo)
+const SPIRAL = { dc: 2700, R0: 150, W: 25, H: 9, turns: 4 }; // mina em espiral da Serra dos Cristais
 const PIT_RW = 6;            // largura das rampas no meio de cada degrau (regiões 2 a 5; a 6 não tem rampa)
+function riverP(d) { return Math.sin(d / 37) * 30 + Math.sin(d / 13) * 6; } // traçado do riacho (deslocamento lateral)
 const smooth01 = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const NPCS = [
   { id: 'ferreiro', name: tt("Seu Bento, o Ferreiro"), role: tt("Evolui o martelo"),              shop: tt("MARTELOS"),  color: '#c0502a', ang: -112.5 },
@@ -53,11 +58,20 @@ const World = {
         const level = (R.era - 1) * 10 + k + 1;
         const sub = { R, k, d0, d1, w, level, nodes: [], harvest: 0, spawnPts: [] };
         // obstáculo no fim dos trechos ímpares (atalho por cima com pulo)
-        if (k % 2 === 1 && !PIT_REGIONS.includes(R.id)) {
+        if (k % 2 === 1 && (R.terrain === 'forest' || R.terrain === 'valley')) {
           const idx = (k - 1) / 2; // 0..4
           const h = R.jMin + (R.jMax - R.jMin) * idx / 4;
           const thick = R.obstacle === 'penhasco' ? 4 : R.obstacle === 'bancada' ? 3 : 1.6;
           this.obstacles.push({ R, dc: d1 - thick / 2 - 0.5, t: thick, len: w * 0.72, pc: 0, h, type: R.obstacle });
+        }
+        if (R.spiral) { // trechos da espiral: cada um é um pedaço da rampa (mais fundo = nível maior)
+          const S = R.spiral; sub.spiral = [k / 10 * S.turns, (k + 1) / 10 * S.turns]; sub.maxNodes = 26;
+          for (let i = 0; i < 26 * 3; i++) {
+            const tot = sub.spiral[0] + rand() * (sub.spiral[1] - sub.spiral[0]), f = tot - Math.floor(tot), a = S.a0 + f * Math.PI * 2;
+            const r = S.R0 - S.W * (tot + 0.5) + (rand() - 0.5) * (S.W - 9), x = S.cx + Math.cos(a) * r, y = S.cy + Math.sin(a) * r, l = this.local(R, x, y);
+            sub.spawnPts.push({ x, y, d: l.d, p: l.p, used: false });
+          }
+          this.subs.push(sub); continue;
         }
         const count = Math.max(8, Math.min(80, Math.round((d1 - d0) * w / 250)));
         sub.maxNodes = count;
@@ -292,6 +306,7 @@ const World = {
   subAt(x, y) {
     for (const s of this.subs) {
       if (s.mountain) continue;
+      if (s.spiral) { const sp = this.spiralAt(s.R, x, y); if (sp && sp.inside > 0.5) { const t = Math.min(s.R.spiral.turns - 0.001, sp.tot); if (t >= s.spiral[0] && t < s.spiral[1]) return s; } continue; }
       const { d, p } = this.local(s.R, x, y);
       if (d >= s.d0 && d < s.d1 && Math.abs(p) <= s.w / 2) return s;
     }
@@ -302,12 +317,14 @@ const World = {
   pitSetup(R) {
     const L = R.dMax - R.dMin;
     R.pitL = L;
-    if (R.id === 0) { R.pit = null; return; }
-    if (!PIT_REGIONS.includes(R.id)) { R.pit = null; return; }
+    R.terrain = TERRAIN[R.id];
+    R.spiral = null; R.pit = null;
+    if (R.terrain === 'spiral') { R.spiral = Object.assign({ cx: R.ux * SPIRAL.dc, cy: R.uy * SPIRAL.dc, a0: Math.atan2(-R.uy, -R.ux) }, SPIRAL); return; }
+    if (!PIT_REGIONS.includes(R.id)) return;
     const steps = [], cum = [0]; // cum[k] = profundidade do degrau k (k = 0..9)
     for (let i = 0; i < 10; i++) steps.push(R.jMin + (R.jMax - R.jMin) * i / 9);
     let acc = 0; for (let i = 0; i < 10; i++) { acc += steps[i]; cum[i] = acc; }
-    R.pit = { steps, cum, total: acc, ramp: R.id < 5, ramps: [] };
+    R.pit = { steps, cum, total: acc, ramp: true, ramps: [], up: R.terrain === 'mesa' ? -1 : 1 };
     // rampas no meio: uma em cada divisa (inclusive a entrada), descendo para o degrau de baixo
     for (let j = 0; j < 10; j++) { const top = j ? cum[j - 1] : 0, s = cum[j] - top; R.pit.ramps.push({ b: R.dMin + L * j / 10, top, s, len: Math.max(8, s * 3.2) }); }
   },
@@ -320,9 +337,31 @@ const World = {
     if (R.pit.ramp && Math.abs(pt.p) < PIT_RW / 2 + 3) for (const r of R.pit.ramps) if (pt.d > r.b - 1 && pt.d < r.b + r.len + 2) return false;
     return true;
   },
+  // mina em espiral: anel descendo como um saca-rolha. n = volta, f = fração da volta (0..1)
+  spiralAt(R, x, y) {
+    const S = R.spiral, dx = x - S.cx, dy = y - S.cy, r = Math.hypot(dx, dy);
+    if (r > S.R0 + 2) return null;
+    let f = (Math.atan2(dy, dx) - S.a0) / (Math.PI * 2); f -= Math.floor(f);
+    const sr = (S.R0 - r) / S.W;
+    const n = Math.floor(sr - f), toWall = (sr - f - n) * S.W; // distância (0..W) até a parede de dentro da faixa
+    let tot, cur, next;
+    if (n < 0) { tot = 0; cur = 0; next = S.H * f; }                       // borda de cima, antes de a rampa começar
+    else if (n + f >= S.turns) { tot = S.turns; cur = next = S.H * S.turns; } // fundo plano
+    else { tot = n + f; cur = S.H * tot; next = Math.min(S.H * S.turns, S.H * (tot + 1)); }
+    const depth = cur + (next - cur) * smooth01(S.W - 0.35, S.W, toWall); // queda reta nos últimos 0,35 m
+    return { depth, tot, n, f, r, inside: smooth01(S.R0 + 2, S.R0 - 0.5, r) };
+  },
   pitAt(x, y) {
     for (const R of REGIONS) {
       if (R.ux === undefined) continue;
+      if (R.spiral) { const sp = this.spiralAt(R, x, y); if (sp) return { depth: sp.depth * sp.inside, inside: sp.inside, R, spiral: sp }; continue; }
+      if (R.terrain === 'valley') { // vale aberto: o riacho corre no fundo, encostas suaves dos dois lados
+        const d = x * R.ux + y * R.uy; if (d < R.dMin - 40 || d > R.dMax + 40) continue;
+        const p = x * R.vx + y * R.vy, pr = riverP(d), half = this.pitHalf(R, d) + 22, a = Math.abs(p - pr);
+        if (a > half) continue;
+        const along = smooth01(R.dMin - 40, R.dMin + 10, d) * smooth01(R.dMax + 40, R.dMax - 10, d), k = 1 - smooth01(6, half, a);
+        return { depth: 7 * k * along, inside: 0.6 * k * along, R, valley: a };
+      }
       const d = x * R.ux + y * R.uy;
       if (d < R.dMin - 3 || d > R.dMax + 3) continue;
       const p = x * R.vx + y * R.vy, half = this.pitHalf(R, d);
@@ -349,7 +388,7 @@ const World = {
           break;
         }
       }
-      return { depth: depth * inside, inside, R };
+      return { depth: depth * inside * P.up, inside, R };
     }
     return { depth: 0, inside: 0 };
   },
@@ -372,8 +411,15 @@ const World = {
   },
 
     // cor do chão (biome)
+  // teto da Mina Velha (caverna): altura do teto ou null se não há teto aqui
+  ceilingAt(x, y) {
+    const R = REGIONS[3]; if (!R.pit) return null;
+    const d = x * R.ux + y * R.uy; if (d < R.dMin + R.pitL * 0.1 || d > R.dMax - 3) return null;
+    const p = x * R.vx + y * R.vy; if (Math.abs(p) > this.pitHalf(R, d) + 1) return null;
+    return -0.2; // a laje do teto fica rente ao chão de fora
+  },
   // chão de pedra (sem capim): corredor das minas a partir da 3ª região
-  groundRocky(x, y) { const g = this.groundAt(x, y); return !!(g && g.edge === 1 && g.R.id >= 2); },
+  groundRocky(x, y) { const g = this.groundAt(x, y); if (!g || g.edge !== 1) return false; if (g.R.terrain === 'valley') { const pa = this.pitAt(x, y); return pa.valley !== undefined && pa.valley < 9; } return g.R.id >= 2 && g.R.terrain !== 'mesa'; },
   groundAt(x, y) {
     const dist = Math.hypot(x, y);
     if (dist < CITY_R) return null; // cidade é desenhada à parte

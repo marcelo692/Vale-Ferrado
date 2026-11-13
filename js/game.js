@@ -580,6 +580,8 @@ const Game = {
       P.vz -= GRAV * (P.vz < 0 ? 1.25 : 1) * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
       if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); if (fall > 0.35) this.landDip = Math.min(0.3, 0.04 + fall * 0.045); }
     } else { P.z = support; P.vz = 0; }
+    // teto da caverna: não deixa a cabeça atravessar a rocha (pulo, jetpack, cama elástica)
+    { const ceil = World.ceilingAt(P.x, P.y); if (ceil !== null) { const g0 = World.height(P.x, P.y), maxZ = ceil - 1.85 - g0; if (maxZ > 0 && P.z > maxZ) { P.z = maxZ; if (P.vz > 0) P.vz = 0; } } }
 
     this.landDip = (this.landDip || 0) * Math.exp(-dt * 9);
     // pulo mais perdoador: 0,1 s de tolerância ao sair de uma borda e 0,12 s de pulo antecipado
