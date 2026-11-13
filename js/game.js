@@ -32,6 +32,16 @@ function newState() {
   };
 }
 
+// tecla pela POSIÇÃO no teclado (não pela letra): no AZERTY francês o lugar do W continua andando para frente
+function keyOf(e) {
+  const c = e.code || '';
+  if (/^Key[A-Z]$/.test(c)) return c.slice(3).toLowerCase();
+  if (/^Digit[0-9]$/.test(c)) return c.slice(5);
+  if (/^Numpad[0-9]$/.test(c)) return c.slice(6);
+  if (c === 'Space') return ' ';
+  return String(e.key || '').toLowerCase();
+}
+
 // save estragado ou de versão antiga: campo nulo, do tipo errado ou número inválido volta ao padrão
 function sanitizeSave(s) {
   const d = newState(), n = Object.assign({}, d);
@@ -116,7 +126,7 @@ const Game = {
     const cv = document.getElementById('game');
     this.locked = () => document.pointerLockElement === cv;
     addEventListener('keydown', e => {
-      const k = e.key.toLowerCase();
+      const k = keyOf(e);
       if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag') || (k === 't' && UI.open === 'detector')) { e.preventDefault(); UI.close(k === 'escape'); } return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
       this.keys[k] = true;
@@ -143,7 +153,7 @@ const Game = {
       if (k === '2') this.activate('cafe');
       if (k === '3') this.activate('elixir');
     });
-    addEventListener('keyup', e => { const k = e.key.toLowerCase(); this.keys[k] = false; if (k === 'g') { if (this.gHold) { clearTimeout(this.gHold); this.gHold = null; if (!UI.open) this.toggleDetector(); } this.gMenu = false; } });
+    addEventListener('keyup', e => { const k = keyOf(e); this.keys[k] = false; if (k === 'g') { if (this.gHold) { clearTimeout(this.gHold); this.gHold = null; if (!UI.open) this.toggleDetector(); } this.gMenu = false; } });
     addEventListener('blur', () => { this.keys = {}; this.mouse.down = false; });
     addEventListener('mousemove', e => {
       if (!this.locked() || this.travel) return;
@@ -180,7 +190,7 @@ const Game = {
   },
   jump() {
     if (this.ladder) { this.ladder = null; this.P.vz = 4; this.P.z += 0.01; return; }
-    if (this.onGround() || (this.coyote > 0 && this.P.vz <= 0 && !this.travel && !this.hook)) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()) * 1.04; this.P.z += 0.001; this.P.peak = this.P.z; this.coyote = 0; this.jumpBuf = 0; Snd.jump(); }
+    if (this.onGround() || (this.coyote > 0 && this.P.vz <= 0 && !this.travel && !this.hook)) { this.P.vz = Math.sqrt(2 * GRAV * this.jumpH()) * 1.012; this.P.z += 0.001; this.P.peak = this.P.z; this.coyote = 0; this.jumpBuf = 0; Snd.jump(); }
     else if (!this.travel) this.jumpBuf = 0.12;
   },
 
@@ -598,7 +608,7 @@ const Game = {
     if (support > 0 && !this.onObs) { this.onObs = true; this.S.stats.hops++; } else if (support <= 0) this.onObs = false;
     if (this.travel || this.hook || this.ladder) { /* voando de volta ou escalando */ }
     else if (P.z > support + 0.001 || P.vz > 0) {
-      P.vz -= GRAV * (P.vz < 0 ? 1.25 : 1) * dt; P.z += P.vz * dt; P.peak = Math.max(P.peak || 0, P.z);
+      const g = GRAV * (P.vz < 0 ? 1.25 : 1); P.z += P.vz * dt - 0.5 * g * dt * dt; P.vz -= g * dt; // conta exata: o pulo tem a mesma altura em 30, 60, 144 ou 165 quadros por segundo P.peak = Math.max(P.peak || 0, P.z);
       if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); if (fall > 0.35) this.landDip = Math.min(0.3, 0.04 + fall * 0.045); }
     } else { P.z = support; P.vz = 0; }
     // teto da caverna: não deixa a cabeça atravessar a rocha (pulo, jetpack, cama elástica)

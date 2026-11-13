@@ -455,6 +455,7 @@ I18N.tr = {
 "Gráfico leve: sem sombras e grama, menos partículas.": "Hafif grafik: gölge ve çim yok, daha az parçacık.",
 "Gráfico bonito ligado.": "Güzel grafikler açık.",
 "O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve.": "Oyun bu bilgisayarda yavaş çalışıyor. Esc'ye bas ve Grafik: Hafif'i seç.",
+"O jogo estava lento: liguei o gráfico leve. Dá para voltar no Esc → Gráfico.": "Oyun yavaş çalışıyordu, hafif grafiğe geçtim. Esc → Grafik'ten geri alabilirsin.",
 "⤒ Dá para pular · ": "⤒ Zıplanabilir · ",
 "✕ Pulo insuficiente · ": "✕ Zıplama yetersiz · ",
 "Primeira pessoa": "Birinci şahıs",
@@ -547,5 +548,8 @@ I18N.tr = {
 "Atualizações": "Güncellemeler",
 "Som": "Ses",
 "Ajuda": "Yardım",
-"Continuar": "Devam"
+"Continuar": "Devam",
+"Tab": "Tab",
+"Vale Ferrado": "Vale Ferrado",
+"Idioma": "Dil"
 };

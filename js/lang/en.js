@@ -455,6 +455,7 @@ I18N.en = {
 "Gráfico leve: sem sombras e grama, menos partículas.": "Light graphics: no shadows or grass, fewer particles.",
 "Gráfico bonito ligado.": "Beautiful graphics on.",
 "O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve.": "The game is running slow on this computer. Press Esc and choose Graphics: Light.",
+"O jogo estava lento: liguei o gráfico leve. Dá para voltar no Esc → Gráfico.": "The game was running slowly, so I switched to Light graphics. You can change it back in Esc → Graphics.",
 "⤒ Dá para pular · ": "⤒ Can jump · ",
 "✕ Pulo insuficiente · ": "✕ Jump too low · ",
 "Primeira pessoa": "First person",
@@ -547,5 +548,8 @@ I18N.en = {
 "Atualizações": "Updates",
 "Som": "Sound",
 "Ajuda": "Help",
-"Continuar": "Continue"
+"Continuar": "Continue",
+"Tab": "Tab",
+"Vale Ferrado": "Vale Ferrado",
+"Idioma": "Language"
 };

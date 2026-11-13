@@ -191,6 +191,18 @@
   #title p { opacity: .8; max-width: 520px; line-height: 1.5; }
   #title .buy { font-size: 18px; padding: 12px 34px; margin-top: 14px; }
   #langs { display: flex; gap: 8px; margin-top: 22px; } #langs .lg { background: rgba(255,255,255,.07); color: var(--ink); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; } #langs .lg.on { border-color: var(--gold); color: var(--gold); }
+  /* janelas pequenas (a CrazyGames testa até 821×462 e 800×450): HUD e painéis encolhem juntos para tudo caber e continuar legível */
+  @media (max-height: 640px), (max-width: 1000px) {
+    #tl, #tr, #inv, #minimap, #bottom, #mission, #clock, #stamwrap, #equip, #recall, #citybar, #tinfo, #toasts, #missbtn, #loc, #npchint, #objarrow, #lockhint > div { zoom: .82; }
+    #inv { max-height: calc((100vh - 290px) / .82); }
+    #panel > div { zoom: .82; max-height: calc(94vh / .82); width: min(760px, calc(96vw / .82)); }
+  }
+  @media (max-height: 520px), (max-width: 860px) {
+    #tl, #tr, #inv, #minimap, #bottom, #mission, #clock, #stamwrap, #equip, #recall, #citybar, #tinfo, #toasts, #missbtn, #loc, #npchint, #objarrow, #lockhint > div { zoom: .72; }
+    #inv { zoom: .82; max-height: calc((100vh - 230px) / .82); }
+    #minimap { zoom: .62; }
+    #panel > div { zoom: .74; max-height: calc(96vh / .74); width: min(760px, calc(97vw / .74)); }
+  }
 </style>
 </head>
 <body class="pre">
@@ -238,7 +250,7 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
   <div id="pauseupd"></div>
   <button class="buy alt" onclick="UI.soundPanel()">🔊 Som</button>
   <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>
-  <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value)"><option value="alto">Bonito</option><option value="leve">Leve (para PC mais fraco)</option></select><b></b></label>
+  <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value, false, true)"><option value="alto">Bonito</option><option value="leve">Leve (para PC mais fraco)</option></select><b></b></label>
   <label class="vol sens"><span>Sensibilidade do mouse</span><input type="range" min="20" max="250" value="100" id="sens" oninput="Game.S.sens=this.value/100;this.nextElementSibling.textContent=this.value+'%';Game.save()"><b>100%</b></label>
   <label class="vol sens"><span>Idioma</span><select id="langsel" onchange="setLang(this.value)"></select><b></b></label>
   <small>Esc solta o mouse e abre este menu.</small></div></div>
