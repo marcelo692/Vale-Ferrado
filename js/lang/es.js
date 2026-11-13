@@ -455,6 +455,7 @@ I18N.es = {
 "Gráfico leve: sem sombras e grama, menos partículas.": "Gráficos ligeros: sin sombras ni hierba, menos partículas.",
 "Gráfico bonito ligado.": "Gráficos bonitos activados.",
 "O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve.": "El juego va lento en este equipo. Pulsa Esc y elige Gráficos: Ligero.",
+"O jogo estava lento: liguei o gráfico leve. Dá para voltar no Esc → Gráfico.": "El juego iba lento: activé los gráficos ligeros. Puedes volver a cambiarlo en Esc → Gráficos.",
 "⤒ Dá para pular · ": "⤒ Se puede saltar · ",
 "✕ Pulo insuficiente · ": "✕ Salto insuficiente · ",
 "Primeira pessoa": "Primera persona",
@@ -547,5 +548,8 @@ I18N.es = {
 "Atualizações": "Actualizaciones",
 "Som": "Sonido",
 "Ajuda": "Ayuda",
-"Continuar": "Continuar"
+"Continuar": "Continuar",
+"Tab": "Tab",
+"Vale Ferrado": "Vale Ferrado",
+"Idioma": "Idioma"
 };

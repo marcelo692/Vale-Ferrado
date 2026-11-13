@@ -19,7 +19,7 @@ const REGIONS = [
 // ---------- Recursos ----------
 // kind: visual (nut, stick, log, clay, rock, ore, crystal, scrap, meteor)
 const RESOURCES = [
-  { id: 'noz',         name: tt("Noz e castanha"),          region: 0, ideal: 1,  hard: 10,       kind: 'nut',     c: '#8a5a2b', c2: '#3f6e2a' },
+  { id: 'noz',         name: tt("Noz e castanha"),          region: 0, ideal: 1,  hard: 4,        kind: 'nut',     c: '#8a5a2b', c2: '#3f6e2a' },
   { id: 'graveto',     name: tt("Graveto"),                 region: 0, ideal: 2,  hard: 13,       kind: 'stick',   c: '#7a5a3a', c2: '#5b4128' },
   { id: 'lenha',       name: tt("Lenha"),                   region: 0, ideal: 4,  hard: 20,       kind: 'log',     c: '#6b4a2e', c2: '#c9a57a' },
   { id: 'argila',      name: tt("Argila"),                  region: 0, ideal: 6,  hard: 33,       kind: 'clay',    c: '#a5603d', c2: '#c27a52' },

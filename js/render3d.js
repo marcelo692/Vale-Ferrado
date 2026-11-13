@@ -124,7 +124,8 @@ const Render = {
 
   // ---------- qualidade do gráfico ----------
   quality: 'alto',
-  setQuality(q, silent) {
+  setQuality(q, silent, byUser) {
+    if (byUser) try { localStorage.setItem('valeferrado_gfx_user', '1'); } catch (e) {} // o jogador escolheu: o jogo não troca mais sozinho
     this.quality = q === 'leve' ? 'leve' : 'alto';
     const leve = this.quality === 'leve';
     this.r.setPixelRatio(leve ? Math.min(devicePixelRatio, 0.75) : Math.min(devicePixelRatio, 1.5)); this.r.setSize(innerWidth, innerHeight);
@@ -136,14 +137,18 @@ const Render = {
     const sel = document.getElementById('gfx'); if (sel) sel.value = this.quality;
     if (!silent) UI.toast(leve ? tt("Gráfico leve: sem sombras e grama, menos partículas.") : tt("Gráfico bonito ligado."));
   },
-  // se o jogo ficar lento, sugere o gráfico leve (uma vez)
+  // se o jogo ficar lento: liga o gráfico leve sozinho (se o jogador nunca escolheu) ou sugere (uma vez)
   watchFps(dt) {
     if (this.quality === 'leve' || this.fpsTold || !Game.locked || !Game.locked()) return;
     this.fpsAcc = (this.fpsAcc || 0) + dt; this.fpsN = (this.fpsN || 0) + 1;
-    if (this.fpsAcc < 6) return;
+    if (this.fpsAcc < 4) return;
     const fps = this.fpsN / this.fpsAcc; this.fpsAcc = 0; this.fpsN = 0;
-    this.fpsLow = fps < 28 ? (this.fpsLow || 0) + 1 : 0;
-    if (this.fpsLow >= 2) { this.fpsTold = true; UI.toast(tt("O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve."), 'warn'); }
+    this.fpsLow = fps < 30 ? (this.fpsLow || 0) + 1 : 0;
+    if (this.fpsLow < 2) return;
+    this.fpsTold = true;
+    let chose = false; try { chose = localStorage.getItem('valeferrado_gfx_user') === '1'; } catch (e) {}
+    if (chose) UI.toast(tt("O jogo está lento neste computador. Aperte Esc e escolha Gráfico: Leve."), 'warn');
+    else { this.setQuality('leve', true); UI.toast(tt("O jogo estava lento: liguei o gráfico leve. Dá para voltar no Esc → Gráfico."), 'warn'); }
   },
   // ---------- aviso de altura nos obstáculos (atalhos de pulo) ----------
   updateObstacleHint() {
