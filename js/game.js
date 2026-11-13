@@ -679,7 +679,7 @@ const Game = {
       if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("🔒 A Pedra Selada só quebra com o Martelo 61."), 'warn'); }
       Snd.denied(); Snd.hit('scrap', 1, false); this.shake = Math.min(1, this.shake + 0.1); this.mineT = 0; return;
     }
-    const rule = n.res.wild || n.res.sealed ? { mult: 1, blocked: false } : levelRule(n.res.ideal, this.S.hammer);
+    const rule = n.res.wild || n.res.sealed ? { mult: 1, blocked: false } : levelRule(n.res.ideal, this.S.hammer, n.res);
     if (rule.blocked) {
       if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("🔒 {0} é nível {1}: precisa do Martelo {2} ou melhor.", n.res.name, n.res.ideal, n.res.ideal - LEVEL_LOCK), 'warn'); }
       Snd.denied(); Snd.hit('scrap', 1, false); this.shake = Math.min(1, this.shake + 0.1); this.mineT = 0; return;

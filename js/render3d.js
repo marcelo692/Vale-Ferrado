@@ -1495,7 +1495,7 @@ const Render = {
   // informações de valor de um recurso para o jogador atual
   resInfo(n) {
     const res = n.res, units = Math.max(1, Math.round(2 * n.size)) * n.rare;
-    const rule = res.wild ? { mult: 1 } : levelRule(res.ideal, Game.S.hammer);
+    const rule = res.wild ? { mult: 1, slow: 1 } : levelRule(res.ideal, Game.S.hammer, res);
     const hits = rule.blocked ? Infinity : Math.ceil(n.hp / (Game.force() / rule.mult)), time = Math.max(0.3, hits * Game.interval());
     const need = (Game.missCache || []).find(m => m.id === res.id);
     return { lvl: res.ideal, value: res.value, units, total: units * res.value, perMin: rule.blocked ? 0 : units * res.value / time * 60, hits, time, need, rule };
@@ -1504,7 +1504,7 @@ const Render = {
     return ['#b8b0a0', '#7fd36a', '#5aa8f0', '#b07af0', '#ff9a3d', '#ffd34d'][Math.min(5, Math.floor((lvl - 1) / 10))];
   },
   badgeTex(res, need) {
-    const lock = levelRule(res.ideal, Game.S.hammer).blocked;
+    const lock = levelRule(res.ideal, Game.S.hammer, res).blocked;
     const key = res.id + (need ? '*' : '') + (lock ? '#' : '');
     this.badgeCache = this.badgeCache || {};
     if (this.badgeCache[key]) return this.badgeCache[key];
@@ -1684,7 +1684,17 @@ const Render = {
     const handle = mesh(new THREE.CylinderGeometry(0.022 + L * 0.0006, 0.028 + L * 0.0006, len, 6), mat(look.handle), false); handle.position.y = len / 2; g.add(handle);
     if ((L >= 31 && L <= 59) || L === 61) return this.makePick(L, g, handle, len, hw, hl);
     let head;
-    if (look.type === 'wood' && L <= 3) head = mesh(new THREE.CylinderGeometry(0.035 + L * 0.008, 0.03, 0.18 + L * 0.03, 6), mat(look.head), false), head.position.y = len + 0.05;
+    if (L === 1) { // colher de sopa: cabo fininho de metal e a concha na ponta
+      handle.visible = false;
+      const steel = mat('#c9ced4', { shininess: 110, specular: '#ffffff' });
+      const stem = mesh(new THREE.BoxGeometry(0.026, len, 0.009), steel, false); stem.position.y = len / 2; g.add(stem);
+      head = mesh(new THREE.SphereGeometry(0.055, 14, 10), steel, false); head.scale.set(0.9, 1.35, 0.32); head.position.y = len + 0.06;
+      const dip = mesh(new THREE.SphereGeometry(0.045, 12, 8), mat('#8f959c', { shininess: 90 }), false); dip.scale.set(0.85, 1.25, 0.2); dip.position.set(0, len + 0.06, 0.012); g.add(dip);
+    }
+    else if (look.type === 'wood' && L <= 3) { // martelinho de madeira: o galho com uma cabecinha quadrada pequena
+      head = mesh(new THREE.BoxGeometry(0.1 + L * 0.02, 0.055 + L * 0.008, 0.055 + L * 0.008), mat(L === 2 ? '#8a6038' : '#9c6b3e'), false); head.position.y = len + 0.01;
+      const peg = mesh(new THREE.BoxGeometry(0.02, 0.02, 0.064 + L * 0.008), mat('#5a3e26'), false); peg.position.set(0.02, len + 0.01, 0); g.add(peg);
+    }
     else if (look.type === 'wood') { head = mesh(new THREE.CylinderGeometry(hw * 1.1, hw * 1.1, hl, 8), mat(look.head), false); head.rotation.z = Math.PI / 2; head.position.y = len; }
     else if (look.type === 'stone') { head = mesh(jitterGeo(new THREE.IcosahedronGeometry(hw * 1.5, 0), hw * 0.4, L), mat(look.head), false); head.scale.set(1.5, 1, 1); head.position.y = len; const tie = mesh(new THREE.TorusGeometry(hw * 0.9, 0.012, 4, 8), mat('#6b4a2e'), false); tie.position.y = len; tie.rotation.x = Math.PI / 2; g.add(tie); }
     else if (look.type === 'crystal') { head = mesh(new THREE.OctahedronGeometry(hl * 0.6, 0), mat(look.head, { emissive: look.glow, emissiveIntensity: 0.5, shininess: 120, transparent: true, opacity: 0.9 }), false); head.scale.set(1.5, 0.9, 0.9); head.position.y = len; }
@@ -2418,7 +2428,7 @@ const Render = {
     el.style.display = 'block';
     if (n.res.sealed) { el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:#ffd34d;color:#ffd34d\">Martelo 61</em><b>🔒 {0}</b></div><div class=\"hp\"><i style=\"width:{1}%;background:#ffd34d\"></i></div><span>{2}</span>", n.res.name, Math.max(0, n.hp / n.maxHp * 100), Game.S.hammer >= 61 ? tt("Golpeie sem parar: o selo vai ceder.") : tt("Precisa do Martelo 61 para quebrar")); return; }
     if (n.res.wild) { el.innerHTML = tt("<div class=\"tl\"><b>✦ {0}</b></div><div class=\"hp\"><i style=\"width:{1}%;background:#9ff3ff\"></i></div><span>{2} · some em {3}</span>", n.res.name, Math.max(0, n.hp / n.maxHp * 100), n.res.id === 'veiocint' ? tt("Rende de 3 a 6 Cintilhas · qualquer martelo quebra") : tt("Abre com 1 Cintilha e solta uma poção"), fmtTime(Math.max(0, 240 - (Game.S.time - n.born)))); return; }
-    el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:{0};color:{1}\">Nv {2}</em><b>{3}{4}{5}</b></div>\n      <div class=\"hp\"><i style=\"width:{6}%;background:{7}\"></i></div>\n      {8}\n      <div class=\"val\"><i class=\"coin\"></i>{9} cada · rende {10} = <b>{11}</b> · ≈ {12}/min</div>\n      {13}", tc, tc, I.lvl, n.res.name, n.size === 2 ? tt(" · grande") : n.size === 0.5 ? tt(" · pequena") : '', n.rare === 10 ? tt(" · 💎 cristalizada") : n.rare === 3 ? tt(" · ✨ veio rico") : '', Math.max(0, n.hp / n.maxHp * 100), col, R.blocked ? tt("<span style=\"color:{0}\">🔒 Precisa do Martelo {1} para quebrar</span>", col, I.lvl - LEVEL_LOCK) : tt("<span style=\"color:{0}\">{1} golpes · {2}{3}</span>", col, fmt(hits), fmtTime(time), R.mult > 1 ? tt(" · <b>×{0} mais lento</b> (pedra acima do seu martelo)", R.mult < 10 ? R.mult.toFixed(1).replace('.', DEC) : Math.round(R.mult)) : ''), fmt(I.value), I.units, fmt(I.total), fmt(Math.round(I.perMin)), I.need ? tt("<div class=\"need\">⭐ Precisa para evolução · faltam {0}</div>", fmt(I.need.falta)) : '');
+    el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:{0};color:{1}\">Nv {2}</em><b>{3}{4}{5}</b></div>\n      <div class=\"hp\"><i style=\"width:{6}%;background:{7}\"></i></div>\n      {8}\n      <div class=\"val\"><i class=\"coin\"></i>{9} cada · rende {10} = <b>{11}</b> · ≈ {12}/min</div>\n      {13}", tc, tc, I.lvl, n.res.name, n.size === 2 ? tt(" · grande") : n.size === 0.5 ? tt(" · pequena") : '', n.rare === 10 ? tt(" · 💎 cristalizada") : n.rare === 3 ? tt(" · ✨ veio rico") : '', Math.max(0, n.hp / n.maxHp * 100), col, R.blocked ? tt("<span style=\"color:{0}\">🔒 Precisa do Martelo {1} para quebrar</span>", col, I.lvl - LEVEL_LOCK) : tt("<span style=\"color:{0}\">{1} golpes · {2}{3}</span>", col, fmt(hits), fmtTime(time), R.slow > 1 ? tt(" · <b>×{0} mais lento</b> (pedra acima do seu martelo)", R.slow < 10 ? R.slow.toFixed(1).replace('.', DEC) : Math.round(R.slow)) : ''), fmt(I.value), I.units, fmt(I.total), fmt(Math.round(I.perMin)), I.need ? tt("<div class=\"need\">⭐ Precisa para evolução · faltam {0}</div>", fmt(I.need.falta)) : '');
   },
 
   drawMinimap() {

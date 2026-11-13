@@ -49,9 +49,9 @@ I18N.en = {
 "Ferro Celeste": "Celestial Iron",
 "Obsidiana Real": "Royal Obsidian",
 "Coração da Montanha": "Heart of the Mountain",
-"Graveto seco": "Dry twig",
-"Galho grosso": "Thick branch",
-"Galho de goiabeira": "Guava branch",
+"Colher de sopa": "Soup Spoon",
+"Martelinho de galho": "Little Branch Mallet",
+"Martelinho de goiabeira": "Little Guava-wood Mallet",
 "Porrete de pinho": "Pine club",
 "Porrete de eucalipto": "Eucalyptus club",
 "Clava de aroeira": "Pepper-tree cudgel",
@@ -133,7 +133,7 @@ I18N.en = {
 "Geodo de Poção": "Potion Geode",
 "Pedra Selada": "Sealed Stone",
 "O bilhete do avô": "Grandpa's note",
-"Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só um graveto e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear.": "Vale Ferrado is empty. The mine collapsed and everyone left. In the ruined workshop, only a twig and a note: \"Rebuild what I couldn't.\" Head North to Grandpa's Grove and start swinging.",
+"Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só uma colher de sopa e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear (com a colher mesmo).": "Vale Ferrado is empty. The mine collapsed and everyone left. In the ruined workshop, only a soup spoon and a note: \"Rebuild what I couldn't.\" Head North to Grandpa's Grove and start swinging (yes, with the spoon).",
 "A primeira família volta": "The first family returns",
 "O barulho do seu maço ecoa pelo vale. Uma família de lenhadores reabre a casa ao lado da praça. Dizem que no Leste, no Riacho das Pedras, há pedras boas para martelos de verdade.": "The sound of your mallet echoes through the valley. A family of woodcutters reopens the house beside the square. They say that to the East, at Pebble Creek, there are good stones for real hammers.",
 "O Ancião do riacho": "The Elder of the creek",
@@ -551,5 +551,6 @@ I18N.en = {
 "Continuar": "Continue",
 "Tab": "Tab",
 "Vale Ferrado": "Vale Ferrado",
+"Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "From a soup spoon to the Valley Hammer. Gather, sell, upgrade and rebuild your grandfather's town.",
 "Idioma": "Language"
 };

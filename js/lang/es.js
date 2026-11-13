@@ -49,9 +49,9 @@ I18N.es = {
 "Ferro Celeste": "Hierro Celeste",
 "Obsidiana Real": "Obsidiana Real",
 "Coração da Montanha": "Corazón de la Montaña",
-"Graveto seco": "Ramita seca",
-"Galho grosso": "Rama gruesa",
-"Galho de goiabeira": "Rama de guayabo",
+"Colher de sopa": "Cuchara de sopa",
+"Martelinho de galho": "Mazito de rama",
+"Martelinho de goiabeira": "Mazito de guayabo",
 "Porrete de pinho": "Garrote de pino",
 "Porrete de eucalipto": "Garrote de eucalipto",
 "Clava de aroeira": "Maza de aroeira",
@@ -133,7 +133,7 @@ I18N.es = {
 "Geodo de Poção": "Geoda de Poción",
 "Pedra Selada": "Piedra Sellada",
 "O bilhete do avô": "La nota del abuelo",
-"Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só um graveto e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear.": "Vale Ferrado está vacío. La mina se derrumbó y todos se fueron. En el taller en ruinas, solo una ramita y una nota: \"Reconstruye lo que yo no pude.\" Ve al Norte, al Bosque del Abuelo, y empieza a golpear.",
+"Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só uma colher de sopa e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear (com a colher mesmo).": "Vale Ferrado está vacío. La mina se derrumbó y todos se fueron. En el taller en ruinas, solo una cuchara de sopa y una nota: \"Reconstruye lo que yo no pude.\" Ve al Norte, al Bosque del Abuelo, y empieza a golpear (sí, con la cuchara).",
 "A primeira família volta": "La primera familia vuelve",
 "O barulho do seu maço ecoa pelo vale. Uma família de lenhadores reabre a casa ao lado da praça. Dizem que no Leste, no Riacho das Pedras, há pedras boas para martelos de verdade.": "El ruido de tu mazo resuena por el valle. Una familia de leñadores reabre la casa junto a la plaza. Dicen que al Este, en el Arroyo de las Piedras, hay buenas piedras para martillos de verdad.",
 "O Ancião do riacho": "El Anciano del arroyo",
@@ -551,5 +551,6 @@ I18N.es = {
 "Continuar": "Continuar",
 "Tab": "Tab",
 "Vale Ferrado": "Vale Ferrado",
+"Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "De la cuchara de sopa al Martillo del Valle. Recolecta, vende, mejora y reconstruye el pueblo de tu abuelo.",
 "Idioma": "Idioma"
 };

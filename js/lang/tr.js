@@ -49,9 +49,9 @@ I18N.tr = {
 "Ferro Celeste": "Göksel Demir",
 "Obsidiana Real": "Kraliyet Obsidyeni",
 "Coração da Montanha": "Dağın Kalbi",
-"Graveto seco": "Kuru çubuk",
-"Galho grosso": "Kalın dal",
-"Galho de goiabeira": "Guava dalı",
+"Colher de sopa": "Çorba kaşığı",
+"Martelinho de galho": "Dal tokmak",
+"Martelinho de goiabeira": "Guava tokmağı",
 "Porrete de pinho": "Çam sopası",
 "Porrete de eucalipto": "Okaliptüs sopası",
 "Clava de aroeira": "Aroeira topuzu",
@@ -133,7 +133,7 @@ I18N.tr = {
 "Geodo de Poção": "İksir Jeodu",
 "Pedra Selada": "Mühürlü Taş",
 "O bilhete do avô": "Dedenin notu",
-"Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só um graveto e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear.": "Vale Ferrado bomboş. Maden çöktü ve herkes gitti. Harap atölyede sadece bir çubuk ve bir not var: \"Benim başaramadığımı yeniden inşa et.\" Kuzeye, Dedenin Korusu'na git ve vurmaya başla.",
+"Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só uma colher de sopa e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear (com a colher mesmo).": "Vale Ferrado bomboş. Maden çöktü ve herkes gitti. Harap atölyede sadece bir çorba kaşığı ve bir not var: \"Benim başaramadığımı yeniden inşa et.\" Kuzeye, Dedenin Korusu'na git ve vurmaya başla (evet, kaşıkla).",
 "A primeira família volta": "İlk aile geri dönüyor",
 "O barulho do seu maço ecoa pelo vale. Uma família de lenhadores reabre a casa ao lado da praça. Dizem que no Leste, no Riacho das Pedras, há pedras boas para martelos de verdade.": "Tokmağının sesi vadide yankılanıyor. Bir oduncu ailesi meydanın yanındaki evi yeniden açıyor. Doğuda, Taşlı Dere'de gerçek çekiçler için iyi taşlar olduğunu söylüyorlar.",
 "O Ancião do riacho": "Derenin Yaşlısı",
@@ -551,5 +551,6 @@ I18N.tr = {
 "Continuar": "Devam",
 "Tab": "Tab",
 "Vale Ferrado": "Vale Ferrado",
+"Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "Çorba kaşığından Vadi Çekici'ne. Topla, sat, geliştir ve dedenin kasabasını yeniden kur.",
 "Idioma": "Dil"
 };
