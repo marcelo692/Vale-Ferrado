@@ -515,8 +515,32 @@ const Render = {
     this.houses = new THREE.Group(); this.city.add(this.houses); this.houseEra = -1;
     this.buildCityDeco();
   },
+  // ---------- baú diário ao lado da fonte ----------
+  buildChest() {
+    const g = new THREE.Group(); g.position.set(CHEST_POS.x, 0, CHEST_POS.y); g.rotation.y = Math.atan2(-CHEST_POS.x, -CHEST_POS.y);
+    const wood = mat('#7a4a22'), dark = mat('#4a2c12'), gold = mat('#e8b04a', { shininess: 90, specular: '#fff2c0' });
+    const base = mesh(new THREE.BoxGeometry(1.3, 0.62, 0.85), wood); base.position.y = 0.31; g.add(base);
+    for (const x of [-0.5, 0.5]) { const b = mesh(new THREE.BoxGeometry(0.1, 0.66, 0.9), gold); b.position.set(x, 0.33, 0); g.add(b); }
+    const lid = new THREE.Group(); lid.position.set(0, 0.62, -0.42); g.add(lid);
+    const top = mesh(new THREE.CylinderGeometry(0.43, 0.43, 1.3, 10, 1, false, 0, Math.PI), wood); top.rotation.z = Math.PI / 2; top.rotation.y = Math.PI / 2; top.position.z = 0.42; lid.add(top);
+    for (const x of [-0.5, 0.5]) { const b = mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.1, 10, 1, false, 0, Math.PI), gold); b.rotation.z = Math.PI / 2; b.rotation.y = Math.PI / 2; b.position.set(x, 0, 0.42); lid.add(b); }
+    const lock = mesh(new THREE.BoxGeometry(0.18, 0.22, 0.06), gold); lock.position.set(0, 0.5, 0.45); g.add(lock);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#ffd76a', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })); glow.scale.setScalar(3.2); glow.position.y = 1; g.add(glow);
+    const lab = labelSprite(tt("Baú diário"), tt("um prêmio por dia"), '#ffd76a', 0.55); lab.position.y = 2.1; g.add(lab);
+    this.city.add(g); this.chest = { g, lid, glow, lab, dark };
+    World.solids.push({ x: CHEST_POS.x, y: CHEST_POS.y, r: 0.75, chest: true });
+  },
+  updateChest() {
+    const C = this.chest; if (!C) return;
+    const on = Daily.unlocked(); C.g.visible = on; if (!on) return;
+    const av = Daily.available();
+    C.lid.rotation.x += ((av ? -0.35 - Math.sin(this.t * 3) * 0.08 : 0) - C.lid.rotation.x) * 0.15;
+    C.glow.visible = av; C.glow.material.opacity = 0.55 + Math.sin(this.t * 4) * 0.25;
+    if (av && Math.random() < 0.08) Game.fxBurst(CHEST_POS.x + (Math.random() - 0.5), CHEST_POS.y + (Math.random() - 0.5), '#ffe27a', 1, 0.5);
+  },
   // ---------- enfeites da vila: fonte, trilhas de pedra, bandeirolas, canteiros, bancos e a picareta 61 ----------
   buildCityDeco() {
+    this.buildChest();
     const C = this.city, T = () => performance.now() / 1000, gtex = this.getGlowTex();
     const stone = '#8a8070', light = '#b9ad98';
     // piso: anéis de pedra clara em volta da fonte e trilhas até cada barraca
@@ -720,8 +744,28 @@ const Render = {
     g.userData.wares = id; return g;
   },
   // vendedores se mexem: respiram, olham para você, e cada um tem um gesto (o ferreiro bate na bigorna)
+  // barraca escondida embaixo do chão (k = 0) até surgir (k = 1); settle = tremedeira enquanto sobe
+  setStallRise(id, k, settle) {
+    const g = (this.npcObjs || []).find(o => o.userData.npc.id === id); if (!g) return;
+    const U = g.userData; if (!U.base) U.base = g.position.clone();
+    const sh = (settle || 0) * (k > 0 && k < 1 ? 1 : 0.4);
+    g.position.set(U.base.x + Math.sin(this.t * 41) * 0.12 * sh, -7.5 * (1 - k) + Math.abs(Math.sin(this.t * 23)) * 0.1 * sh, U.base.z + Math.cos(this.t * 37) * 0.12 * sh);
+    g.rotation.z = Math.sin(this.t * 29) * 0.03 * sh;
+    g.visible = k > 0.001; U.rising = k < 1;
+    if (U.lockSign) U.lockSign.visible = k < 0.02;
+  },
   updateVendors(dt) {
     if (!this.npcObjs) return;
+    for (const g of this.npcObjs) {
+      const id = g.userData.npc.id;
+      if (!Vendors.isOpen(id)) {
+        if (!g.userData.lockSign) { // plaquinha no lugar: o que vai abrir aqui e quando
+          const n = g.userData.npc, sg = labelSprite('🔒 ' + n.shop, tt("abre no Martelo {0}", n.unlock), n.color, 0.6);
+          sg.position.set(n.x, 1.6, n.y); this.city.add(sg); g.userData.lockSign = sg;
+        }
+        if (Vendors.revealing !== id) this.setStallRise(id, 0, 0);
+      } else if (g.userData.lockSign && g.userData.lockSign.visible && !Cine.busy()) { this.setStallRise(id, 1, 0); }
+    }
     const t = this.t, P = Game.P;
     for (const g of this.npcObjs) {
       const p = g.userData.person; if (!p || !p.userData.anim) continue;
@@ -1495,7 +1539,7 @@ const Render = {
   // informações de valor de um recurso para o jogador atual
   resInfo(n) {
     const res = n.res, units = Math.max(1, Math.round(2 * n.size)) * n.rare;
-    const rule = res.wild ? { mult: 1 } : levelRule(res.ideal, Game.S.hammer);
+    const rule = res.wild ? { mult: 1, slow: 1 } : levelRule(res.ideal, Game.S.hammer, res);
     const hits = rule.blocked ? Infinity : Math.ceil(n.hp / (Game.force() / rule.mult)), time = Math.max(0.3, hits * Game.interval());
     const need = (Game.missCache || []).find(m => m.id === res.id);
     return { lvl: res.ideal, value: res.value, units, total: units * res.value, perMin: rule.blocked ? 0 : units * res.value / time * 60, hits, time, need, rule };
@@ -1504,7 +1548,7 @@ const Render = {
     return ['#b8b0a0', '#7fd36a', '#5aa8f0', '#b07af0', '#ff9a3d', '#ffd34d'][Math.min(5, Math.floor((lvl - 1) / 10))];
   },
   badgeTex(res, need) {
-    const lock = levelRule(res.ideal, Game.S.hammer).blocked;
+    const lock = levelRule(res.ideal, Game.S.hammer, res).blocked;
     const key = res.id + (need ? '*' : '') + (lock ? '#' : '');
     this.badgeCache = this.badgeCache || {};
     if (this.badgeCache[key]) return this.badgeCache[key];
@@ -1684,7 +1728,17 @@ const Render = {
     const handle = mesh(new THREE.CylinderGeometry(0.022 + L * 0.0006, 0.028 + L * 0.0006, len, 6), mat(look.handle), false); handle.position.y = len / 2; g.add(handle);
     if ((L >= 31 && L <= 59) || L === 61) return this.makePick(L, g, handle, len, hw, hl);
     let head;
-    if (look.type === 'wood' && L <= 3) head = mesh(new THREE.CylinderGeometry(0.035 + L * 0.008, 0.03, 0.18 + L * 0.03, 6), mat(look.head), false), head.position.y = len + 0.05;
+    if (L === 1) { // colher de sopa: cabo fininho de metal e a concha na ponta
+      handle.visible = false;
+      const steel = mat('#c9ced4', { shininess: 110, specular: '#ffffff' });
+      const stem = mesh(new THREE.BoxGeometry(0.026, len, 0.009), steel, false); stem.position.y = len / 2; g.add(stem);
+      head = mesh(new THREE.SphereGeometry(0.055, 14, 10), steel, false); head.scale.set(0.9, 1.35, 0.32); head.position.y = len + 0.06;
+      const dip = mesh(new THREE.SphereGeometry(0.045, 12, 8), mat('#8f959c', { shininess: 90 }), false); dip.scale.set(0.85, 1.25, 0.2); dip.position.set(0, len + 0.06, 0.012); g.add(dip);
+    }
+    else if (look.type === 'wood' && L <= 3) { // martelinho de madeira: o galho com uma cabecinha quadrada pequena
+      head = mesh(new THREE.BoxGeometry(0.1 + L * 0.02, 0.055 + L * 0.008, 0.055 + L * 0.008), mat(L === 2 ? '#8a6038' : '#9c6b3e'), false); head.position.y = len + 0.01;
+      const peg = mesh(new THREE.BoxGeometry(0.02, 0.02, 0.064 + L * 0.008), mat('#5a3e26'), false); peg.position.set(0.02, len + 0.01, 0); g.add(peg);
+    }
     else if (look.type === 'wood') { head = mesh(new THREE.CylinderGeometry(hw * 1.1, hw * 1.1, hl, 8), mat(look.head), false); head.rotation.z = Math.PI / 2; head.position.y = len; }
     else if (look.type === 'stone') { head = mesh(jitterGeo(new THREE.IcosahedronGeometry(hw * 1.5, 0), hw * 0.4, L), mat(look.head), false); head.scale.set(1.5, 1, 1); head.position.y = len; const tie = mesh(new THREE.TorusGeometry(hw * 0.9, 0.012, 4, 8), mat('#6b4a2e'), false); tie.position.y = len; tie.rotation.x = Math.PI / 2; g.add(tie); }
     else if (look.type === 'crystal') { head = mesh(new THREE.OctahedronGeometry(hl * 0.6, 0), mat(look.head, { emissive: look.glow, emissiveIntensity: 0.5, shininess: 120, transparent: true, opacity: 0.9 }), false); head.scale.set(1.5, 0.9, 0.9); head.position.y = len; }
@@ -2345,7 +2399,7 @@ const Render = {
     this.t += dt;
     const P = Game.P;
     this.updateDayNight();
-    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
+    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateChest(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;
@@ -2381,10 +2435,11 @@ const Render = {
     this.stars.position.copy(this.cam.position);
     this.updateNightFx(dt);
 
+    Cine.apply(this.cam);
     this.r.clear();
     this.r.render(this.scene, this.cam);
     this.updateArrow();
-    if (!UI.open) {
+    if (!UI.open && !Cine.busy()) {
       const fpv = this.view === 'fp'; this.vm.visible = fpv;
       if (fpv) this.updateViewModel(dt);
       if (fpv || this.arrowPivot.visible) { this.r.clearDepth(); this.r.render(this.vmScene, this.vmCam); }
@@ -2418,7 +2473,7 @@ const Render = {
     el.style.display = 'block';
     if (n.res.sealed) { el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:#ffd34d;color:#ffd34d\">Martelo 61</em><b>🔒 {0}</b></div><div class=\"hp\"><i style=\"width:{1}%;background:#ffd34d\"></i></div><span>{2}</span>", n.res.name, Math.max(0, n.hp / n.maxHp * 100), Game.S.hammer >= 61 ? tt("Golpeie sem parar: o selo vai ceder.") : tt("Precisa do Martelo 61 para quebrar")); return; }
     if (n.res.wild) { el.innerHTML = tt("<div class=\"tl\"><b>✦ {0}</b></div><div class=\"hp\"><i style=\"width:{1}%;background:#9ff3ff\"></i></div><span>{2} · some em {3}</span>", n.res.name, Math.max(0, n.hp / n.maxHp * 100), n.res.id === 'veiocint' ? tt("Rende de 3 a 6 Cintilhas · qualquer martelo quebra") : tt("Abre com 1 Cintilha e solta uma poção"), fmtTime(Math.max(0, 240 - (Game.S.time - n.born)))); return; }
-    el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:{0};color:{1}\">Nv {2}</em><b>{3}{4}{5}</b></div>\n      <div class=\"hp\"><i style=\"width:{6}%;background:{7}\"></i></div>\n      {8}\n      <div class=\"val\"><i class=\"coin\"></i>{9} cada · rende {10} = <b>{11}</b> · ≈ {12}/min</div>\n      {13}", tc, tc, I.lvl, n.res.name, n.size === 2 ? tt(" · grande") : n.size === 0.5 ? tt(" · pequena") : '', n.rare === 10 ? tt(" · 💎 cristalizada") : n.rare === 3 ? tt(" · ✨ veio rico") : '', Math.max(0, n.hp / n.maxHp * 100), col, R.blocked ? tt("<span style=\"color:{0}\">🔒 Precisa do Martelo {1} para quebrar</span>", col, I.lvl - LEVEL_LOCK) : tt("<span style=\"color:{0}\">{1} golpes · {2}{3}</span>", col, fmt(hits), fmtTime(time), R.mult > 1 ? tt(" · <b>×{0} mais lento</b> (pedra acima do seu martelo)", R.mult < 10 ? R.mult.toFixed(1).replace('.', DEC) : Math.round(R.mult)) : ''), fmt(I.value), I.units, fmt(I.total), fmt(Math.round(I.perMin)), I.need ? tt("<div class=\"need\">⭐ Precisa para evolução · faltam {0}</div>", fmt(I.need.falta)) : '');
+    el.innerHTML = tt("<div class=\"tl\"><em style=\"border-color:{0};color:{1}\">Nv {2}</em><b>{3}{4}{5}</b></div>\n      <div class=\"hp\"><i style=\"width:{6}%;background:{7}\"></i></div>\n      {8}\n      <div class=\"val\"><i class=\"coin\"></i>{9} cada · rende {10} = <b>{11}</b> · ≈ {12}/min</div>\n      {13}", tc, tc, I.lvl, n.res.name, n.size === 2 ? tt(" · grande") : n.size === 0.5 ? tt(" · pequena") : '', n.rare === 10 ? tt(" · 💎 cristalizada") : n.rare === 3 ? tt(" · ✨ veio rico") : '', Math.max(0, n.hp / n.maxHp * 100), col, R.blocked ? tt("<span style=\"color:{0}\">🔒 Precisa do Martelo {1} para quebrar</span>", col, I.lvl - LEVEL_LOCK) : tt("<span style=\"color:{0}\">{1} golpes · {2}{3}</span>", col, fmt(hits), fmtTime(time), R.slow > 1 ? tt(" · <b>×{0} mais lento</b> (pedra acima do seu martelo)", R.slow < 10 ? R.slow.toFixed(1).replace('.', DEC) : Math.round(R.slow)) : ''), fmt(I.value), I.units, fmt(I.total), fmt(Math.round(I.perMin)), I.need ? tt("<div class=\"need\">⭐ Precisa para evolução · faltam {0}</div>", fmt(I.need.falta)) : '');
   },
 
   drawMinimap() {

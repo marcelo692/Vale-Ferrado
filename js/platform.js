@@ -25,6 +25,27 @@ const Platform = {
     if (on === this.playing) return; this.playing = on;
     try { if (this.sdk) on ? this.sdk.game.gameplayStart() : this.sdk.game.gameplayStop(); } catch (e) {}
   },
+  // anúncio com prêmio: o jogador escolhe ver; o prêmio só vem se o anúncio terminar.
+  // Na CrazyGames usa o SDK; fora dela (versão do PC) mostra um anúncio de TESTE de 3 segundos.
+  rewarded(onReward, onFail) {
+    if (this.adBusy) return; this.adBusy = true;
+    const wasMuted = Snd.muted, wasPlaying = this.playing;
+    const start = () => { Snd.muted = true; Snd.apply(); this.play(false); document.body.classList.add('adon'); };
+    const stop = () => { Snd.muted = wasMuted; Snd.apply(); document.body.classList.remove('adon'); this.adBusy = false; if (wasPlaying) this.play(true); };
+    const fail = () => { stop(); UI.toast(tt("Anúncio indisponível agora. Tente de novo daqui a pouco."), 'warn'); if (onFail) onFail(); };
+    try {
+      if (this.sdk && this.sdk.ad) {
+        this.sdk.ad.requestAd('rewarded', { adStarted: start, adFinished: () => { stop(); onReward(); }, adError: fail });
+        return;
+      }
+    } catch (e) { fail(); return; }
+    // anúncio de teste (versão do PC): tela preta de 3 s com contagem
+    start();
+    const el = document.createElement('div'); el.id = 'fakead'; document.body.appendChild(el);
+    let n = 3; const tick = () => { el.innerHTML = `<b>${tt("ANÚNCIO DE TESTE")}</b><span>${tt("Na CrazyGames aqui passa um anúncio de verdade.")}</span><i>${n}</i>`; };
+    tick(); const iv = setInterval(() => { n--; if (n > 0) tick(); else { clearInterval(iv); el.remove(); stop(); onReward(); } }, 1000);
+  },
+  hasAds() { return true; },
   // comemoração do site (usar pouco: só nos grandes marcos)
   happy() { try { if (this.sdk) this.sdk.game.happytime(); } catch (e) {} },
 };

@@ -76,6 +76,7 @@ const Game = {
     World.build();
     this.fixSoldSpecials();
     Missions.init();
+    Vendors.init();
     if (this.S.world) World.restore(this.S.world);
     World.setupSeal();
     // lanternas e drones saíram do jogo (v3.6): devolve o que o jogador pagou
@@ -88,7 +89,7 @@ const Game = {
     const S = this.S;
     if ((S.robots || 0) > 0 && lastSeen && (S.robotTime || 0) > 60 && S.robotValue > 0) {
       const away = Math.min(8 * 3600, (Date.now() - lastSeen) / 1000);
-      if (away > 120) { const gain = Math.round(S.robotValue / S.robotTime * away * 0.5); if (gain > 0) { S.money += gain; S.earned += gain; this.offline = { gain, away, robots: S.robots }; } }
+      if (away > 120) { const perSec = Robots.rate() > 0 ? Robots.rate() / 60 : S.robotValue / S.robotTime, gain = Math.round(perSec * away * 0.5); if (gain > 0) { S.money += gain; S.earned += gain; this.offline = { gain, away, robots: S.robots }; } }
     }
     this.inCity = this.wasInCity = Math.hypot(this.P.x, this.P.y) < CITY_R;
     this.bindInput();
@@ -129,6 +130,8 @@ const Game = {
       const k = keyOf(e);
       if (UI.open) { if (k === 'escape' || k === 'e' || (k === 'j' && UI.open === 'missions') || (k === 'tab' && UI.open === 'bag') || (k === 't' && UI.open === 'detector')) { e.preventDefault(); UI.close(k === 'escape'); } return; }
       if (k === ' ' || k === 'tab') e.preventDefault();
+      if (Cine.busy()) { if (k !== 'escape') Cine.skip(); return; }
+      if (!Tutorial.allowKey(k)) return;
       this.keys[k] = true;
       if (k === 'h') this.recall();
       if (k === 'q') this.useHook();
@@ -156,7 +159,7 @@ const Game = {
     addEventListener('keyup', e => { const k = keyOf(e); this.keys[k] = false; if (k === 'g') { if (this.gHold) { clearTimeout(this.gHold); this.gHold = null; if (!UI.open) this.toggleDetector(); } this.gMenu = false; } });
     addEventListener('blur', () => { this.keys = {}; this.mouse.down = false; });
     addEventListener('mousemove', e => {
-      if (!this.locked() || this.travel) return;
+      if (!this.locked() || this.travel || Cine.busy()) return;
       let dx = e.movementX || 0, dy = e.movementY || 0;
       // o Chrome às vezes manda saltos gigantes no movimento do mouse (principalmente logo depois de prender o cursor)
       if (this.lookSkip > 0) { this.lookSkip--; return; }
@@ -171,6 +174,7 @@ const Game = {
       if (UI.open) return;
       Snd.start();
       if (!this.locked()) { Game.lock(); return; }
+      if (Cine.busy()) { Cine.skip(); return; }
       if (e.button === 0) { this.mouse.down = true; this.mouse.holdT = 0; this.clickStrike(); }
     });
     addEventListener('mouseup', e => { if (e.button === 0) this.mouse.down = false; });
@@ -218,12 +222,12 @@ const Game = {
 
   npcNear() {
     let best = null, bd = 4;
-    for (const n of NPCS) { const d = Math.hypot(n.x - this.P.x, n.y - this.P.y); if (d < bd) { bd = d; best = n; } }
+    for (const n of NPCS) { if (!Vendors.isOpen(n.id)) continue; const d = Math.hypot(n.x - this.P.x, n.y - this.P.y); if (d < bd) { bd = d; best = n; } }
     return best;
   },
   interact() {
     const n = this.npcNear();
-    if (n) UI.openNpc(n.id); else if (this.pickNear()) this.takePick61();
+    if (n) UI.openNpc(n.id); else if (Daily.near()) Daily.open(); else if (this.pickNear()) this.takePick61();
   },
 
   // ---------- power-ups ----------
@@ -273,7 +277,14 @@ const Game = {
   },
   // modo de entrega na vila: 'sobra' guarda o que as evoluções precisam e vende o resto; 'guardar' guarda tudo; 'vender' vende tudo
   sellMode() { return this.S.sellMode || 'sobra'; },
-  keepCap(id, q) { const m = this.sellMode(); return m === 'guardar' ? q : m === 'vender' ? 0 : RES[id].special || this.S.hammer < 6 ? q : Math.floor(q * 0.6); }, // 'sobra': até 60% (para sempre entrar dinheiro)
+  // 'sobra': o que o PRÓXIMO MARTELO pede fica inteiro; o resto (melhorias, equipamentos) até 60%, para sempre entrar dinheiro
+  keepCap(id, q) {
+    const m = this.sellMode(); if (m === 'guardar') return q; if (m === 'vender') return 0;
+    if (RES[id].special || this.S.hammer < 3) return q;
+    const hm = this.S.hammer < MAX_LEVEL ? hammerCost(this.S.hammer + 1).mats.find(x => x.id === id) : null;
+    const forHammer = hm ? Math.max(0, hm.qty - (this.S.stock[id] || 0)) : 0;
+    return Math.max(Math.min(q, forHammer), Math.floor(q * 0.6));
+  },
   cycleSellMode() {
     const order = ['sobra', 'guardar', 'vender'], m = order[(order.indexOf(this.sellMode()) + 1) % 3];
     this.S.sellMode = m; Snd.toggle(true); if (this.unloadT !== undefined) this.unloadT = Math.max(this.unloadT, 1.2);
@@ -305,8 +316,8 @@ const Game = {
     const missionN = Object.values(mission).reduce((a, b) => a + b, 0);
     for (const id in bag) {
       const q = bag[id], want = this.sellMode() === 'guardar' ? q : this.keepWant(id, need, sneed);
-      const k = Math.min(want, this.keepCap(id, q));
-      money += (q - k) * RES[id].value; all += q * RES[id].value; kept += k;
+      const k = Math.min(want, this.keepCap(id, q)), ord = Orders.take(id, q - k, true);
+      money += (q - k - ord) * RES[id].value + ord * RES[id].value * 2; all += q * RES[id].value; kept += k;
     }
     return { money, all, kept, mission: missionN };
   },
@@ -324,7 +335,7 @@ const Game = {
       const want = mode === 'guardar' ? q : this.keepWant(id, need, sneed);
       const k = Math.min(want, this.keepCap(id, q));
       if (k > 0) { this.S.stock[id] = (this.S.stock[id] || 0) + k; kept += k; }
-      const sq = q - k, money = sq * RES[id].value;
+      const ord = Orders.take(id, q - k), sq = q - k - ord, money = sq * RES[id].value; // encomendas pegam do que ia ser vendido
       if (sq > 0) { earned += money; sold += sq; }
       let why;
       if (mode === 'guardar') why = tt("modo guardar tudo");
@@ -332,7 +343,7 @@ const Game = {
       else if (RES[id].special && sneed[id] && k > 0) why = tt("recurso raro: guardei para martelos e equipamentos futuros");
       else if (!need[id] && !(RES[id].special && sneed[id])) why = tt("nenhuma evolução próxima usa");
       else if (want === 0) why = tt("o depósito já tem o suficiente");
-      else if (k < want) why = tt("guardei {0}; faltam {1}", this.S.hammer < 6 ? tt("o que veio") : tt("60% da carga, para sempre entrar dinheiro"), fmt(want - k));
+      else if (k < want) why = tt("guardei {0}; faltam {1}", tt("60% da carga, para sempre entrar dinheiro"), fmt(want - k));
       else why = tt("guardei tudo que faltava");
       lines.push({ id, q, k, sq, money, why, for: by[id] || [] });
     }
@@ -460,8 +471,8 @@ const Game = {
   evoNeeds() {
     const S = this.S, ups = [];
     if (S.hammer < MAX_LEVEL) ups.push({ label: tt("Martelo"), kind: 'hammer', c: hammerCost(S.hammer + 1) });
-    for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, kind: k, c: attrCost(k, S.attrs[k] + 1) });
-    for (const g of this.gadgetUps()) ups.push({ label: g.label, kind: 'gadget', c: g.c });
+    if (Vendors.isOpen('tropeira')) for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, kind: k, c: attrCost(k, S.attrs[k] + 1) });
+    if (Vendors.isOpen('bazar')) for (const g of this.gadgetUps()) ups.push({ label: g.label, kind: 'gadget', c: g.c });
     const need = new Map();
     for (const u of ups) {
       u.ok = S.money >= u.c.money && u.c.mats.every(m => (S.stock[m.id] || 0) >= m.qty);
@@ -479,7 +490,7 @@ const Game = {
     const ups = [];
     if (S.hammer < MAX_LEVEL) ups.push(hammerCost(S.hammer + 1));
     for (const k of ['mine', 'bag', 'move', 'jump']) if (S.attrs[k] < MAX_LEVEL) ups.push(attrCost(k, S.attrs[k] + 1));
-    for (const g of this.gadgetUps()) ups.push(g.c);
+    if (Vendors.isOpen('bazar')) for (const g of this.gadgetUps()) ups.push(g.c);
     for (const c of ups) for (const m of c.mats) {
       if (seen.has(m.id)) continue; seen.add(m.id);
       const falta = need[m.id] - (S.stock[m.id] || 0) - (S.bag[m.id] || 0);
@@ -537,6 +548,7 @@ const Game = {
     // timers
     for (let i = this.timers.length - 1; i >= 0; i--) { const t = this.timers[i]; t.t -= dt; if (t.t <= 0) { this.timers.splice(i, 1); t.fn(); } }
     World.update(dt);
+    Cine.update(dt); Tutorial.update(dt); Vendors.update();
     Robots.update(dt);
     Missions.update(dt);
     const wasNight = this.isNight();
@@ -679,7 +691,7 @@ const Game = {
       if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("🔒 A Pedra Selada só quebra com o Martelo 61."), 'warn'); }
       Snd.denied(); Snd.hit('scrap', 1, false); this.shake = Math.min(1, this.shake + 0.1); this.mineT = 0; return;
     }
-    const rule = n.res.wild || n.res.sealed ? { mult: 1, blocked: false } : levelRule(n.res.ideal, this.S.hammer);
+    const rule = n.res.wild || n.res.sealed ? { mult: 1, blocked: false } : levelRule(n.res.ideal, this.S.hammer, n.res);
     if (rule.blocked) {
       if (!this.lockT || this.S.time - this.lockT > 2.5) { this.lockT = this.S.time; UI.toast(tt("🔒 {0} é nível {1}: precisa do Martelo {2} ou melhor.", n.res.name, n.res.ideal, n.res.ideal - LEVEL_LOCK), 'warn'); }
       Snd.denied(); Snd.hit('scrap', 1, false); this.shake = Math.min(1, this.shake + 0.1); this.mineT = 0; return;
@@ -793,7 +805,7 @@ const Game = {
   moveBy(dx, dy) {
     const P = this.P;
     const nx = P.x + dx, ny = P.y + dy;
-    for (const o of World.solids) if (Math.hypot(nx - o.x, ny - o.y) < o.r + 0.4) return;
+    for (const o of World.solids) if (!(o.chest && !Daily.unlocked()) && Math.hypot(nx - o.x, ny - o.y) < o.r + 0.4) return;
     for (const o of World.obstacles) {
       if (P.z >= o.h * 0.9) continue; // está acima do obstáculo: pode passar (ou andar por cima)
       if (this.inObstacle(o, nx, ny)) return; // bloqueado

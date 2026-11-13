@@ -88,6 +88,7 @@ const Missions = {
   startChain() { const S = Game.S, m = MISSION_CHAIN[S.mi]; S.mdel = 0; if (m) S.mb = m.base ? m.base() : 0; this.consume(S.stock, true); },
   // missões pegam primeiro: do que chega na vila e do que já estava guardado no depósito
   consume(src, quiet) {
+    if (Tutorial.active) return {}; // no tutorial a noz vai para o martelinho
     const S = Game.S, took = {};
     const take = (id, falta, add) => { const q = Math.min(falta, src[id] || 0); if (q <= 0) return; src[id] -= q; if (!src[id]) delete src[id]; add(q); took[id] = (took[id] || 0) + q; };
     if (S.mi < MISSION_CHAIN.length) { const m = MISSION_CHAIN[S.mi]; if (m.collect) take(m.collect, m.max - (S.mdel || 0), q => { S.mdel = (S.mdel || 0) + q; }); }
@@ -191,6 +192,7 @@ const Missions = {
   // para onde a seta aponta
   // a seta é o detector: sem detector (ou desligado) não aparece; só acha recursos dentro do alcance dele
   arrowTarget() {
+    if (Tutorial.active) return Tutorial.target();
     const S = Game.S, lv = S.gear.detector;
     if (!lv || !S.detOn) return null;
     const range = GADGETS.detector.levels[lv].range, P = Game.P, sel = S.detSel || DET_DEFAULT;

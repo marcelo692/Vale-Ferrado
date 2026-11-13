@@ -74,9 +74,9 @@ const SPECIAL_AT = { 20: 'pedravento', 30: 'ambar', 40: 'ferroceleste', 50: 'obs
 // mat: materiais para forjar (ids). force: força do golpe.
 const HAMMERS = [
   null,
-  { n: tt("Graveto seco"),                        f: 1,       mat: [] },
-  { n: tt("Galho grosso"),                        f: 1.3,     mat: ['noz'] },
-  { n: tt("Galho de goiabeira"),                  f: 1.6,     mat: ['graveto'] },
+  { n: tt("Colher de sopa"),                      f: 1,       mat: [] },
+  { n: tt("Martelinho de galho"),                 f: 1.3,     mat: ['noz'] },
+  { n: tt("Martelinho de goiabeira"),             f: 1.6,     mat: ['graveto'] },
   { n: tt("Porrete de pinho"),                    f: 2,       mat: ['graveto'] },
   { n: tt("Porrete de eucalipto"),                f: 2.6,     mat: ['lenha'] },
   { n: tt("Clava de aroeira"),                    f: 3.2,     mat: ['lenha'] },
@@ -196,8 +196,8 @@ function attrLabel(key, lvl) {
 function hammerCost(L) { // custo para chegar ao nível L
   const h = HAMMERS[L];
   // primeiros martelos bem baratos: a primeira evolução sai em menos de 1 minuto
-  const qty = L <= 4 ? L : 3 + Math.floor(L / 2);
-  const money = L <= 4 ? [0, 0, 10, 20, 32][L] : Math.round(25 * Math.pow(1.31, L - 2));
+  const qty = L <= 4 ? L : L <= 12 ? Math.round(2 + L * 0.4) : 3 + Math.floor(L / 2); // 5 a 12: menos material (a pedra do seu nível é a lenta)
+  const money = L <= 4 ? [0, 0, 0, 20, 32][L] : Math.round(25 * Math.pow(1.31, L - 2) * Math.min(1, 0.55 + (L - 4) * 0.05)); // martelos 5 a 12 mais baratos: o Martelo 10 sai perto dos 10 minutos
   const mats = h.mat.map(id => ({ id, qty }));
   if (SPECIAL_AT[L]) mats.push({ id: SPECIAL_AT[L], qty: 5 });
   return { money, mats };
@@ -224,13 +224,17 @@ function powerBonus(id, tier) {
   if (id === 'elixir') return 0.35 + 0.15 * (tier - 1);
   return 0.5 + 0.2 * (tier - 1);
 }
-// regra do nível: pedra acima do martelo demora mais (×2 a ×12); 11+ níveis acima não quebra
-const LEVEL_LOCK = 10;
-function levelRule(resIdeal, hammer) {
+// regra do nível (curva de golpes): o tempo de quebrar depende da distância entre a pedra e o martelo.
+// pedra do seu nível ≈ 8 golpes · 1 abaixo ≈ 3 · 2 ou mais abaixo = 1 golpe · 1 acima ≈ 27 · 2 acima ≈ 92 · 3+ acima não quebra
+const LEVEL_LOCK = 2, BASE_HITS = 8, HITS_UP = 3.4, HITS_DOWN = 0.35;
+// começo mais suave: martelo 1 = 5 golpes, 2 = 6, 3 = 7, depois 8
+function hitsFor(gap, hammer) { return Math.min(BASE_HITS, 4 + (hammer || 99)) * (gap > 0 ? Math.pow(HITS_UP, gap) : Math.pow(HITS_DOWN, -gap)); }
+function levelRule(resIdeal, hammer, res) {
   const gap = resIdeal - hammer;
-  if (gap <= 0) return { mult: 1, gap, blocked: false };
-  if (gap > LEVEL_LOCK) return { mult: Infinity, gap, blocked: true };
-  return { mult: 2 * Math.pow(6, (gap - 1) / 9), gap, blocked: false };
+  if (gap > LEVEL_LOCK) return { mult: Infinity, gap, blocked: true, slow: Infinity };
+  if (!res) res = RESOURCES.find(r => !r.special && r.ideal >= resIdeal) || RESOURCES[0];
+  const raw = res.hard / HAMMERS[Math.max(1, Math.min(HAMMERS.length - 1, hammer))].f; // golpes "crus" (dureza ÷ força)
+  return { mult: hitsFor(gap, hammer) / raw, gap, blocked: false, slow: gap > 0 ? Math.pow(HITS_UP, gap) : 1 };
 }
 // Cintilha: pedrinha brilhante que sai de qualquer pedra e compra poções
 function powerCint(id, hammerLvl) { return (id === 'elixir' ? 3 : 1) * (1 + Math.floor((eraOf(hammerLvl) - 1) / 2)); }
@@ -253,7 +257,7 @@ function eraOf(L) { return Math.min(6, Math.floor((L - 1) / 10) + 1); }
 
 // ---------- História (marcos a cada 10 níveis) ----------
 const STORY = {
-  1:  { t: tt("O bilhete do avô"), s: tt("Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só um graveto e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear.") },
+  1:  { t: tt("O bilhete do avô"), s: tt("Vale Ferrado está vazio. A mina desabou e todos foram embora. Na oficina em ruínas, só uma colher de sopa e um bilhete: \"Reconstrói o que eu não consegui.\" Vá ao Norte, no Bosque do Avô, e comece a golpear (com a colher mesmo).") },
   10: { t: tt("A primeira família volta"), s: tt("O barulho do seu maço ecoa pelo vale. Uma família de lenhadores reabre a casa ao lado da praça. Dizem que no Leste, no Riacho das Pedras, há pedras boas para martelos de verdade.") },
   20: { t: tt("O Ancião do riacho"), s: tt("Um velho pescador observa seu trabalho e entrega um maço de granito: \"Seu avô me fez um igual.\" Ele conta que a Vila do Sul ainda guarda sucata e cobre.") },
   30: { t: tt("O martelo do avô"), s: tt("Entre as ruínas da vila você encontra a cabeça do martelo do seu avô. Seu Bento chora ao ver o martelo restaurado. Na cabeça, gravado: \"Oeste. Galeria 7.\"") },
