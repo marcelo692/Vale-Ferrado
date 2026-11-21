@@ -1,14 +1,8 @@
 {
-  "version": "3.11.0",
-  "date": "2026-11-13",
+  "version": "3.11.2",
+  "date": "2026-11-21",
   "notes": [
-    "Curva nova de golpes: a pedra do seu nível leva uns 8 golpes, a de 1 nível abaixo 3, e 2 ou mais abaixo cai num golpe só (cada martelo novo se sente na mão)",
-    "Começo novo: você começa com uma colher de sopa; o primeiro martelinho de madeira sai em segundos, num tutorial rapidinho",
-    "Os vendedores aparecem aos poucos: cada um surge do chão com uma cena quando você chega no martelo certo",
-    "Oficina dos robôs: o primeiro robô é barato, a equipe evolui (braço, rodas, caçamba), mostra quanto rende e você escolhe o que eles mineram",
-    "Baú diário na fonte (sequência de 7 dias) e encomendas do dia dos vendedores",
-    "Bem-vindo de volta: dá para dobrar o que os robôs juntaram vendo um anúncio (na versão do PC é um anúncio de teste)",
-    "Venda na vila: o que o próximo martelo pede fica guardado inteiro, o resto até 60%, para sempre entrar dinheiro"
+    "Modo dev (só na versão do PC): Esc → 🛠 Modo dev. Voo livre sem colisão e muito rápido (P liga, Espaço sobe, C desce, Shift turbo, rodinha muda a velocidade) e painel para trocar martelo, dinheiro, recursos, melhorias, equipamentos, robôs, poções, teleporte, hora do dia e mais"
   ],
   "files": [
     {
@@ -21,7 +15,7 @@
     },
     {
       "path": "index.html",
-      "size": 41067
+      "size": 42074
     },
     {
       "path": "js/audio.js",
@@ -33,7 +27,7 @@
     },
     {
       "path": "js/cine.js",
-      "size": 4233
+      "size": 4244
     },
     {
       "path": "js/daily.js",
@@ -44,8 +38,12 @@
       "size": 25556
     },
     {
+      "path": "js/dev.js",
+      "size": 10808
+    },
+    {
       "path": "js/game.js",
-      "size": 58674
+      "size": 58908
     },
     {
       "path": "js/i18n.js",
@@ -93,7 +91,7 @@
     },
     {
       "path": "js/web-stubs.js",
-      "size": 616
+      "size": 879
     },
     {
       "path": "js/world.js",
@@ -113,7 +111,7 @@
     },
     {
       "path": "version.json",
-      "size": 1941
+      "size": 2615
     }
   ]
 }

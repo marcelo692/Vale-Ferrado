@@ -558,9 +558,10 @@ const Game = {
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(tt("{0} acabou.", POWERUPS[S.active[i].id].name)); S.active.splice(i, 1); } }
 
 
-    const climbing = !this.travel && this.updateClimb(dt);
-    this.updateJet(dt);
-    if (this.travel) { this.updateTravel(dt); }
+    const climbing = !this.travel && !Dev.fly && this.updateClimb(dt);
+    if (!Dev.fly) this.updateJet(dt);
+    if (Dev.fly && !UI.open) { Dev.updateFly(dt); } // modo dev: voo livre sem colisão
+    else if (this.travel) { this.updateTravel(dt); }
     else if (climbing) { /* gancho ou escada */ }
     else if (!UI.open) {
       // movimento relativo à câmera (W A S D)
@@ -618,13 +619,13 @@ const Game = {
     // pulo e queda: dá para subir em cima de troncos, muros e pedras e andar por cima deles
     const support = this.supportAt(P.x, P.y);
     if (support > 0 && !this.onObs) { this.onObs = true; this.S.stats.hops++; } else if (support <= 0) this.onObs = false;
-    if (this.travel || this.hook || this.ladder) { /* voando de volta ou escalando */ }
+    if (this.travel || this.hook || this.ladder || Dev.fly) { /* voando de volta, escalando ou no voo livre do modo dev */ }
     else if (P.z > support + 0.001 || P.vz > 0) {
       const g = GRAV * (P.vz < 0 ? 1.25 : 1); P.z += P.vz * dt - 0.5 * g * dt * dt; P.vz -= g * dt; // conta exata: o pulo tem a mesma altura em 30, 60, 144 ou 165 quadros por segundo P.peak = Math.max(P.peak || 0, P.z);
       if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); if (fall > 0.35) this.landDip = Math.min(0.3, 0.04 + fall * 0.045); }
     } else { P.z = support; P.vz = 0; }
     // teto da caverna: não deixa a cabeça atravessar a rocha (pulo, jetpack, cama elástica)
-    { const ceil = World.ceilingAt(P.x, P.y); if (ceil !== null) { const g0 = World.height(P.x, P.y), maxZ = ceil - 1.85 - g0; if (maxZ > 0 && P.z > maxZ && g0 + P.z < ceil - 0.5) { P.z = maxZ; if (P.vz > 0) P.vz = 0; } } }
+    if (!Dev.fly) { const ceil = World.ceilingAt(P.x, P.y); if (ceil !== null) { const g0 = World.height(P.x, P.y), maxZ = ceil - 1.85 - g0; if (maxZ > 0 && P.z > maxZ && g0 + P.z < ceil - 0.5) { P.z = maxZ; if (P.vz > 0) P.vz = 0; } } }
 
     this.landDip = (this.landDip || 0) * Math.exp(-dt * 9);
     // pulo mais perdoador: 0,1 s de tolerância ao sair de uma borda e 0,12 s de pulo antecipado
@@ -646,7 +647,7 @@ const Game = {
     this.swingAnim = Math.max(0, (this.swingAnim || 0) - dt);
     if (this.mouse.down) this.mouse.holdT = (this.mouse.holdT || 0) + dt;
     const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear() && !this.pickNear());
-    const mining = !UI.open && !this.travel && this.target && holding && this.onGround();
+    const mining = !UI.open && !this.travel && this.target && holding && (this.onGround() || Dev.fly);
     if (mining) {
       this.mineT += dt;
       const iv = this.interval();
@@ -705,7 +706,7 @@ const Game = {
       this.mineT = 0; return;
     }
     const dmg = this.force() * mult / rule.mult;
-    n.hp -= dmg; n.hitT = 0.15;
+    n.hp -= Dev.oneHit ? n.hp : dmg; n.hitT = 0.15; // modo dev: quebra em 1 golpe
     Render.hitFx(n, { dmg, click, broke: n.hp <= 0 });
     Snd.hit(n.res.sealed ? 'crystal' : n.res.kind, Math.min(60, this.S.hammer), n.rare > 1);
     this.shake = Math.min(1, this.shake + 0.15 + Math.min(0.4, this.S.hammer / 120));

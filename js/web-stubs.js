@@ -10,3 +10,7 @@ const Backup = {
   statusText() { return tt('O progresso é salvo automaticamente neste navegador.'); },
   restoreFromFile() {},
 };
+
+// modo dev não vai para a CrazyGames: só um objeto vazio para o jogo não quebrar
+const Dev = { on: false, fly: false, oneHit: false, updateFly() {}, open() {} };
+document.querySelectorAll('[onclick*="Dev.open"]').forEach(e => { e.style.display = 'none'; });

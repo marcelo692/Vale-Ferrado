@@ -15,14 +15,14 @@ os.makedirs(os.path.join(OUT, 'js'))
 shutil.copytree(os.path.join(ROOT, 'lib'), os.path.join(OUT, 'lib'))
 shutil.copytree(os.path.join(ROOT, 'js', 'lang'), os.path.join(OUT, 'js', 'lang'))
 for f in os.listdir(os.path.join(ROOT, 'js')):
-    if f in ('updater.js', 'backup.js', 'web-stubs.js') or os.path.isdir(os.path.join(ROOT, 'js', f)):
+    if f in ('updater.js', 'backup.js', 'web-stubs.js', 'dev.js') or os.path.isdir(os.path.join(ROOT, 'js', f)):
         continue
     shutil.copy(os.path.join(ROOT, 'js', f), os.path.join(OUT, 'js', f))
 shutil.copy(os.path.join(ROOT, 'js', 'web-stubs.js'), os.path.join(OUT, 'js', 'web-stubs.js'))
 
 html = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
 html = html.replace('</head>', SDK + '\n</head>', 1)
-html = html.replace('<script src="js/updater.js"></script>\n<script src="js/backup.js"></script>', '<script src="js/web-stubs.js"></script>')
+html = html.replace('<script src="js/updater.js"></script>\n<script src="js/backup.js"></script>\n<script src="js/dev.js"></script>', '<script src="js/web-stubs.js"></script>')
 assert 'web-stubs.js' in html and 'updater.js' not in html, 'index.html mudou: ajuste o build_web.py'
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(html)
 
