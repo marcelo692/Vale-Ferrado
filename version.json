@@ -1,8 +1,13 @@
 {
-  "version": "3.11.2",
-  "date": "2026-11-21",
+  "version": "3.12.0",
+  "date": "2026-11-25",
   "notes": [
-    "Modo dev (só na versão do PC): Esc → 🛠 Modo dev. Voo livre sem colisão e muito rápido (P liga, Espaço sobe, C desce, Shift turbo, rodinha muda a velocidade) e painel para trocar martelo, dinheiro, recursos, melhorias, equipamentos, robôs, poções, teleporte, hora do dia e mais"
+    "Tutorial mais claro: noz nova, dica no canto na forja e a segunda noz na praça",
+    "Fôlego dura mais e volta mais rápido; mochila maior e o que não cabe fica na pedra",
+    "Muito mais leve: menos desenhos por quadro em todas as regiões",
+    "Painel da direita enxuto (I mostra os detalhes)",
+    "Teto da Mina Velha sem buracos, etiqueta de preço separada do nível",
+    "Dica de pulo nos troncos e fim do mapa logo depois da última região"
   ],
   "files": [
     {
@@ -15,7 +20,7 @@
     },
     {
       "path": "index.html",
-      "size": 42074
+      "size": 42229
     },
     {
       "path": "js/audio.js",
@@ -35,7 +40,7 @@
     },
     {
       "path": "js/data.js",
-      "size": 25556
+      "size": 25610
     },
     {
       "path": "js/dev.js",
@@ -43,7 +48,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 58908
+      "size": 59823
     },
     {
       "path": "js/i18n.js",
@@ -51,15 +56,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 59456
+      "size": 60055
     },
     {
       "path": "js/lang/es.js",
-      "size": 61467
+      "size": 62075
     },
     {
       "path": "js/lang/tr.js",
-      "size": 60941
+      "size": 61557
     },
     {
       "path": "js/missions.js",
@@ -71,7 +76,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 233211
+      "size": 238914
     },
     {
       "path": "js/robots.js",
@@ -79,11 +84,11 @@
     },
     {
       "path": "js/tutorial.js",
-      "size": 5900
+      "size": 6259
     },
     {
       "path": "js/ui.js",
-      "size": 40259
+      "size": 40613
     },
     {
       "path": "js/updater.js",
@@ -111,7 +116,7 @@
     },
     {
       "path": "version.json",
-      "size": 2615
+      "size": 2068
     }
   ]
 }

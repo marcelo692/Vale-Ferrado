@@ -622,5 +622,6 @@ I18N.tr = {
 "Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Sırt çantası dolu: {0} {1} taşta kaldı. Sonra gelip al.",
 "📦 {0} encomendas do dia": "📦 {0} günlük sipariş",
 "Aperte Espaço para pular por cima, ou dê a volta pelo lado.": "Üstünden atlamak için Boşluk'a bas ya da yandan dolaş.",
-"Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Zıplaman için çok yüksek: yandan dolaş (ya da Teçhizatçı Cida'dan zıplamanı geliştir)."
+"Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Zıplaman için çok yüksek: yandan dolaş (ya da Teçhizatçı Cida'dan zıplamanı geliştir).",
+"O vídeo reiniciou. Recarregando o jogo…": "Grafik yeniden başlatıldı. Oyun yeniden yükleniyor…"
 };

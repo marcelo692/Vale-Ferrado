@@ -54,6 +54,8 @@ const Render = {
   init() {
     const cv = document.getElementById('game');
     this.r = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+    // placa de vídeo reiniciou (aba esquecida, driver): salva o jogo e recarrega quando o vídeo voltar
+    cv.addEventListener('webglcontextlost', e => { e.preventDefault(); try { Game.save(); } catch (_) {} UI.toast && UI.toast(tt("O vídeo reiniciou. Recarregando o jogo…"), 'warn'); setTimeout(() => location.reload(), 2500); });
     this.r.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     this.r.setSize(innerWidth, innerHeight);
     this.r.shadowMap.enabled = true; this.r.shadowMap.type = THREE.PCFShadowMap;

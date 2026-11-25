@@ -622,5 +622,6 @@ I18N.en = {
 "Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Backpack full: {0} {1} stayed in the rock. Come back later to collect them.",
 "📦 {0} encomendas do dia": "📦 {0} daily orders",
 "Aperte Espaço para pular por cima, ou dê a volta pelo lado.": "Press Space to jump over it, or go around the side.",
-"Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Too high for your jump: go around the side (or upgrade your jump with Cida the Outfitter)."
+"Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Too high for your jump: go around the side (or upgrade your jump with Cida the Outfitter).",
+"O vídeo reiniciou. Recarregando o jogo…": "The graphics restarted. Reloading the game…"
 };
