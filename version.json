@@ -1,12 +1,11 @@
 {
-  "version": "3.17.0",
+  "version": "3.18.0",
   "date": "2026-11-25",
   "notes": [
-    "Entradas da Vila em Ruínas e da Pedreira Funda sem degrau invisível nem paredão",
-    "Vila mais leve (casas numa peça só) e Leve sem o halo das barracas",
-    "Robôs novos rendem mais logo no começo",
-    "Caminhos da praça no tom do calçamento; avisos iguais não se repetem",
-    "Dica da forja no alto em telas pequenas; brilho dos lampiões da mina mais suave"
+    "Vila bem mais leve no gráfico Leve (barracas, vendedores e martelo numa peça só)",
+    "Símbolos das barracas e pedestal da Picareta 61 mais leves também no Bonito",
+    "Telas pequenas: recibo compacto e no máximo 3 avisos",
+    "Dica [E] acima da barra de fôlego; painel mostra 'Próximas melhorias'"
   ],
   "files": [
     {
@@ -19,7 +18,7 @@
     },
     {
       "path": "index.html",
-      "size": 42637
+      "size": 42745
     },
     {
       "path": "js/audio.js",
@@ -55,15 +54,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 60429
+      "size": 60477
     },
     {
       "path": "js/lang/es.js",
-      "size": 62457
+      "size": 62509
     },
     {
       "path": "js/lang/tr.js",
-      "size": 61960
+      "size": 62017
     },
     {
       "path": "js/missions.js",
@@ -75,7 +74,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 247449
+      "size": 248621
     },
     {
       "path": "js/robots.js",
@@ -87,7 +86,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 40865
+      "size": 40929
     },
     {
       "path": "js/updater.js",
@@ -115,7 +114,7 @@
     },
     {
       "path": "version.json",
-      "size": 2116
+      "size": 2152
     }
   ]
 }
