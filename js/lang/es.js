@@ -633,5 +633,6 @@ I18N.es = {
 "✦ +1 Cintilha": "✦ +1 Destello",
 "✦ 1 Cintilha": "✦ 1 Destello",
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Mochila llena: quedaron {0} de {1} en la piedra. Vuelve luego a recogerlos.",
-"Leve": "Ligero"
+"Leve": "Ligero",
+"⚒ Próximas melhorias": "⚒ Próximas mejoras"
 };

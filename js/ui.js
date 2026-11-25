@@ -16,7 +16,7 @@ const UI = {
     $('toasts').appendChild(el);
     setTimeout(() => el.classList.add('out'), 4200);
     setTimeout(() => el.remove(), 4800);
-    while ($('toasts').children.length > 5) $('toasts').firstChild.remove();
+    while ($('toasts').children.length > (innerWidth < 900 ? 3 : 5)) $('toasts').firstChild.remove(); // tela pequena: no máximo 3
   },
 
   matLine(m) {
@@ -299,7 +299,7 @@ const UI = {
     const E = Game.evoNeeds();
     if (E.tier.length) {
       const sum = E.tier.reduce((a, e) => a + e.miss, 0);
-      html += `<div class="ih">${tt("⚒ Evolução")}<small>${tt("faltam {0}", fmt(sum))}</small></div>`;
+      html += `<div class="ih">${tt("⚒ Próximas melhorias")}<small>${tt("faltam {0}", fmt(sum))}</small></div>`;
       for (const e of E.tier.slice(0, S.showInv ? 3 : 2)) {
         const st = e.have + e.bag >= e.total ? 1 : 0;
         html += `<div class="nr s${st}">${this.ico(e.id, 26)}<b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)}/${fmt(e.total)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span>${S.showInv ? `<small>${e.f.slice(0, 3).join(', ')}${e.f.length > 3 ? ' +' + (e.f.length - 3) : ''}</small>` : ''}</div>`;

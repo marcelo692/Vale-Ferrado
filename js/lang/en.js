@@ -633,5 +633,6 @@ I18N.en = {
 "✦ +1 Cintilha": "✦ +1 Glimmer",
 "✦ 1 Cintilha": "✦ 1 Glimmer",
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Backpack full: {0} of {1} left in the rock. Come back later to collect.",
-"Leve": "Light"
+"Leve": "Light",
+"⚒ Próximas melhorias": "⚒ Next upgrades"
 };

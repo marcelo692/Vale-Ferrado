@@ -132,7 +132,8 @@ const Render = {
   quality: 'alto',
   setQuality(q, silent, byUser) {
     if (byUser) try { localStorage.setItem('valeferrado_gfx_user', '1'); } catch (e) {} // o jogador escolheu: o jogo não troca mais sozinho
-    this.quality = q === 'leve' ? 'leve' : 'alto';
+    const prevQ = this.quality; this.quality = q === 'leve' ? 'leve' : 'alto';
+    if (prevQ && prevQ !== this.quality && this.vmHam) try { this.rebuildViewModel(); } catch (e) {}
     const leve = this.quality === 'leve';
     this.r.setPixelRatio(leve ? Math.min(devicePixelRatio, 0.75) : Math.min(devicePixelRatio, 1.5)); this.r.setSize(innerWidth, innerHeight);
     this.sun.castShadow = !leve;
@@ -520,7 +521,7 @@ const Render = {
       const signBack = sign.clone(); signBack.rotation.y = Math.PI; signBack.position.z = 1.24; g.add(signBack);
       const lab = labelSprite(n.name.split(',')[0], n.id === 'tropeira' ? tt("Mineração · mochila · movimento · pulo") : n.role, '#f5e6c8', 0.62); lab.position.set(0, 2.62, 1.5); lab.material.depthTest = false; lab.renderOrder = 5; g.add(lab);
       // símbolo girando em cima da barraca
-      const icon = this.shopIcon(n.id); icon.position.set(0, 5.4, 0); g.add(icon);
+      const icon = this.shopIcon(n.id); this.bakeNode(icon, true); /* símbolo gira inteiro: uma peça só */ icon.position.set(0, 5.4, 0); g.add(icon);
       const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glowTex || (this.glowTex = canvasTex(64, 64, (c, w) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w); })), color: n.color, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 }));
       halo.scale.setScalar(2.6); halo.position.set(0, 5.4, 0); g.add(halo);
       this.shopIcons.push(icon);
@@ -655,6 +656,7 @@ const Render = {
     };
     const lab = labelSprite(tt("Picareta 61"), tt("o que vem depois do 60"), '#ffe27a', 0.7); lab.position.y = 6.2; g.add(lab);
     // sem luz real: a aura da picareta já faz o brilho
+    this.bakeNode(g, true, { skip: new Set([hold]) }); // pedestal numa peça só (a picareta continua girando)
     C.add(g); this.pick61 = g;
   },
   shopIcon(id) {
@@ -789,8 +791,10 @@ const Render = {
     for (const g of this.npcObjs) {
       const p = g.userData.person; if (!p || !p.userData.anim) continue;
       const gd = Math.hypot(g.position.x - P.x, g.position.z - P.y), A = p.userData.anim, near = gd < 22;
-      { const lv = this.quality === 'leve', dv = gd < (lv ? 45 : 80), key = dv + '' + lv; if (g.userData.detV !== key) { g.userData.detV = key; for (const o of g.userData.det) o.visible = dv; if (lv) g.userData.det[2].visible = false; } } // Leve: sem o halo em volta do símbolo
-      if (!near) continue;
+      { const lv = this.quality === 'leve', dv = gd < (lv ? 45 : 80), key = dv + '' + lv;
+        if (lv && !g.userData.pBaked) { g.userData.pBaked = true; this.bakeNode(p, true); this.bakeNode(g, true, { skip: new Set([g.userData.det[1]]) }); this.mergeStatic(g, true); } // Leve: barraca inteira numa peça só (só o símbolo continua girando) // Leve: vendedor vira uma peça só (para de gesticular)
+        if (g.userData.detV !== key) { g.userData.detV = key; for (const o of g.userData.det) o.visible = dv; if (lv) g.userData.det[2].visible = false; } } // Leve: sem o halo em volta do símbolo
+      if (!near || g.userData.pBaked) continue;
       A.torso.scale.set(1 + Math.sin(t * 1.6 + A.ph) * 0.015, 1, 1 + Math.sin(t * 1.6 + A.ph) * 0.02);
       // cabeça vira devagar para o jogador (limitado)
       const wp = p.getWorldPosition(this._vp || (this._vp = new V3())), ang = Math.atan2(P.x - wp.x, P.y - wp.z), base = g.rotation.y + (g.parent ? g.parent.rotation.y : 0);
@@ -829,7 +833,7 @@ const Render = {
         const w = mesh(new THREE.BoxGeometry(4.4, 3, 3.6), mat(wall)); w.position.y = 1.5; h.add(w);
         const r = mesh(new THREE.ConeGeometry(3.4, 1.8, 4), mat(roof)); r.rotation.y = Math.PI / 4; r.scale.set(1, 1, 0.82); r.position.y = 3.9; h.add(r);
         const door = mesh(new THREE.BoxGeometry(0.9, 1.7, 0.05), mat('#5a3a20'), false); door.position.set(0, 0.85, 1.82); h.add(door);
-        for (const s of [-1, 1]) { const wi = mesh(new THREE.BoxGeometry(0.7, 0.6, 0.05), new THREE.MeshBasicMaterial({ color: '#ffd98a' }), false); wi.position.set(s * 1.4, 1.8, 1.82); h.add(wi); }
+        for (const s of [-1, 1]) { const wi = mesh(new THREE.BoxGeometry(0.7, 0.6, 0.05), this.winMat || (this.winMat = new THREE.MeshBasicMaterial({ color: '#ffd98a' })), false); wi.position.set(s * 1.4, 1.8, 1.82); h.add(wi); }
       } else {
         const w1 = mesh(new THREE.BoxGeometry(2.2, 1.6, 0.4), mat('#7d7366')); w1.position.set(-1.1, 0.8, 1.6); w1.rotation.z = 0.05; h.add(w1);
         const w2 = mesh(new THREE.BoxGeometry(0.4, 2.3, 3.2), mat('#6d6356')); w2.position.set(-2.1, 1.15, 0); h.add(w2);
@@ -1257,7 +1261,7 @@ const Render = {
   // liga só os blocos de árvores perto e na frente; sombra só nos bem próximos; troncos somem de longe (LOD)
   updateDecor() {
     if (!this.decoChunks) return;
-    const P = Game.P, fwd = this.cam.getWorldDirection(this._fwd || (this._fwd = new V3())), view = this.scene.fog.far + 30, R = 142;
+    const P = Game.P, fwd = this.cam.getWorldDirection(this._fwd || (this._fwd = new V3())), view = (this.scene.fog.far + 30) * (this.quality === 'leve' ? 0.65 : 1), R = 142; // Leve: árvores só até mais perto (a neblina esconde)
     const shadows = this.quality !== 'leve';
     if (this.crystalDeco) { const S = REGIONS[5].spiral; this.crystalDeco.visible = Math.hypot(P.x - S.cx, P.y - S.cy) < S.R0 + view; }
     if (this.cave) { const R = REGIONS[3], d = P.x * R.ux + P.y * R.uy; this.cave.visible = d > R.dMin - view - 50 && d < R.dMax + view && Math.abs(P.x * R.vx + P.y * R.vy) < 200 + view; }
@@ -1374,7 +1378,8 @@ const Render = {
       const pos = geo.attributes.position, nrm = geo.attributes.normal, n = pos.count;
       if (m.determinant() < 0) for (let i = 0; i < n; i += 3) for (const a of [pos, nrm]) { if (!a) continue; for (let j = 0; j < 3; j++) { const t = a.array[(i + 1) * 3 + j]; a.array[(i + 1) * 3 + j] = a.array[(i + 2) * 3 + j]; a.array[(i + 2) * 3 + j] = t; } }
       col.copy(mt.color || col.set('#888888')); if (mt.emissive && !mt.isMeshBasicMaterial) col.add(mt.emissive);
-      const ca = new Float32Array(n * 3); for (let i = 0; i < n; i++) { ca[i * 3] = col.r; ca[i * 3 + 1] = col.g; ca[i * 3 + 2] = col.b; }
+      const ca = new Float32Array(n * 3), vc = geo.attributes.color && mt.vertexColors ? geo.attributes.color : null; // peça já assada: mantém as cores dos vértices
+      for (let i = 0; i < n; i++) { ca[i * 3] = col.r * (vc ? vc.getX(i) : 1); ca[i * 3 + 1] = col.g * (vc ? vc.getY(i) : 1); ca[i * 3 + 2] = col.b * (vc ? vc.getZ(i) : 1); }
       parts.push([pos.array, nrm ? nrm.array : new Float32Array(n * 3), ca]);
     });
     for (const o of kill) { o.parent.remove(o); o.geometry.dispose(); }
@@ -1921,6 +1926,7 @@ const Render = {
     const ham = this.hammerInHand(L), sc = (0.3 + (L - 1) / 60 * 0.22) * (L === 60 ? 1 : L >= 40 ? 0.52 : L >= 31 ? 0.62 : 1);
     ham.scale.setScalar(sc); ham.rotation.set(-0.15, 0, 0); ham.position.set(0, -0.03, 0); wrist.add(ham); this.vmHam = ham;
     if (ham.userData.head) { wrist.updateWorldMatrix(true, true); const hp = wrist.worldToLocal(ham.userData.head.getWorldPosition(new V3())); if (hp.length() > 0.3) ham.position.sub(hp.sub(hp.clone().setLength(0.3))); else if (hp.length() < 0.24) ham.scale.multiplyScalar(0.24 / hp.length()); } // curtos crescem até alcançar
+    if (this.quality === 'leve') { const u = ham.userData; this.bakeNode(ham, true, { skip: new Set([u.orbit, u.ring].filter(Boolean)) }); } // Leve: martelo da mão numa peça só
     this.vmShoulder = shoulder; this.vmElbowG = elbow; this.vmWrist = wrist;
     this.vmSleeve = null; this.vmTorch = null;
   },
