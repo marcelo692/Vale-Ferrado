@@ -718,7 +718,7 @@ const Game = {
     if (n.hp <= 0) {
       // chance de achar uma Cintilha dentro da pedra
       if (Math.random() < cintChance(this.S.olho) * (n.size >= 2 ? 1.5 : 1) * (n.rare > 1 ? 3 : 1)) this.gotCint(n.x, n.y, 1);
-      const units = n.leftUnits || Math.max(1, Math.round(2 * n.size)) * n.rare;
+      const units = n.leftUnits || n.units || Math.max(1, Math.round(2 * n.size)) * n.rare;
       const got = Math.min(units, this.free());
       this.S.bag[n.res.id] = (this.S.bag[n.res.id] || 0) + got;
       this.S.stats.mined[n.res.id] = (this.S.stats.mined[n.res.id] || 0) + got; if (n.rare > 1) this.S.stats.veios++;

@@ -623,5 +623,8 @@ I18N.es = {
 "📦 {0} encomendas do dia": "📦 {0} pedidos del día",
 "Aperte Espaço para pular por cima, ou dê a volta pelo lado.": "Pulsa Espacio para saltarlo, o rodéalo por el lado.",
 "Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Demasiado alto para tu salto: rodéalo por el lado (o mejora el salto con Cida la Equipadora).",
-"O vídeo reiniciou. Recarregando o jogo…": "El video se reinició. Recargando el juego…"
+"O vídeo reiniciou. Recarregando o jogo…": "El video se reinició. Recargando el juego…",
+"{0} cada": "{0} c/u",
+"<span style=\"color:{0}\">1 golpe · {1}{2}</span>": "<span style=\"color:{0}\">1 golpe · {1}{2}</span>",
+"Malaquita (cobre)": "Malaquita (cobre)"
 };

@@ -16,7 +16,7 @@ const Tutorial = {
     const S = Game.S, P = Game.P;
     this.active = true; S.seen[1] = true; document.body.classList.add('tut');
     P.x = TUT_START.x; P.y = TUT_START.y; P.z = 0; P.vz = 0; P.yaw = 0; P.pitch = -0.08;
-    this.nut = this.spawnNut(TUT_NUT.x, TUT_NUT.y, 1, 0.6);
+    this.nut = this.spawnNut(TUT_NUT.x, TUT_NUT.y, 0.6, 1); this.nut.units = 2; // pequena (cabe na tela de perto), mas rende as 2 nozes do martelinho
     const look = new THREE.Vector3(TUT_NUT.x, World.height(TUT_NUT.x, TUT_NUT.y) + 0.6, TUT_NUT.y);
     this.go('intro');
     Cine.play({ dur: 2.8, blendIn: 0.9, blendOut: 0.7, skippable: true,

@@ -136,7 +136,7 @@ const UI = {
 
       if ((S.receipts || []).length) h += tt("<h4>Última entrega</h4><div class=\"receipt-in\">{0}</div>", this.receiptHtml(S.receipts[0]));
       if (ids.length) {
-        h += tt("<h4>Depósito</h4><ul class=\"stock\">{0}</ul>\n          <button class=\"buy alt\" onclick=\"UI.sellStock()\">Vender só o que sobra</button>", ids.map(k => `<li><span class="dot" style="background:${RES[k].c2}"></span>${RES[k].name}<b>${fmt(S.stock[k])}</b><i>${fmt(RES[k].value)} cada</i></li>`).join(''));
+        h += tt("<h4>Depósito</h4><ul class=\"stock\">{0}</ul>\n          <button class=\"buy alt\" onclick=\"UI.sellStock()\">Vender só o que sobra</button>", ids.map(k => `<li><span class="dot" style="background:${RES[k].c2}"></span>${RES[k].name}<b>${fmt(S.stock[k])}</b><i>${tt("{0} cada", fmt(RES[k].value))}</i></li>`).join(''));
       } else h += tt("<p class=\"hint\">Depósito vazio.</p>");
     }
     h += `</div></div>`;

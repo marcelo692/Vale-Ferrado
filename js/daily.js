@@ -8,9 +8,9 @@ const DAILY_FROM = 3;                       // o baú aparece a partir do Martel
 const ORDERS_FROM = 8;                      // encomendas a partir do Martelo 8 (antes disso elas comeriam as primeiras vendas)
 // prêmio de cada dia da sequência (fração do preço do próximo martelo + extras)
 const DAILY_DAYS = [
-  { k: 0.35, cint: 0 },
-  { k: 0.45, cint: 1 },
-  { k: 0.55, cint: 1, pw: 'tonico' },
+  { k: 0.5,  cint: 1, pw: 'cafe' },   // o primeiro baú já vale a pena abrir
+  { k: 0.55, cint: 1 },
+  { k: 0.6,  cint: 1, pw: 'tonico' },
   { k: 0.65, cint: 2 },
   { k: 0.8,  cint: 2, pw: 'cafe' },
   { k: 1,    cint: 3 },

@@ -31,7 +31,7 @@ const RESOURCES = [
   { id: 'basalto',     name: tt("Basalto"),                 region: 1, ideal: 17, hard: 423,      kind: 'rock',    c: '#35383b', c2: '#575b5f' },
   { id: 'granito',     name: tt("Granito"),                 region: 1, ideal: 19, hard: 676,      kind: 'rock',    c: '#a87870', c2: '#d8a8a0' },
   { id: 'sucata',      name: tt("Sucata e pregos velhos"),  region: 2, ideal: 21, hard: 1080,     kind: 'scrap',   c: '#7d5b45', c2: '#a37350' },
-  { id: 'malaquita',   name: 'Malaquita (cobre)',       region: 2, ideal: 23, hard: 1730,     kind: 'ore',     c: '#3f8a63', c2: '#6fc496' },
+  { id: 'malaquita',   name: tt("Malaquita (cobre)"),   region: 2, ideal: 23, hard: 1730,     kind: 'ore',     c: '#3f8a63', c2: '#6fc496' },
   { id: 'cassiterita', name: tt("Cassiterita (estanho)"),   region: 2, ideal: 25, hard: 2770,     kind: 'ore',     c: '#4d3d33', c2: '#9a8b7e' },
   { id: 'esfalerita',  name: tt("Esfalerita (zinco)"),      region: 2, ideal: 27, hard: 4420,     kind: 'ore',     c: '#7a5a22', c2: '#c9a046' },
   { id: 'calcario',    name: tt("Calcário"),                region: 2, ideal: 29, hard: 7060,     kind: 'rock',    c: '#cfc6b0', c2: '#ebe4d2' },
