@@ -1,11 +1,12 @@
 {
-  "version": "3.18.0",
+  "version": "3.19.0",
   "date": "2026-11-25",
   "notes": [
-    "Vila bem mais leve no gráfico Leve (barracas, vendedores e martelo numa peça só)",
-    "Símbolos das barracas e pedestal da Picareta 61 mais leves também no Bonito",
-    "Telas pequenas: recibo compacto e no máximo 3 avisos",
-    "Dica [E] acima da barra de fôlego; painel mostra 'Próximas melhorias'"
+    "Obstáculos de cada região numa peça só e cordas das bandeirolas juntas: vila mais leve",
+    "Leve: etiquetas das pedras e nomes dos vendedores só de perto",
+    "[E] Falar com… não fica mais atrás do botão do depósito",
+    "Dica do tutorial some na pausa; recibo não corta em tela pequena",
+    "Mesmo nome em todo lugar: Próximas melhorias"
   ],
   "files": [
     {
@@ -18,7 +19,7 @@
     },
     {
       "path": "index.html",
-      "size": 42745
+      "size": 42982
     },
     {
       "path": "js/audio.js",
@@ -54,19 +55,19 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 60477
+      "size": 60475
     },
     {
       "path": "js/lang/es.js",
-      "size": 62509
+      "size": 62503
     },
     {
       "path": "js/lang/tr.js",
-      "size": 62017
+      "size": 62018
     },
     {
       "path": "js/missions.js",
-      "size": 18464
+      "size": 18462
     },
     {
       "path": "js/platform.js",
@@ -74,7 +75,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 248621
+      "size": 249343
     },
     {
       "path": "js/robots.js",
@@ -114,7 +115,7 @@
     },
     {
       "path": "version.json",
-      "size": 2152
+      "size": 2087
     }
   ]
 }
