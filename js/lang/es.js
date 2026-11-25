@@ -395,7 +395,6 @@ I18N.es = {
 "<p class=\"hint\">Missão {0} de {1}. A seta no alto da tela mostra o caminho.</p><ul class=\"mlist\">": "<p class=\"hint\">Misión {0} de {1}. La flecha en lo alto de la pantalla muestra el camino.</p><ul class=\"mlist\">",
 "<p class=\"hint\">3 missões ativas · cumpridas: {0}</p><ul class=\"mlist\">": "<p class=\"hint\">3 misiones activas · cumplidas: {0}</p><ul class=\"mlist\">",
 "<h3 class=\"evoh\">⚒ Missão de evolução</h3><p class=\"hint\">Comece pelo material mais barato que falta; os outros vêm junto.</p>": "<h3 class=\"evoh\">⚒ Misión de evolución</h3><p class=\"hint\">Empieza por el material más barato que falta; los demás vienen después.</p>",
-"<h3 class=\"evoh\">Próximas evoluções</h3>": "<h3 class=\"evoh\">Próximas evoluciones</h3>",
 "<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Continuar</button></div></div>": "<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Continuar</button></div></div>",
 "Mochila cheia: volte à vila": "Mochila llena: vuelve al pueblo",
 " (falta)": " (falta)",
@@ -634,5 +633,6 @@ I18N.es = {
 "✦ 1 Cintilha": "✦ 1 Destello",
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Mochila llena: quedaron {0} de {1} en la piedra. Vuelve luego a recogerlos.",
 "Leve": "Ligero",
-"⚒ Próximas melhorias": "⚒ Próximas mejoras"
+"⚒ Próximas melhorias": "⚒ Próximas mejoras",
+"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Próximas mejoras</h3>"
 };

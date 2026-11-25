@@ -395,7 +395,6 @@ I18N.en = {
 "<p class=\"hint\">Missão {0} de {1}. A seta no alto da tela mostra o caminho.</p><ul class=\"mlist\">": "<p class=\"hint\">Mission {0} of {1}. The arrow at the top of the screen shows the way.</p><ul class=\"mlist\">",
 "<p class=\"hint\">3 missões ativas · cumpridas: {0}</p><ul class=\"mlist\">": "<p class=\"hint\">3 active missions · completed: {0}</p><ul class=\"mlist\">",
 "<h3 class=\"evoh\">⚒ Missão de evolução</h3><p class=\"hint\">Comece pelo material mais barato que falta; os outros vêm junto.</p>": "<h3 class=\"evoh\">⚒ Upgrade mission</h3><p class=\"hint\">Start with the cheapest missing material; the others follow.</p>",
-"<h3 class=\"evoh\">Próximas evoluções</h3>": "<h3 class=\"evoh\">Next upgrades</h3>",
 "<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Continuar</button></div></div>": "<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Continue</button></div></div>",
 "Mochila cheia: volte à vila": "Bag full: head back to town",
 " (falta)": " (missing)",
@@ -634,5 +633,6 @@ I18N.en = {
 "✦ 1 Cintilha": "✦ 1 Glimmer",
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Backpack full: {0} of {1} left in the rock. Come back later to collect.",
 "Leve": "Light",
-"⚒ Próximas melhorias": "⚒ Next upgrades"
+"⚒ Próximas melhorias": "⚒ Next upgrades",
+"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Next upgrades</h3>"
 };

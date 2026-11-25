@@ -170,7 +170,7 @@ const Missions = {
     const E = Game.evoNeeds();
     if (E.tier.length) h += tt("<h3 class=\"evoh\">⚒ Missão de evolução</h3><p class=\"hint\">Comece pelo material mais barato que falta; os outros vêm junto.</p>") + '<ul class="evo">' + E.tier.map(e => `<li>${UI.ico(e.id, 28)}<b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)} / ${fmt(e.total)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span></li>`).join('') + '</ul>';
     if (E.ups.length) {
-      h += tt("<h3 class=\"evoh\">Próximas evoluções</h3>") + '<div class="evotab">';
+      h += tt("<h3 class=\"evoh\">Próximas melhorias</h3>") + '<div class="evotab">';
       for (const u of E.ups) {
         h += `<div class="evu ${u.ok ? 'ok' : ''}"><b>${u.ok ? '✔ ' : ''}${u.label}</b><span class="${S.money >= u.c.money ? 'g' : 'r'}"><i class="coin"></i>${fmt(u.c.money)}</span>` +
           u.c.mats.map(m => { const hv = S.stock[m.id] || 0; return `<span class="${hv >= m.qty ? 'g' : 'r'}" title="${RES[m.id].name}">${UI.ico(m.id, 22)}${fmt(Math.min(hv, m.qty))}/${fmt(m.qty)}</span>`; }).join('') + '</div>';

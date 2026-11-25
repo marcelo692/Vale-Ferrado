@@ -601,14 +601,15 @@ const Render = {
     const sorted = NPCS.map(n => ({ x: n.x + Math.cos(n.ang * Math.PI / 180) * 1.4, y: n.y + Math.sin(n.ang * Math.PI / 180) * 1.4, ang: Math.atan2(n.y, n.x) })).sort((p, q) => p.ang - q.ang);
     const cols = ['#d8483c', '#f0b030', '#3a9ad0', '#58b05a', '#e8dcc0', '#a05ac0'], flags = [];
     const fg = new THREE.BufferGeometry(); const tri = new Float32Array([-0.12, 0, 0, 0.12, 0, 0, 0, -0.27, 0]); fg.setAttribute('position', new THREE.BufferAttribute(tri, 3)); fg.computeVertexNormals();
-    const NF = sorted.length * 11, fm = new THREE.InstancedMesh(fg, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), NF), dm = new THREE.Object3D(); let fi = 0;
+    const segPts = [], NF = sorted.length * 11, fm = new THREE.InstancedMesh(fg, new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }), NF), dm = new THREE.Object3D(); let fi = 0;
     for (let i = 0; i < sorted.length; i++) {
       const A = sorted[i], B = sorted[(i + 1) % sorted.length], pts = [];
       for (let k = 0; k <= 22; k++) { const u = k / 22; pts.push(new THREE.Vector3(A.x + (B.x - A.x) * u, 3.55 - Math.sin(u * Math.PI) * 0.7, A.y + (B.y - A.y) * u)); }
-      const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#4a3420' })); C.add(ln);
+      for (let k = 0; k < 22; k++) segPts.push(pts[k], pts[k + 1]); // cordas: todas num desenho só
       for (let k = 0; k < 11; k++) { const p = pts[1 + k * 2], q = pts[Math.min(22, 2 + k * 2)]; dm.position.copy(p); dm.lookAt(q.x, p.y, q.z); dm.rotateY(Math.PI / 2); dm.scale.setScalar(1); dm.updateMatrix(); fm.setMatrixAt(fi, dm.matrix); fm.setColorAt(fi, new THREE.Color(cols[(i + k) % cols.length])); fi++; }
     }
     fm.instanceMatrix.needsUpdate = true; fm.instanceColor.needsUpdate = true; C.add(fm);
+    C.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(segPts), new THREE.LineBasicMaterial({ color: '#4a3420' })));
     // canteiros de flores e bancos nos vãos entre as barracas (longe das saídas para as regiões)
     const fcols = ['#e8506a', '#f5c542', '#f0f0f0', '#b06ad8', '#ff8a3d'];
     for (let i = 0; i < sorted.length; i++) {
@@ -791,9 +792,9 @@ const Render = {
     for (const g of this.npcObjs) {
       const p = g.userData.person; if (!p || !p.userData.anim) continue;
       const gd = Math.hypot(g.position.x - P.x, g.position.z - P.y), A = p.userData.anim, near = gd < 22;
-      { const lv = this.quality === 'leve', dv = gd < (lv ? 45 : 80), key = dv + '' + lv;
+      { const lv = this.quality === 'leve', dv = gd < (lv ? 45 : 80), dl = gd < (lv ? 20 : 80), key = dv + '' + lv + dl;
         if (lv && !g.userData.pBaked) { g.userData.pBaked = true; this.bakeNode(p, true); this.bakeNode(g, true, { skip: new Set([g.userData.det[1]]) }); this.mergeStatic(g, true); } // Leve: barraca inteira numa peça só (só o símbolo continua girando) // Leve: vendedor vira uma peça só (para de gesticular)
-        if (g.userData.detV !== key) { g.userData.detV = key; for (const o of g.userData.det) o.visible = dv; if (lv) g.userData.det[2].visible = false; } } // Leve: sem o halo em volta do símbolo
+        if (g.userData.detV !== key) { g.userData.detV = key; for (const o of g.userData.det) o.visible = dv; if (lv) g.userData.det[2].visible = false; g.userData.det[3].visible = dl; } } // Leve: sem o halo em volta do símbolo
       if (!near || g.userData.pBaked) continue;
       A.torso.scale.set(1 + Math.sin(t * 1.6 + A.ph) * 0.015, 1, 1 + Math.sin(t * 1.6 + A.ph) * 0.02);
       // cabeça vira devagar para o jogador (limitado)
@@ -981,6 +982,7 @@ const Render = {
     const P = Game.P, far = this.scene.fog.far + 60;
     if (this.city) this.city.visible = Math.hypot(P.x, P.y) < this.scene.fog.far + CITY_R + 15;
     if (this.pitWalls) for (const g of this.pitWalls.children) { const R = g.userData.R; if (!R) continue; const l = World.local(R, P.x, P.y), d = Math.max(R.dMin - l.d, l.d - R.dMax, 0), p = Math.max(0, Math.abs(l.p) - World.pitHalf(R, R.dMax)); g.visible = Math.hypot(d, p) < far; }
+    if (this.obsGroups) for (const g of this.obsGroups) { const R = g.userData.R, l = World.local(R, P.x, P.y), d = Math.max(R.dMin - l.d, l.d - R.dMax, 0); g.visible = Math.hypot(d, Math.max(0, Math.abs(l.p) - 120)) < far; }
     if (this.seixos) { const R = REGIONS[1], l = World.local(R, P.x, P.y), d = Math.max(R.dMin - 30 - l.d, l.d - R.dMax - 30, 0); this.seixos.visible = Math.hypot(d, Math.max(0, Math.abs(l.p) - 20)) < far; } // seixos do riacho só perto dele
     if (this.spiralWalls) { const S = REGIONS[5].spiral; this.spiralWalls.visible = !S || Math.hypot(P.x - S.cx, P.y - S.cy) < far + S.R0; }
   },
@@ -1171,6 +1173,7 @@ const Render = {
   // ---------- obstáculos (atalhos de pulo) ----------
   buildObstacles() {
     const cols = { tronco: '#6b4a2e', pedra: '#7a786f', muro: '#9a6448', trilho: '#4a3a2c', bancada: '#9a9893', penhasco: '#3e3a4e' };
+    const byR = new Map(); this.obsGroups = []; // obstáculos de cada região viram uma peça só (e somem de longe)
     for (const o of World.obstacles) {
       // cada pedaço do obstáculo acompanha o terreno embaixo dele
       const g = new THREE.Group(); g.position.set(o.R.ux * o.dc, 0, o.R.uy * o.dc); g.rotation.y = -Math.atan2(o.R.uy, o.R.ux);
@@ -1202,8 +1205,10 @@ const Render = {
           if (o.type === 'trilho') for (const sx of [-0.3, 0.3]) { const rail = mesh(new THREE.BoxGeometry(0.08, 0.08, L + 0.15), mat('#9aa0a6', { shininess: 60 })); rail.position.set(sx, o.h + 0.04, 0); seg.add(rail); }
         }
       }
-      this.mergeStatic(g, true); this.scene.add(g);
+      let RG = byR.get(o.R); if (!RG) { RG = new THREE.Group(); RG.userData.R = o.R; byR.set(o.R, RG); this.scene.add(RG); this.obsGroups.push(RG); }
+      RG.add(g);
     }
+    for (const RG of this.obsGroups) this.bakeNode(RG);
   },
 
   // ---------- árvores, pedregulhos e capim ----------
@@ -1698,7 +1703,7 @@ const Render = {
       if (m.userData.spin) m.userData.spin.rotation.y += 0.02;
       if (m.userData.pulse) m.userData.pulse.scale.setScalar(1 + Math.sin(this.t * 3) * 0.08);
       // etiqueta com nível e valor para recursos por perto
-      const d2 = dx * dx + dy * dy, near = d2 < (levelRule(n.res.ideal, Game.S.hammer, n.res).blocked ? 12 * 12 : 22 * 22) && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false && !n.res.wild && !n.res.sealed;
+      const d2 = dx * dx + dy * dy, near = d2 < (levelRule(n.res.ideal, Game.S.hammer, n.res).blocked ? 12 * 12 : this.quality === 'leve' ? 15 * 15 : 22 * 22) && d2 > 1.5 * 1.5 && n !== Game.target && Game.S.showBadges !== false && !n.res.wild && !n.res.sealed;
       if (near) {
         const need = (Game.missCache || []).some(x => x.id === n.res.id);
         if (!m.userData.badge) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: true, transparent: true, fog: false, sizeAttenuation: false })); sp.scale.set(0.2, 0.056, 1); sp.renderOrder = 4; m.userData.badge = sp; this.scene.add(sp); }

@@ -395,7 +395,6 @@ I18N.tr = {
 "<p class=\"hint\">Missão {0} de {1}. A seta no alto da tela mostra o caminho.</p><ul class=\"mlist\">": "<p class=\"hint\">Görev {0} / {1}. Ekranın üstündeki ok yolu gösterir.</p><ul class=\"mlist\">",
 "<p class=\"hint\">3 missões ativas · cumpridas: {0}</p><ul class=\"mlist\">": "<p class=\"hint\">3 aktif görev · tamamlanan: {0}</p><ul class=\"mlist\">",
 "<h3 class=\"evoh\">⚒ Missão de evolução</h3><p class=\"hint\">Comece pelo material mais barato que falta; os outros vêm junto.</p>": "<h3 class=\"evoh\">⚒ Gelişim görevi</h3><p class=\"hint\">Eksik olan en ucuz malzemeden başla; diğerleri arkasından gelir.</p>",
-"<h3 class=\"evoh\">Próximas evoluções</h3>": "<h3 class=\"evoh\">Sonraki gelişimler</h3>",
 "<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Continuar</button></div></div>": "<div class=\"row\"><button class=\"buy\" onclick=\"UI.close()\">Devam</button></div></div>",
 "Mochila cheia: volte à vila": "Çanta dolu: kasabaya dön",
 " (falta)": " (eksik)",
@@ -634,5 +633,6 @@ I18N.tr = {
 "✦ 1 Cintilha": "✦ 1 Parıltı",
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Sırt çantası dolu: {1} türünden {0} tane taşta kaldı. Sonra gelip al.",
 "Leve": "Hafif",
-"⚒ Próximas melhorias": "⚒ Sonraki geliştirmeler"
+"⚒ Próximas melhorias": "⚒ Sonraki geliştirmeler",
+"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Sonraki geliştirmeler</h3>"
 };
