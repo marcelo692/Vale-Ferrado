@@ -1,13 +1,13 @@
 {
-  "version": "3.12.0",
+  "version": "3.13.0",
   "date": "2026-11-25",
   "notes": [
-    "Tutorial mais claro: noz nova, dica no canto na forja e a segunda noz na praça",
-    "Fôlego dura mais e volta mais rápido; mochila maior e o que não cabe fica na pedra",
-    "Muito mais leve: menos desenhos por quadro em todas as regiões",
-    "Painel da direita enxuto (I mostra os detalhes)",
-    "Teto da Mina Velha sem buracos, etiqueta de preço separada do nível",
-    "Dica de pulo nos troncos e fim do mapa logo depois da última região"
+    "Mina Velha iluminada: lanterna que acompanha você e neblina mais clara",
+    "Serra de montanhas de verdade no fim do mapa",
+    "Vila bem mais leve; celular e PC fraco começam no gráfico Leve",
+    "Noz do tutorial menor e mais bonita; martelos grandes menores na mão",
+    "Traduções corrigidas (Malaquita, 'cada', '1 golpe')",
+    "Noite mais clara, etiqueta de pulo presa ao tronco, baú do dia 1 melhor"
   ],
   "files": [
     {
@@ -36,7 +36,7 @@
     },
     {
       "path": "js/daily.js",
-      "size": 7301
+      "size": 7356
     },
     {
       "path": "js/data.js",
@@ -48,7 +48,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 59823
+      "size": 59834
     },
     {
       "path": "js/i18n.js",
@@ -56,15 +56,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 60055
+      "size": 60228
     },
     {
       "path": "js/lang/es.js",
-      "size": 62075
+      "size": 62248
     },
     {
       "path": "js/lang/tr.js",
-      "size": 61557
+      "size": 61733
     },
     {
       "path": "js/missions.js",
@@ -76,7 +76,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 238914
+      "size": 242338
     },
     {
       "path": "js/robots.js",
@@ -84,11 +84,11 @@
     },
     {
       "path": "js/tutorial.js",
-      "size": 6259
+      "size": 6350
     },
     {
       "path": "js/ui.js",
-      "size": 40613
+      "size": 40624
     },
     {
       "path": "js/updater.js",
@@ -116,7 +116,7 @@
     },
     {
       "path": "version.json",
-      "size": 2068
+      "size": 2231
     }
   ]
 }
