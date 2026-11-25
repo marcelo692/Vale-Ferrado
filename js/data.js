@@ -177,7 +177,7 @@ function attrValue(key, lvl) {
   const l = lvl - 1;
   switch (key) {
     case 'mine': return 1.5 / Math.pow(1.0379, l);          // segundos por golpe
-    case 'bag':  return Math.round(10 * Math.pow(1.111, l)); // espaços
+    case 'bag':  return Math.round(16 * Math.pow(1.1018, l)); // espaços (16 no começo; chega ao mesmo tamanho no nível 60)
     case 'move': return 3 * Math.pow(1.0398, l);             // m/s
     case 'jump': return 0.5 * Math.pow(1.0554, l);           // metros
   }

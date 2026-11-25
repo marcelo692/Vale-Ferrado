@@ -618,5 +618,6 @@ I18N.tr = {
 "Tab": "Tab",
 "Vale Ferrado": "Vale Ferrado",
 "Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "Çorba kaşığından Vadi Çekici'ne. Topla, sat, geliştir ve dedenin kasabasını yeniden kur.",
-"Idioma": "Dil"
+"Idioma": "Dil",
+"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Sırt çantası dolu: {0} {1} taşta kaldı. Sonra gelip al."
 };

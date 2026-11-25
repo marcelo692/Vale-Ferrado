@@ -204,7 +204,7 @@ const Game = {
     if (UI.open || !n || !this.onGround() || this.travel) return;
     if (this.clickCD > 0) return;
     if (P.tired || P.stamina < CLICK_COST) {
-      if (!this.noBreathT || this.S.time - this.noBreathT > 3) { this.noBreathT = this.S.time; UI.toast(tt("Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar."), 'warn'); Snd.denied(); }
+      if (!this.noBreathT || this.S.time - this.noBreathT > 20) { this.noBreathT = this.S.time; UI.toast(tt("Sem fôlego para golpes rápidos. Segure o clique para minerar sem cansar."), 'warn'); Snd.denied(); }
       return;
     }
     P.stamina -= CLICK_COST; this.lastClickT = this.S.time; this.S.stats.clicks++;
@@ -588,8 +588,9 @@ const Game = {
       if (mtn && !mtn.seen) { mtn.seen = true; UI.toast(mtn.special ? tt("⛰ Montanha! Perto do topo tem {0}, recurso raro que só existe aqui. Na subida o Shift não funciona e você anda devagar.", mtn.special.name) : tt("⛰ Morro: subir é devagar e o Shift não funciona na subida."), 'veio'); }
       const wantSprint = this.keys['shift'] && P.moving && fw > 0 && !(ride && ride.free) && !P.climbing;
       P.sprint = wantSprint && !P.tired && P.stamina > 0;
-      if (P.sprint) { P.stamina -= dt / 6; if (P.stamina <= 0) { P.stamina = 0; P.tired = true; UI.toast(tt("Você está cansado! Espere o fôlego voltar."), 'warn'); Snd.tired(); } }
-      else if (this.S.time - (this.lastClickT || -9) > 1.2) { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 10 : 5)); if (P.tired && P.stamina > 0.35) P.tired = false; }
+      // fôlego: ~15 s de corrida no começo, mais com a melhoria de Movimento; o aviso de cansaço aparece no máximo 1x por minuto
+      if (P.sprint) { P.stamina -= dt / Math.min(40, 14 + this.S.attrs.move * 0.6); if (P.stamina <= 0) { P.stamina = 0; P.tired = true; Snd.tired(); if (this.S.time - (this.tiredToastT || -999) > 60) { this.tiredToastT = this.S.time; UI.toast(tt("Você está cansado! Espere o fôlego voltar."), 'warn'); } } }
+      else if (this.S.time - (this.lastClickT || -9) > 1.2) { P.stamina = Math.min(1, P.stamina + dt / (P.moving ? 7 : 3.5)); if (P.tired && P.stamina > 0.3) P.tired = false; }
       // aceleração suave: arranca e para em ~0,1 s (sem "liga/desliga" seco); no ar o controle é mais mole
       let sp = 0;
       if (len) { mx /= len; my /= len; sp = this.speed() * (ride ? ride.mult : 1) * (P.sprint ? 1.75 : 1) * (P.tired && !ride ? 0.8 : 1) * climb; }
@@ -717,14 +718,19 @@ const Game = {
     if (n.hp <= 0) {
       // chance de achar uma Cintilha dentro da pedra
       if (Math.random() < cintChance(this.S.olho) * (n.size >= 2 ? 1.5 : 1) * (n.rare > 1 ? 3 : 1)) this.gotCint(n.x, n.y, 1);
-      const units = Math.max(1, Math.round(2 * n.size)) * n.rare;
+      const units = n.leftUnits || Math.max(1, Math.round(2 * n.size)) * n.rare;
       const got = Math.min(units, this.free());
       this.S.bag[n.res.id] = (this.S.bag[n.res.id] || 0) + got;
       this.S.stats.mined[n.res.id] = (this.S.stats.mined[n.res.id] || 0) + got; if (n.rare > 1) this.S.stats.veios++;
       let txt = `+${got} ${n.res.name}`;
       if (n.rare === 10) txt = tt("💎 CRISTALIZADO! ") + txt; else if (n.rare === 3) txt = tt("✨ Veio rico! ") + txt;
       this.floats.push({ x: n.x, y: n.y - 1, txt, c: n.rare > 1 ? '#ffe27a' : '#fff', t: 1.4 });
-      if (got < units) UI.toast(tt("Mochila cheia: {0} {1} ficaram no chão.", units - got, n.res.name), 'warn');
+      if (got < units) { // mochila encheu: o resto fica na pedra (quase quebrada) esperando você voltar
+        n.leftUnits = units - got; n.hp = Math.min(n.maxHp * 0.05, this.force() * 0.5);
+        UI.toast(tt("Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.", units - got, n.res.name), 'warn');
+        this.fxBurst(n.x, n.y, n.res.c, 8, 1); Snd.pickup();
+        return;
+      }
       this.fxBurst(n.x, n.y, n.res.c, 14, 1.4);
       Snd.breakNode(n.res.kind, n.rare); Snd.pickup();
       World.breakNode(n);

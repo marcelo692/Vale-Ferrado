@@ -618,5 +618,6 @@ I18N.es = {
 "Tab": "Tab",
 "Vale Ferrado": "Vale Ferrado",
 "Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "De la cuchara de sopa al Martillo del Valle. Recolecta, vende, mejora y reconstruye el pueblo de tu abuelo.",
-"Idioma": "Idioma"
+"Idioma": "Idioma",
+"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Mochila llena: {0} {1} se quedaron en la piedra. Vuelve luego a recogerlos."
 };

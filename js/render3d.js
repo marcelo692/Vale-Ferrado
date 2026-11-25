@@ -656,7 +656,7 @@ const Render = {
       armazem:  { skin: '#c48c62', shirt: '#e0c890', pants: '#4a3a2a', hair: '#7a7a7a', apron: '#f0ece0', flatcap: '#5a4a3a', mustache: '#9a9a9a', big: 1.05 },
       botica:   { skin: '#e0b090', shirt: '#5a2a7a', pants: '#2a1a3a', hair: '#1a1a1a', robe: '#6a3a8a', glasses: true, goatee: '#1a1a1a', pointy: '#4a1a6a', big: 0.98 },
     }[id];
-    const M = c => new THREE.MeshLambertMaterial({ color: c }), g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+    const VC = this.vendorMats || (this.vendorMats = {}), M = c => VC[c] || (VC[c] = new THREE.MeshLambertMaterial({ color: c })), g = new THREE.Group(), body = new THREE.Group(); g.add(body); // material por cor (compartilhado: as peças se juntam)
     const sk = M(S.skin), sh = M(S.shirt);
     // pernas e sapatos
     for (const x of [-0.12, 0.12]) { const l = mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.82, 10), M(S.pants)); l.position.set(x, 0.43, 0); g.add(l); const sho = mesh(new THREE.SphereGeometry(0.1, 10, 8), M('#2a1e14')); sho.scale.set(1, 0.6, 1.5); sho.position.set(x, 0.05, 0.04); g.add(sho); }
@@ -701,7 +701,7 @@ const Render = {
     g.scale.setScalar(S.big);
     g.userData.anim = { id, body, head, torso, arms, ph: Math.random() * 6 };
     // junta as peças de cada parte que se mexe junto (cabeça, antebraços, pernas) para pesar menos
-    this.mergeStatic(head, true); for (const a of arms) this.mergeStatic(a.el, true); this.mergeStatic(g, true);
+    this.mergeStatic(head, true); if (torso && torso.isObject3D) this.mergeStatic(torso, true); for (const a of arms) this.mergeStatic(a.el, true); this.mergeStatic(g, true);
     return g;
   },
   // o que cada barraca vende, exposto no balcão de frente para quem chega
@@ -741,7 +741,7 @@ const Render = {
       const brew = mesh(new THREE.CircleGeometry(0.22, 16).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#7af06a' })); brew.position.set(1.35, top + 0.3, z); g.add(brew);
       const bub = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#7af06a', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.6 })); bub.scale.setScalar(0.7); bub.position.set(1.35, top + 0.45, z); g.add(bub); g.userData.bub = bub;
     }
-    g.userData.wares = id; return g;
+    g.userData.wares = id; this.bakeNode(g, true); /* vitrine numa peça só (cores nos vértices); vidros continuam */ return g;
   },
   // vendedores se mexem: respiram, olham para você, e cada um tem um gesto (o ferreiro bate na bigorna)
   // barraca escondida embaixo do chão (k = 0) até surgir (k = 1); settle = tremedeira enquanto sobe
@@ -924,12 +924,14 @@ const Render = {
         const geo = new THREE.BoxGeometry(T, H, W), uv = geo.attributes.uv;
         const ou = Math.random(), ov = Math.random();
         for (let i = 0; i < uv.count; i++) uv.setXY(i, ou + uv.getX(i) * Math.max(W, T) / 9, ov + uv.getY(i) * H / 9);
-        const b = new THREE.Mesh(geo, [m, m, top, m, m, m]); b.receiveShadow = true;
         const dc = d - faceSign * T / 2, pc = (wFrom + wTo) / 2, yc = hBot - 0.6 + H / 2;
-        b.position.set(R.ux * dc + R.vx * pc, yc, R.uy * dc + R.vy * pc);
-        b.rotation.y = -Math.atan2(R.uy, R.ux);
-        this.pitWalls.add(b);
+        const mx = new THREE.Matrix4().makeRotationY(-Math.atan2(R.uy, R.ux)).setPosition(R.ux * dc + R.vx * pc, yc, R.uy * dc + R.vy * pc);
+        // separa as faces: tampa de cima (grama/terra) e laterais (rocha com fósseis); tudo vira 2 malhas por região
+        const ng = geo.toNonIndexed(); ng.applyMatrix4(mx);
+        for (const gr of geo.groups) { const part = new THREE.BufferGeometry(); for (const a of ['position', 'normal', 'uv']) { const at = ng.attributes[a]; part.setAttribute(a, new THREE.BufferAttribute(at.array.slice(gr.start * at.itemSize, (gr.start + gr.count) * at.itemSize), at.itemSize)); } (gr.materialIndex === 2 ? tops : sides).push(part); }
+        geo.dispose(); ng.dispose();
       };
+      const tops = [], sides = [];
       for (let k = 0; k <= 10; k++) {
         const b = R.dMin + L * k / 10, half = World.pitHalf(R, b), g = PIT_RW / 2 + 1.2, hp = -half / 2;
         // com rampa no meio, a parede vira duas (uma de cada lado da rampa)
@@ -940,7 +942,21 @@ const Render = {
         else if (k < 10) both(b, H(b - 1.2, hp), H(b + 1, hp));
         else { const a = H(b + 3, 0), c = H(b - 1.5, 0); wall(fs > 0 ? b + 2.2 : b - 2.2, fs, -half, half, Math.max(a, c) + 0.2, Math.min(a, c)); }
       }
+      const grp = new THREE.Group(); grp.userData.R = R; this.pitWalls.add(grp);
+      for (const [list, mt] of [[sides, m], [tops, top]]) {
+        if (!list.length) continue;
+        const out = new THREE.BufferGeometry();
+        for (const a of ['position', 'normal', 'uv']) { const it = list[0].attributes[a].itemSize; let n = 0; for (const g of list) n += g.attributes[a].array.length; const arr = new Float32Array(n); let off = 0; for (const g of list) { arr.set(g.attributes[a].array, off); off += g.attributes[a].array.length; g.dispose(); } out.setAttribute(a, new THREE.BufferAttribute(arr, it)); }
+        out.computeBoundingSphere(); const mm = new THREE.Mesh(out, mt); mm.receiveShadow = true; grp.add(mm);
+      }
     }
+  },
+  // esconde o que está bem além da neblina (vila, paredes das minas distantes): o jogo não desenha o que você não vê
+  cullFar() {
+    const P = Game.P, far = this.scene.fog.far + 60;
+    if (this.city) this.city.visible = Math.hypot(P.x, P.y) < far + CITY_R + 20;
+    if (this.pitWalls) for (const g of this.pitWalls.children) { const R = g.userData.R; if (!R) continue; const l = World.local(R, P.x, P.y), d = Math.max(R.dMin - l.d, l.d - R.dMax, 0), p = Math.max(0, Math.abs(l.p) - World.pitHalf(R, R.dMax)); g.visible = Math.hypot(d, p) < far; }
+    if (this.spiralWalls) { const S = REGIONS[5].spiral; this.spiralWalls.visible = !S || Math.hypot(P.x - S.cx, P.y - S.cy) < far + S.R0; }
   },
   // ---------- paredes da mina em espiral (Serra dos Cristais) ----------
   buildSpiralWalls() {
@@ -1215,35 +1231,43 @@ const Render = {
     m.frustumCulled = false; m.receiveShadow = false; this.scene.add(m); this.edgeRange = m;
   },
   // pássaros de dia: bandos em V voando devagar em volta do jogador, batendo as asas
+  // pássaros: 3 malhas instanciadas (corpo, asa esquerda, asa direita) para todos os bandos = 3 desenhos no total
   buildBirds() {
     const wing = new THREE.BufferGeometry();
     wing.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.25, 0, 0, 0.3, 1, 0.08, 0.05], 3)); wing.computeVertexNormals();
     const body = new THREE.ConeGeometry(0.12, 0.7, 4); body.rotateX(Math.PI / 2);
     const mt = new THREE.MeshBasicMaterial({ color: '#2a2a30', side: THREE.DoubleSide, fog: true });
-    this.birds = [];
+    this.birds = []; let total = 0;
     for (let f = 0; f < 3; f++) {
-      const flock = new THREE.Group(), n = 5 + f * 2, list = [];
-      for (let i = 0; i < n; i++) {
-        const b = new THREE.Group(), L = new THREE.Mesh(wing, mt), Rw = new THREE.Mesh(wing, mt); Rw.scale.x = -1; b.add(new THREE.Mesh(body, mt), L, Rw);
-        const row = Math.ceil(i / 2), side = i % 2 ? 1 : -1; b.position.set(side * row * 2.2, (Math.random() - 0.5) * 0.6, row * 2.4);
-        b.scale.setScalar(1.6); flock.add(b); list.push({ b, L, Rw, ph: Math.random() * 6 });
-      }
-      flock.userData = { a: Math.random() * 6.28, r: 120 + f * 90, h: 38 + f * 14, sp: (0.05 + f * 0.015) * (f % 2 ? -1 : 1), list };
-      this.scene.add(flock); this.birds.push(flock);
+      const n = 5 + f * 2, list = [];
+      for (let i = 0; i < n; i++) { const row = Math.ceil(i / 2), side = i % 2 ? 1 : -1; list.push({ off: new V3(side * row * 2.2, (Math.random() - 0.5) * 0.6, row * 2.4), ph: Math.random() * 6 }); }
+      this.birds.push({ a: Math.random() * 6.28, r: 120 + f * 90, h: 38 + f * 14, sp: (0.05 + f * 0.015) * (f % 2 ? -1 : 1), list, pos: new V3(), rot: 0 });
+      total += n;
     }
+    const mk = g => { const m = new THREE.InstancedMesh(g, mt, total); m.frustumCulled = false; m.castShadow = false; this.scene.add(m); return m; };
+    this.birdMesh = { body: mk(body), L: mk(wing), R: mk(wing), m: new THREE.Matrix4(), f: new THREE.Matrix4(), w: new THREE.Matrix4(), s: new THREE.Matrix4().makeScale(1.6, 1.6, 1.6), flip: new THREE.Matrix4().makeScale(-1, 1, 1) };
   },
   updateBirds(dt) {
     if (!this.birds) return;
-    const day = this.day === undefined ? 1 : this.day, P = Game.P, t = this.t;
-    for (const f of this.birds) {
-      const u = f.userData; u.a += u.sp * dt; f.visible = day > 0.35;
+    const day = this.day === undefined ? 1 : this.day, P = Game.P, t = this.t, B = this.birdMesh, vis = day > 0.35;
+    B.body.visible = B.L.visible = B.R.visible = vis; if (!vis) return;
+    let k = 0;
+    for (const u of this.birds) {
+      u.a += u.sp * dt;
       if (!u.cx || Math.hypot(u.cx - P.x, u.cy - P.y) > 600) { u.cx = P.x; u.cy = P.y; }
       u.cx += (P.x - u.cx) * dt * 0.02; u.cy += (P.y - u.cy) * dt * 0.02;
       const x = u.cx + Math.cos(u.a) * u.r, y = u.cy + Math.sin(u.a) * u.r;
-      f.position.set(x, World.height(x, y) + u.h + Math.sin(t * 0.3 + u.r) * 4, y);
-      f.rotation.y = -u.a + (u.sp > 0 ? 0 : Math.PI);
-      for (const b of u.list) { const w = Math.sin(t * 7 + b.ph) * 0.7; b.L.rotation.z = w; b.Rw.rotation.z = -w; }
+      B.f.makeRotationY(-u.a + (u.sp > 0 ? 0 : Math.PI)).setPosition(x, World.height(x, y) + u.h + Math.sin(t * 0.3 + u.r) * 4, y);
+      for (const b of u.list) {
+        const wv = Math.sin(t * 7 + b.ph) * 0.7;
+        B.m.copy(B.f).multiply(new THREE.Matrix4().makeTranslation(b.off.x, b.off.y, b.off.z)).multiply(B.s);
+        B.body.setMatrixAt(k, B.m);
+        B.w.makeRotationZ(wv); B.L.setMatrixAt(k, B.w.clone().premultiply(B.m));
+        B.w.makeRotationZ(-wv); B.R.setMatrixAt(k, B.m.clone().multiply(B.w).multiply(B.flip)); // asa direita = espelho da esquerda
+        k++;
+      }
     }
+    B.body.instanceMatrix.needsUpdate = B.L.instanceMatrix.needsUpdate = B.R.instanceMatrix.needsUpdate = true;
   },
   // ---------- minérios de longe: versão simplificada (poucos polígonos, na cor do minério) ----------
   buildOreLod() {
@@ -1273,13 +1297,15 @@ const Render = {
   // distância em que o minério aparece completo (o resto vira versão simplificada)
   nodeFull() { return this.quality === 'leve' ? 32 : 45; },
   // versão média do minério: todas as peças viram uma malha só, com a cor de cada peça pintada nos vértices
-  bakeNode(g) {
+  bakeNode(g, keepClear) { // keepClear: mantém as peças transparentes (vidros) em vez de descartar
     if (!this.lodMat) this.lodMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
     g.updateMatrixWorld(true);
     const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), parts = [], kill = [], col = new THREE.Color();
     g.traverse(o => {
       if (!o.isMesh || o.isInstancedMesh) return;
-      const mt = Array.isArray(o.material) ? o.material[0] : o.material; kill.push(o);
+      const mt = Array.isArray(o.material) ? o.material[0] : o.material;
+      if ((mt.transparent || mt.blending === THREE.AdditiveBlending) && keepClear) return;
+      kill.push(o);
       if (mt.transparent || mt.blending === THREE.AdditiveBlending) return;
       const m = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld), geo = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
       geo.applyMatrix4(m);
@@ -1373,7 +1399,7 @@ const Render = {
           for (let k = 0; k < 4; k++) { const hole = mesh(new THREE.SphereGeometry(s * 0.07, 6, 4), mat('#8f876f')); hole.position.set(b.position.x + (r() - 0.5) * w * 0.8, b.position.y + w * 0.4, b.position.z + (r() - 0.5) * w * 0.8); hole.scale.y = 0.3; g.add(hole); } } },
       malaquita(g, s, r, n) { hostRock(g, s, '#5d5a52', n.seed); for (let i = 0; i < 14; i++) { const z = s * (0.14 + r() * 0.14); const b = mesh(new THREE.SphereGeometry(z, 10, 8), shiny(i % 2 ? '#2f8a5a' : '#6fd49a', '#1a6a40', 0.25)); b.position.copy(onSurface(s, r)); g.add(b); } },
       cassiterita(g, s, r, n) { hostRock(g, s, '#7d6e60', n.seed); for (let i = 0; i < 9; i++) { const z = s * (0.18 + r() * 0.12); const c = mesh(new THREE.OctahedronGeometry(z, 0), shiny('#2a1e18', '#3a2a20', 0.1)); c.scale.y = 1.4; c.position.copy(onSurface(s, r)); c.rotation.set(r(), r(), r()); g.add(c); } },
-      esfalerita(g, s, r, n) { hostRock(g, s, '#5a5048', n.seed); for (let i = 0; i < 10; i++) { const z = s * (0.15 + r() * 0.12); const c = mesh(new THREE.BoxGeometry(z, z, z), mat('#e0a030', { emissive: '#a06010', emissiveIntensity: 0.4, shininess: 100, transparent: true, opacity: 0.88 })); c.position.copy(onSurface(s, r)); c.rotation.set(r() * 3, r() * 3, r() * 3); g.add(c); } },
+      esfalerita(g, s, r, n) { hostRock(g, s, '#5a5048', n.seed); for (let i = 0; i < 10; i++) { const z = s * (0.15 + r() * 0.12); const c = mesh(new THREE.BoxGeometry(z, z, z), mat('#e0a030', { emissive: '#a06010', emissiveIntensity: 0.4, shininess: 100 })); c.position.copy(onSurface(s, r)); c.rotation.set(r() * 3, r() * 3, r() * 3); g.add(c); } },
       // Mina Velha
       carvao(g, s, r) { pile(g, s, r, ['#141416', '#24242a', '#1a1a1e'], 12, 0.32, 0.8, 1.1); g.traverse(o => { if (o.isMesh) o.material = mat('#1a1a1e', { shininess: 120, specular: '#666' }); }); },
       hematita(g, s, r, n) { for (let i = 0; i < 9; i++) { const z = s * (0.35 + r() * 0.25); const b = mesh(new THREE.SphereGeometry(z, 10, 8), mat(i % 2 ? '#7a2c22' : '#5a1e18', { shininess: 80, specular: '#c88' })); const a = r() * 6.28, d = Math.sqrt(r()) * s * 0.7; b.position.set(Math.cos(a) * d, z * 0.7 + r() * s * 0.4, Math.sin(a) * d); g.add(b); } },
@@ -1392,22 +1418,22 @@ const Render = {
       // recursos raros das montanhas
       pedravento(g, s, r, n) { hostRock(g, s * 0.7, '#8a9aa0', n.seed, 0.6); const orb = mesh(new THREE.IcosahedronGeometry(s * 0.45, 1), mat('#bff0ff', { emissive: '#4ab8e0', emissiveIntensity: 0.7, transparent: true, opacity: 0.85, shininess: 120 })); orb.position.y = s * 1.15; g.add(orb); g.userData.spin = orb;
         for (let i = 0; i < 3; i++) { const ring = mesh(new THREE.TorusGeometry(s * (0.62 + i * 0.12), s * 0.025, 4, 24), mat('#e8fbff', { emissive: '#8ad8f0', emissiveIntensity: 0.8 })); ring.position.y = s * 1.15; ring.rotation.set(Math.PI / 2 + i * 0.5, i, 0); g.add(ring); } g.userData.glowCol = '#9fe8ff'; },
-      ambar(g, s, r, n) { hostRock(g, s * 0.8, '#5a4a3a', n.seed, 0.6); for (let i = 0; i < 6; i++) { const z = s * (0.25 + r() * 0.2); const b = mesh(J(new THREE.SphereGeometry(z, 10, 8), z * 0.15, i), mat('#ffb030', { emissive: '#c06a00', emissiveIntensity: 0.6, transparent: true, opacity: 0.85, shininess: 120 })); b.position.copy(onSurface(s * 0.8, r, 0.6)); g.add(b);
+      ambar(g, s, r, n) { hostRock(g, s * 0.8, '#5a4a3a', n.seed, 0.6); for (let i = 0; i < 6; i++) { const z = s * (0.25 + r() * 0.2); const b = mesh(J(new THREE.SphereGeometry(z, 10, 8), z * 0.15, i), mat('#ffb030', { emissive: '#c06a00', emissiveIntensity: 0.6, shininess: 120 })); b.position.copy(onSurface(s * 0.8, r, 0.6)); g.add(b);
           const bug = mesh(new THREE.SphereGeometry(z * 0.18, 5, 4), mat('#2a1a0a')); bug.position.copy(b.position); g.add(bug); } g.userData.glowCol = '#ffc860'; },
       ferroceleste(g, s, r, n) { hostRock(g, s * 0.75, '#3a3e4a', n.seed, 0.6); for (let i = 0; i < 9; i++) { const h = s * (0.6 + r() * 0.6); const sp = mesh(new THREE.ConeGeometry(s * 0.1, h, 4), mat('#6a8aff', { emissive: '#2a40c0', emissiveIntensity: 0.6, shininess: 140, specular: '#ffffff' })); const p = onSurface(s * 0.75, r, 0.6); sp.position.copy(p); sp.lookAt(p.clone().multiplyScalar(2)); sp.rotateX(Math.PI / 2); g.add(sp); } g.userData.glowCol = '#8aa8ff'; },
       obsidiana(g, s, r) { for (let i = 0; i < 6; i++) { const h = s * (0.9 + r() * 0.8); const sh = mesh(J(new THREE.OctahedronGeometry(h * 0.45, 0), h * 0.06, i), mat('#120a18', { emissive: '#5a1a90', emissiveIntensity: 0.35, shininess: 160, specular: '#d8a0ff' })); sh.scale.set(0.55, 1.5, 0.55); sh.position.set((r() - 0.5) * s, h * 0.55, (r() - 0.5) * s); sh.rotation.set((r() - 0.5) * 0.5, r() * 3, (r() - 0.5) * 0.5); g.add(sh); } g.userData.glowCol = '#b04aff'; },
       coracao(g, s, r, n) { hostRock(g, s * 0.8, '#3a2a28', n.seed, 0.55); const core = mesh(new THREE.IcosahedronGeometry(s * 0.55, 1), mat('#ff3048', { emissive: '#c01020', emissiveIntensity: 0.9, shininess: 140 })); core.position.y = s * 1.0; g.add(core); g.userData.pulse = core;
           for (let i = 0; i < 8; i++) { const c = mesh(new THREE.ConeGeometry(s * 0.09, s * 0.6, 5), mat('#ffd34d', { emissive: '#c08a00', emissiveIntensity: 0.7 })); const a = i / 8 * 6.28; c.position.set(Math.cos(a) * s * 0.5, s * 1.0, Math.sin(a) * s * 0.5); c.lookAt(c.position.clone().multiplyScalar(3).setY(s * 1.6)); c.rotateX(Math.PI / 2); g.add(c); } g.userData.glowCol = '#ff6070'; },
       // Serra dos Cristais
-      quartzo(g, s, r) { for (let i = 0; i < 9; i++) { const h = s * (1 + r() * 1.3), w = s * 0.16; const c = mesh(new THREE.CylinderGeometry(0, w, h * 0.25, 6), mat('#f4f6fa', { transparent: true, opacity: 0.8, shininess: 120 })); const b = mesh(new THREE.CylinderGeometry(w, w, h * 0.75, 6), mat('#e4e8f0', { transparent: true, opacity: 0.75, shininess: 120 })); const gg = new THREE.Group(); b.position.y = h * 0.375; c.position.y = h * 0.875; gg.add(b, c); gg.position.set((r() - 0.5) * s * 0.9, 0, (r() - 0.5) * s * 0.9); gg.rotation.set((r() - 0.5) * 0.7, r() * 3, (r() - 0.5) * 0.7); g.add(gg); } },
+      quartzo(g, s, r) { for (let i = 0; i < 9; i++) { const h = s * (1 + r() * 1.3), w = s * 0.16; const c = mesh(new THREE.CylinderGeometry(0, w, h * 0.25, 6), mat('#f4f6fa', { shininess: 120 })); const b = mesh(new THREE.CylinderGeometry(w, w, h * 0.75, 6), mat('#e4e8f0', { shininess: 120 })); const gg = new THREE.Group(); b.position.y = h * 0.375; c.position.y = h * 0.875; gg.add(b, c); gg.position.set((r() - 0.5) * s * 0.9, 0, (r() - 0.5) * s * 0.9); gg.rotation.set((r() - 0.5) * 0.7, r() * 3, (r() - 0.5) * 0.7); g.add(gg); } },
       ametista(g, s, r, n) { // geodo aberto: casca de pedra com cristais roxos por dentro
         const shell = mesh(new THREE.SphereGeometry(s, 14, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mat('#8a7a6a', { side: THREE.DoubleSide })); shell.position.y = s * 0.95; g.add(shell);
         const rim = mesh(new THREE.TorusGeometry(s, s * 0.08, 5, 18), mat('#a89a88')); rim.rotation.x = Math.PI / 2; rim.position.y = s * 0.95; g.add(rim);
         for (let i = 0; i < 26; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * s * 0.82, depth = Math.sqrt(Math.max(0, s * s - d * d)); const c = mesh(new THREE.ConeGeometry(s * 0.09, s * (0.25 + r() * 0.2), 5), mat(i % 3 ? '#9b5ad6' : '#c49cf0', { emissive: '#5a2a90', emissiveIntensity: 0.5, shininess: 100 })); c.position.set(Math.cos(a) * d, s * 0.95 - depth * 0.85 + s * 0.12, Math.sin(a) * d); c.rotation.set((r() - 0.5) * 0.5, 0, (r() - 0.5) * 0.5); g.add(c); } },
-      esmeralda(g, s, r, n) { hostRock(g, s * 0.8, '#5a5a5a', n.seed, 0.6); for (let i = 0; i < 6; i++) { const h = s * (0.7 + r() * 0.6); const c = mesh(new THREE.CylinderGeometry(s * 0.15, s * 0.15, h, 6), mat('#1ab070', { emissive: '#0a6040', emissiveIntensity: 0.5, transparent: true, opacity: 0.9, shininess: 120 })); const top = mesh(new THREE.CylinderGeometry(s * 0.15, s * 0.15, 0.01, 6), mat('#7af0b8')); top.position.y = h / 2; c.add(top); c.position.set((r() - 0.5) * s * 0.7, s * 0.4 + h / 2, (r() - 0.5) * s * 0.7); c.rotation.set((r() - 0.5) * 0.6, r(), (r() - 0.5) * 0.6); g.add(c); } },
-      rubi(g, s, r, n) { hostRock(g, s, '#e8e0d8', n.seed, 0.7); for (let i = 0; i < 7; i++) { const z = s * (0.2 + r() * 0.15); const c = mesh(new THREE.CylinderGeometry(z, z, z * 0.7, 6), mat('#e0203a', { emissive: '#900018', emissiveIntensity: 0.55, shininess: 120, transparent: true, opacity: 0.92 })); c.position.copy(onSurface(s, r, 0.7)); c.rotation.set(r() * 3, r() * 3, 0); g.add(c); } },
-      safira(g, s, r) { for (let i = 0; i < 5; i++) { const z = s * (0.35 + r() * 0.2); const c = mesh(new THREE.CylinderGeometry(z * 0.4, z * 0.4, z * 2.2, 6), mat('#2a5ae0', { emissive: '#102a90', emissiveIntensity: 0.6, shininess: 120, transparent: true, opacity: 0.9 })); const tip = mesh(new THREE.ConeGeometry(z * 0.4, z * 0.8, 6), c.material); tip.position.y = z * 1.5; const tip2 = tip.clone(); tip2.rotation.x = Math.PI; tip2.position.y = -z * 1.5; c.add(tip, tip2); c.position.set((r() - 0.5) * s, z * 1.2, (r() - 0.5) * s); c.rotation.set((r() - 0.5) * 1.2, r() * 3, (r() - 0.5) * 1.2); g.add(c); } },
-      diamante(g, s, r, n) { const k = mesh(J(new THREE.IcosahedronGeometry(s, 1), s * 0.15, n.seed), mat('#3a3a44')); k.scale.y = 0.7; k.position.y = s * 0.5; g.add(k); for (let i = 0; i < 6; i++) { const z = s * (0.2 + r() * 0.15); const d = mesh(new THREE.OctahedronGeometry(z, 0), mat('#e8faff', { emissive: '#9fe0ff', emissiveIntensity: 0.6, shininess: 150, specular: '#ffffff', transparent: true, opacity: 0.92 })); d.position.copy(onSurface(s, r, 0.7)); d.position.y += z * 0.4; g.add(d); } },
+      esmeralda(g, s, r, n) { hostRock(g, s * 0.8, '#5a5a5a', n.seed, 0.6); for (let i = 0; i < 6; i++) { const h = s * (0.7 + r() * 0.6); const c = mesh(new THREE.CylinderGeometry(s * 0.15, s * 0.15, h, 6), mat('#1ab070', { emissive: '#0a6040', emissiveIntensity: 0.5, shininess: 120 })); const top = mesh(new THREE.CylinderGeometry(s * 0.15, s * 0.15, 0.01, 6), mat('#7af0b8')); top.position.y = h / 2; c.add(top); c.position.set((r() - 0.5) * s * 0.7, s * 0.4 + h / 2, (r() - 0.5) * s * 0.7); c.rotation.set((r() - 0.5) * 0.6, r(), (r() - 0.5) * 0.6); g.add(c); } },
+      rubi(g, s, r, n) { hostRock(g, s, '#e8e0d8', n.seed, 0.7); for (let i = 0; i < 7; i++) { const z = s * (0.2 + r() * 0.15); const c = mesh(new THREE.CylinderGeometry(z, z, z * 0.7, 6), mat('#e0203a', { emissive: '#900018', emissiveIntensity: 0.55, shininess: 120 })); c.position.copy(onSurface(s, r, 0.7)); c.rotation.set(r() * 3, r() * 3, 0); g.add(c); } },
+      safira(g, s, r) { for (let i = 0; i < 5; i++) { const z = s * (0.35 + r() * 0.2); const c = mesh(new THREE.CylinderGeometry(z * 0.4, z * 0.4, z * 2.2, 6), mat('#2a5ae0', { emissive: '#102a90', emissiveIntensity: 0.6, shininess: 120 })); const tip = mesh(new THREE.ConeGeometry(z * 0.4, z * 0.8, 6), c.material); tip.position.y = z * 1.5; const tip2 = tip.clone(); tip2.rotation.x = Math.PI; tip2.position.y = -z * 1.5; c.add(tip, tip2); c.position.set((r() - 0.5) * s, z * 1.2, (r() - 0.5) * s); c.rotation.set((r() - 0.5) * 1.2, r() * 3, (r() - 0.5) * 1.2); g.add(c); } },
+      diamante(g, s, r, n) { const k = mesh(J(new THREE.IcosahedronGeometry(s, 1), s * 0.15, n.seed), mat('#3a3a44')); k.scale.y = 0.7; k.position.y = s * 0.5; g.add(k); for (let i = 0; i < 6; i++) { const z = s * (0.2 + r() * 0.15); const d = mesh(new THREE.OctahedronGeometry(z, 0), mat('#e8faff', { emissive: '#9fe0ff', emissiveIntensity: 0.6, shininess: 150, specular: '#ffffff' })); d.position.copy(onSurface(s, r, 0.7)); d.position.y += z * 0.4; g.add(d); } },
     };
   })(),
 
@@ -1491,8 +1517,19 @@ const Render = {
     const rock = (col, sz, seed) => mesh(jitterGeo(new THREE.IcosahedronGeometry(sz, 0), sz * 0.35, seed), mat(col));
     const kind = res.kind;
     if (kind === 'nut') {
-      for (let i = 0; i < 4; i++) { const b = mesh(jitterGeo(new THREE.IcosahedronGeometry(s * (0.5 + r() * 0.25), 1), 0.12, i + n.seed), mat(i % 2 ? '#3f6e2a' : '#4d7a30')); b.position.set((r() - 0.5) * s, s * 0.45 + r() * s * 0.3, (r() - 0.5) * s); g.add(b); }
-      for (let i = 0; i < 9; i++) { const nu = mesh(new THREE.IcosahedronGeometry(0.07 + r() * 0.04, 0), mat(res.c)); const a = r() * 6.28; nu.position.set(Math.cos(a) * s * 0.7, s * (0.3 + r() * 0.6), Math.sin(a) * s * 0.7); g.add(nu); }
+      // monte de nozes: uma grande na frente e menores em volta, casca marrom-clara enrugada com a "costura" no meio
+      const shells = ['#c08a52', '#b07a42', '#a46e3a', '#c99560'];
+      const nut = (sz, x, y, z, i) => {
+        const w = new THREE.Group(); w.position.set(x, y, z); w.rotation.set((r() - 0.5) * 0.9, r() * 6.28, (r() - 0.5) * 0.9);
+        const b = mesh(jitterGeo(new THREE.SphereGeometry(sz, 12, 9), sz * 0.07, n.seed + i * 3), mat(shells[i % 4], { shininess: 8 })); b.scale.set(1, 1.12, 0.9); w.add(b);
+        const seam = mesh(new THREE.TorusGeometry(sz * 0.93, sz * 0.06, 4, 18), mat('#7a4e26')); seam.scale.set(1, 1.12, 1); w.add(seam);
+        const tip = mesh(new THREE.ConeGeometry(sz * 0.14, sz * 0.25, 5), mat('#6e4522')); tip.position.y = sz * 1.15; w.add(tip);
+        g.add(w);
+      };
+      nut(s * 0.62, 0, s * 0.62, 0, 0);
+      const k = 5 + Math.floor(r() * 3);
+      for (let i = 1; i <= k; i++) { const a = i / k * 6.28 + r() * 0.5, d = s * (0.62 + r() * 0.25), sz = s * (0.26 + r() * 0.16); nut(sz, Math.cos(a) * d, sz * 0.85, Math.sin(a) * d, i); }
+      for (let i = 0; i < 4; i++) { const lf = mesh(new THREE.ConeGeometry(s * 0.16, s * 0.5, 3), mat(i % 2 ? '#5d8a36' : '#4d7a30')); const a = r() * 6.28; lf.position.set(Math.cos(a) * s * 0.9, s * 0.08, Math.sin(a) * s * 0.9); lf.rotation.set(Math.PI / 2, 0, a); lf.scale.set(1, 1, 0.25); g.add(lf); }
     } else if (kind === 'stick') {
       for (let i = 0; i < 7; i++) { const st = mesh(new THREE.CylinderGeometry(0.04, 0.05, s * 2 * (0.6 + r() * 0.5), 5), mat(i % 2 ? res.c : res.c2)); st.rotation.set(Math.PI / 2 + (r() - 0.5) * 0.4, r() * 3, 0); st.position.set((r() - 0.5) * 0.3, 0.05 + i * 0.06, (r() - 0.5) * 0.3); g.add(st); }
     } else if (kind === 'log') {
@@ -1521,7 +1558,7 @@ const Render = {
       const small = rock(kind === 'rock' ? res.c2 : base, s * 0.45, n.seed + 1); small.position.set(s * 0.8, s * 0.25, s * 0.3); g.add(small);
       if (kind === 'ore') for (let i = 0; i < 8; i++) { const o = mesh(new THREE.IcosahedronGeometry(s * (0.1 + r() * 0.08), 0), mat(res.c2, { emissive: res.c, emissiveIntensity: 0.25, shininess: 60 })); const a = r() * 6.28, b = r() * 1.2; o.position.set(Math.cos(a) * s * 0.85 * Math.cos(b), s * 0.55 + Math.sin(b) * s * 0.6, Math.sin(a) * s * 0.85 * Math.cos(b)); g.add(o); }
       if (kind === 'scrap') for (let i = 0; i < 8; i++) { const b = mesh(i % 2 ? new THREE.BoxGeometry(0.5, 0.06, 0.25) : new THREE.CylinderGeometry(0.025, 0.025, 0.6, 4), mat(i % 2 ? res.c2 : '#9a9690', { shininess: 40 })); b.position.set((r() - 0.5) * s * 1.4, s * (0.9 + r() * 0.4), (r() - 0.5) * s * 1.2); b.rotation.set(r() * 3, r() * 3, r() * 3); g.add(b); }
-      if (kind === 'crystal') for (let i = 0; i < 6; i++) { const h = s * (0.8 + r() * 1.1); const c = mesh(new THREE.CylinderGeometry(0, s * 0.18, h, 6), mat(res.c2, { emissive: res.c, emissiveIntensity: 0.5, shininess: 100, transparent: true, opacity: 0.9 })); c.position.set((r() - 0.5) * s, s * 0.7 + h / 2 - s * 0.2, (r() - 0.5) * s); c.rotation.set((r() - 0.5) * 0.7, 0, (r() - 0.5) * 0.7); g.add(c); }
+      if (kind === 'crystal') for (let i = 0; i < 6; i++) { const h = s * (0.8 + r() * 1.1); const c = mesh(new THREE.CylinderGeometry(0, s * 0.18, h, 6), mat(res.c2, { emissive: res.c, emissiveIntensity: 0.55, shininess: 100 })); c.position.set((r() - 0.5) * s, s * 0.7 + h / 2 - s * 0.2, (r() - 0.5) * s); c.rotation.set((r() - 0.5) * 0.7, 0, (r() - 0.5) * 0.7); g.add(c); }
       if (kind === 'meteor') for (let i = 0; i < 6; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(s * 0.5, 0.05, 0.05), new THREE.MeshBasicMaterial({ color: res.c2 })); c.position.set((r() - 0.5) * s * 1.2, s * (0.4 + r() * 0.6), (r() - 0.5) * s * 1.2); c.rotation.set(r() * 3, r() * 3, r() * 3); g.add(c); }
     }
     if (n.rare > 1 || res.special || res.wild) {
@@ -1578,7 +1615,7 @@ const Render = {
       const dd = Math.sqrt(dx * dx + dy * dy), FR = this.nodeFull(), lod = m ? (m.userData.lod === 'full' ? (dd < FR + 6 ? 'full' : 'mid') : (dd < FR - 6 ? 'full' : 'mid')) : (dd < FR ? 'full' : 'mid');
       if (m && m.userData.lod !== lod && n !== Game.target) { this.scene.remove(m); this.disposeObj(m); if (m.userData.badge) { this.scene.remove(m.userData.badge); m.userData.badge.material.dispose(); } this.nodeMeshes.delete(n); m = null; }
       if (m && m.userData.res !== n.res.id) { this.scene.remove(m); if (m.userData.badge) this.scene.remove(m.userData.badge); m = null; }
-      if (!m) { m = this.nodeMesh(n); if (lod === 'mid') this.bakeNode(m); m.userData.lod = lod; this.scene.add(m); this.nodeMeshes.set(n, m); }
+      if (!m) { m = this.nodeMesh(n); if (lod === 'mid') this.bakeNode(m); else this.mergeStatic(m, true); /* perto: junta as peças da pedra por material (menos desenhos) */ m.userData.lod = lod; this.scene.add(m); this.nodeMeshes.set(n, m); }
       const k = 0.75 + 0.25 * Math.max(0, n.hp / n.maxHp);
       m.scale.setScalar(k);
       if (n.hitT > 0) m.position.set(m.userData.base.x + (Math.random() - 0.5) * 0.12, m.userData.base.y, m.userData.base.z + (Math.random() - 0.5) * 0.12);
@@ -2399,7 +2436,7 @@ const Render = {
     this.t += dt;
     const P = Game.P;
     this.updateDayNight();
-    this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateChest(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
+    this.cullFar(); this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateChest(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;

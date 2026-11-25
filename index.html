@@ -225,7 +225,8 @@
   .daily .d.done { opacity: .45; } .daily .d.now { border-color: #ffd76a; background: rgba(255,215,106,.15); box-shadow: 0 0 14px rgba(255,215,106,.35); }
   .daily .d:last-child b { color: #ffd76a; }
   #tutbox { position: fixed; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 13; display: flex; align-items: center; gap: 14px; padding: 12px 18px 12px 22px; border-radius: 14px; background: rgba(28,18,8,.9); border: 2px solid #e8b04a; box-shadow: 0 8px 30px rgba(0,0,0,.45); color: #f5e6c8; font: 600 20px system-ui, sans-serif; max-width: 92vw; }
-  #tutbox.top { bottom: auto; top: 3%; }
+  #tutbox.side { left: 16px; bottom: 16px; transform: none; max-width: 230px; font-size: 15px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  #tutbox.side.pop { animation: none; }
   #tutbox.pop { animation: tutpop .35s ease-out; }
   @keyframes tutpop { from { transform: translateX(-50%) translateY(14px) scale(.94); opacity: 0; } }
   #tutbox p { margin: 0; } #tutbox b { color: #ffd76a; }

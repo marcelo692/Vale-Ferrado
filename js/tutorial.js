@@ -42,7 +42,7 @@ const Tutorial = {
     this.step = step; this.t = 0;
     let el = document.getElementById('tutbox'); if (!el) { el = document.createElement('div'); el.id = 'tutbox'; document.body.appendChild(el); }
     el.innerHTML = `<p>${this.texts[step]()}</p><button onclick="Tutorial.skip()">${tt("Pular")}</button>`;
-    el.classList.toggle('top', step === 'forge');
+    el.classList.toggle('side', step === 'forge'); // com a janela do Seu Bento aberta, a dica vai para o canto (não cobre nada)
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     Snd.tone && Snd.tone(880, 0.08, { vol: 0.05, type: 'triangle' });
   },
@@ -84,7 +84,14 @@ const Tutorial = {
         break;
       case 'smith': if (UI.open === 'ferreiro') this.go('forge'); break;
       case 'forge':
-        if (S.hammer >= 2) { UI.close(); const f = NPCS.find(v => v.id === 'ferreiro'), a = f.ang * Math.PI / 180; this.nut = this.spawnNut(Math.cos(a) * 7.2, Math.sin(a) * 7.2, 0.5, 0.9); /* na praça, entre o ferreiro e a fonte */ this.go('try'); }
+        if (S.hammer >= 2) {
+          UI.close();
+          // noz na praça (entre o ferreiro e a fonte) e o jogador dá uns passos para trás, já virado para ela
+          const f = NPCS.find(v => v.id === 'ferreiro'), a = f.ang * Math.PI / 180, nx = Math.cos(a) * 6.4, ny = Math.sin(a) * 6.4;
+          this.nut = this.spawnNut(nx, ny, 0.5, 0.9);
+          P.x = Math.cos(a) * 9.4; P.y = Math.sin(a) * 9.4; P.z = 0; P.vz = 0; P.yaw = Math.atan2(-(nx - P.x), -(ny - P.y)); P.pitch = -0.32;
+          this.go('try');
+        }
         else if (UI.open !== 'ferreiro') this.go('smith');
         break;
       case 'try':

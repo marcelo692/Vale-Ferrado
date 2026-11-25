@@ -618,5 +618,6 @@ I18N.en = {
 "Tab": "Tab",
 "Vale Ferrado": "Vale Ferrado",
 "Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "From a soup spoon to the Valley Hammer. Gather, sell, upgrade and rebuild your grandfather's town.",
-"Idioma": "Language"
+"Idioma": "Language",
+"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Backpack full: {0} {1} stayed in the rock. Come back later to collect them."
 };
