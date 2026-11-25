@@ -829,7 +829,7 @@ const Game = {
     const px = nx + dx / run * 0.6, py = ny + dy / run * 0.6, hp = World.height(px, py);
     if (hp - feet > STEP_UP || (hp - feet > 0.05 && (hp - Math.max(h1, feet)) / 0.6 > 1.1)) { this.wallT = this.S.time; return; }
     // paredão (mais alto que a cabeça) a 1,2 m: para antes — o chão desenhado é uma grade de 1 m e a câmera entraria nele
-    { const qx = nx + dx / run * 1.2, qy = ny + dy / run * 1.2; if (World.height(qx, qy) - feet > 1.7) { this.wallT = this.S.time; return; } }
+    { const qx = nx + dx / run * 1.7, qy = ny + dy / run * 1.7; if (World.height(qx, qy) - feet > 1.6) { this.wallT = this.S.time; return; } }
     const grounded = P.vz <= 0 && P.z <= this.supportAt(P.x, P.y) + 0.01;
     P.x = nx; P.y = ny;
     // em cima de tronco/muro: continua apoiado nele; fora dele, desce rampas e morros grudado no chão

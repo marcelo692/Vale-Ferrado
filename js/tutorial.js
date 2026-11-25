@@ -42,7 +42,7 @@ const Tutorial = {
     this.step = step; this.t = 0;
     let el = document.getElementById('tutbox'); if (!el) { el = document.createElement('div'); el.id = 'tutbox'; document.body.appendChild(el); }
     el.innerHTML = `<p>${this.texts[step]()}</p><button onclick="Tutorial.skip()">${tt("Pular")}</button>`;
-    el.classList.toggle('side', step === 'forge' || step === 'mine'); // com a janela do Seu Bento aberta, a dica vai para o canto (não cobre nada)
+    el.classList.toggle('side', step === 'forge' || step === 'mine'); el.classList.toggle('tl', step === 'forge'); // com a janela do Seu Bento aberta, a dica vai para o canto (não cobre nada)
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     Snd.tone && Snd.tone(880, 0.08, { vol: 0.05, type: 'triangle' });
   },

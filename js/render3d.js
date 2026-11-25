@@ -136,6 +136,7 @@ const Render = {
     const leve = this.quality === 'leve';
     this.r.setPixelRatio(leve ? Math.min(devicePixelRatio, 0.75) : Math.min(devicePixelRatio, 1.5)); this.r.setSize(innerWidth, innerHeight);
     this.sun.castShadow = !leve;
+    if (this.r.shadowMap.enabled !== !leve) { this.r.shadowMap.enabled = !leve; this.scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); }); } // Leve: sem mapa de sombras nenhum
     if (this.grass) this.grass.visible = !leve;
     this.fogK = leve ? 0.7 : 1; // modo leve: neblina mais perto (desenha menos coisa)
     this.fxScale = leve ? 0.45 : 1;
@@ -477,10 +478,10 @@ const Render = {
   buildCity() {
     this.city = new THREE.Group(); this.scene.add(this.city);
     const cobble = canvasTex(256, 256, (g, w, h) => {
-      g.fillStyle = '#6a6155'; g.fillRect(0, 0, w, h);
-      for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const v = 108 + Math.random() * 44 | 0; g.fillStyle = `rgb(${v},${v - 8},${v - 18})`; /* calçamento mais escuro: não estoura no sol */ g.beginPath(); g.roundRect(x * 32 + (y % 2) * 16 + 2, y * 32 + 2, 28, 28, 6); g.fill(); }
+      g.fillStyle = '#4e463c'; g.fillRect(0, 0, w, h);
+      for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const v = 112 + Math.random() * 70 | 0, hue = Math.random() < 0.3 ? 14 : 0; g.fillStyle = `rgb(${v + hue},${v - 8},${v - 20 - hue})`; /* calçamento mais escuro: não estoura no sol */ g.beginPath(); g.roundRect(x * 32 + (y % 2) * 16 + 2, y * 32 + 2, 28, 28, 6); g.fill(); }
     }, 10);
-    const plaza = mesh(new THREE.CircleGeometry(CITY_R, 48).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: cobble }), false);
+    const plaza = mesh(new THREE.CircleGeometry(CITY_R, 48).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: cobble, color: '#a89e90' }), false); // tom médio: não estoura no sol do meio-dia
     plaza.position.y = 0.04; this.city.add(plaza);
     // fonte
     const f1 = mesh(new THREE.CylinderGeometry(2.6, 2.8, 0.7, 12), mat('#8a8070')); f1.position.y = 0.35; this.city.add(f1);
@@ -853,7 +854,7 @@ const Render = {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     const m = new THREE.MeshLambertMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     const stone = new THREE.MeshLambertMaterial({ color: '#8a857a', flatShading: true });
-    this.mineRoads = [];
+    this.mineRoads = []; const marks = new THREE.Group(); this.scene.add(marks); // marcos de pedra: juntados no fim (1 desenho)
     for (const R of REGIONS) {
       if (R.id === 0) continue; // a primeira mina é colada na cidade
       const d0 = CITY_R + 2, d1 = roadEnd(R), step = 4, pos = [], uv = [], idx = [];
@@ -875,13 +876,14 @@ const Render = {
         const mk = new THREE.Group(); mk.position.set(x, World.height(x, y), y); mk.rotation.y = d;
         const base = mesh(new THREE.BoxGeometry(0.55, 0.9, 0.4), stone); base.position.y = 0.45; mk.add(base);
         const cap = mesh(new THREE.DodecahedronGeometry(0.32, 0), stone); cap.position.y = 1.0; mk.add(cap);
-        this.scene.add(mk);
+        marks.add(mk);
       }
       // placa no fim da estrada
       const [ex, ey] = C(d1 - 4), sx = ex + R.vx * 3, sy = ey + R.vy * 3, h = World.height(sx, sy);
-      const post = mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.4, 6), mat('#4a3420')); post.position.set(sx, h + 1.2, sy); this.scene.add(post);
+      const post = mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.4, 6), mat('#4a3420')); post.position.set(sx, h + 1.2, sy); marks.add(post);
       const lab = labelSprite(`${R.dir} → ${R.name}`, tt("mais {0} m adiante", Math.round(R.dMin - d1)), '#f5e6c8', 1.1); lab.position.set(sx, h + 2.9, sy); this.scene.add(lab);
     }
+    this.mergeStatic(marks);
   },
   buildRoadsAndRiver() {
     // placas nas saídas da cidade
@@ -1029,18 +1031,25 @@ const Render = {
       }
       const brow = mesh(jitterGeo(new THREE.BoxGeometry(4, 5, (World.pitHalf(R, d0) + 4) * 2, 2, 3, 8), 0.9, 77), rock); brow.position.set(R.ux * (d0 - 1), segs[0].c + 2.2, R.uy * (d0 - 1)); brow.rotation.y = rot; G.add(brow); }
     // lampiões nas paredes (brilho falso, sem luz real) e trilho no meio
-    const lampMat = new THREE.SpriteMaterial({ map: this.getGlowTex(), color: '#ffb050', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 });
+    const glowPts = []; // brilhos dos lampiões: todos num desenho só (pontos)
     const rail = mat('#6a6a70', { shininess: 60 }), sleeper = mat('#4a3424');
     for (let d = R.dMin + 6; d < R.dMax - 4; d += 14) {
       const half = World.pitHalf(R, d) - 0.6;
       for (const sd of [-1, 1]) { const x = R.ux * d + R.vx * half * sd, y = R.uy * d + R.vy * half * sd, h = World.height(R.ux * d + R.vx * (half - 2) * sd, R.uy * d + R.vy * (half - 2) * sd);
         const box = mesh(new THREE.BoxGeometry(0.22, 0.32, 0.22), mat('#2a2a2a'), false); box.position.set(x, h + 2.4, y); G.add(box);
-        const gl = new THREE.Sprite(lampMat); gl.scale.setScalar(2.6); gl.position.set(x, h + 2.4, y); G.add(gl); }
+        glowPts.push(x, h + 2.4, y); }
     }
+    { const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(glowPts, 3));
+      const gp = new THREE.Points(gg, new THREE.PointsMaterial({ map: this.getGlowTex(), color: '#ffb050', size: 2.6, sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 })); G.add(gp); }
     // poças de luz quente no chão embaixo de cada lampião
     { const pool = new THREE.MeshBasicMaterial({ map: this.getGlowTex(), color: '#ff9a40', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.38 });
-      for (let d = R.dMin + 6; d < R.dMax - 4; d += 14) { const half = World.pitHalf(R, d) - 2.6;
-        for (const sd of [-1, 1]) { const x = R.ux * d + R.vx * half * sd, y = R.uy * d + R.vy * half * sd; const pl = new THREE.Mesh(new THREE.PlaneGeometry(7, 7).rotateX(-Math.PI / 2), pool); pl.position.set(x, World.height(x, y) + 0.06, y); pl.renderOrder = 2; G.add(pl); } } }
+      const pools = []; for (let d = R.dMin + 6; d < R.dMax - 4; d += 14) { const half = World.pitHalf(R, d) - 2.6;
+        for (const sd of [-1, 1]) { const x = R.ux * d + R.vx * half * sd, y = R.uy * d + R.vy * half * sd; const pg = new THREE.PlaneGeometry(7, 7).rotateX(-Math.PI / 2).toNonIndexed(); pg.translate(x, World.height(x, y) + 0.06, y); pools.push(pg); } }
+      // todas as poças numa malha só
+      const n = pools.reduce((a, g) => a + g.attributes.position.count, 0), P = new Float32Array(n * 3), U = new Float32Array(n * 2); let o = 0;
+      for (const g of pools) { P.set(g.attributes.position.array, o * 3); U.set(g.attributes.uv.array, o * 2); o += g.attributes.position.count; g.dispose(); }
+      const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(P, 3)); mg.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+      const pm = new THREE.Mesh(mg, pool); pm.renderOrder = 2; G.add(pm); }
     // veios coloridos brilhando nas paredes (ponto de cor no meio do marrom)
     { const veins = [mat('#3ad0c0', { emissive: '#1aa898', emissiveIntensity: 0.9 }), mat('#ffb040', { emissive: '#d07a10', emissiveIntensity: 0.9 }), mat('#b070ff', { emissive: '#7a3ad0', emissiveIntensity: 0.9 })];
       for (let d = R.dMin + 10; d < R.dMax - 6; d += 9) for (const sd of [-1, 1]) {
@@ -1076,6 +1085,14 @@ const Render = {
           const top = mesh(new THREE.TorusGeometry(1.4, 0.35, 6, 10, Math.PI), stone); top.position.y = 3; arch.add(top); arch.position.set(x, h, y); arch.rotation.y = rot + (r() - 0.5); G.add(arch);
         }
       } }
+    // portal de pedra na chegada da Vila em Ruínas: marco visível de longe, com a placa da região
+    { const R = REGIONS[2], stone = new THREE.MeshLambertMaterial({ color: '#b0a088', flatShading: true }), rot = -Math.atan2(R.uy, R.ux);
+      for (const dd of [R.dMin - 6]) { const sw = 0, x = R.ux * dd + R.vx * sw, y = R.uy * dd + R.vy * sw, h = World.height(x, y);
+        for (const sx of [-3.4, 3.4]) World.solids.push({ x: x + R.vx * sx, y: y + R.vy * sx, r: 0.7 }); // pilares têm colisão
+        const gate = new THREE.Group(); gate.position.set(x, h, y); gate.rotation.y = rot + Math.PI / 2;
+        for (const sx of [-3.4, 3.4]) { for (let i = 0; i < 4; i++) { const b = mesh(jitterGeo(new THREE.BoxGeometry(1.1, 1.2, 1.1), 0.08, i * 7 + sx), stone); b.position.set(sx, 0.6 + i * 1.2, 0); gate.add(b); } }
+        const lintel = mesh(jitterGeo(new THREE.BoxGeometry(8.2, 0.9, 1.2, 4, 1, 1), 0.1, 5), stone); lintel.position.y = 5.2; lintel.rotation.z = dd > R.dMin ? 0.08 : 0; gate.add(lintel);
+        G.add(gate); } }
     // Serra dos Cristais (espiral): cristais nas paredes e na rampa, mais e maiores conforme desce
     { const R = REGIONS[5], S = R.spiral; if (S) {
       const cg = new THREE.OctahedronGeometry(1, 0); cg.scale(0.35, 1.4, 0.35);
