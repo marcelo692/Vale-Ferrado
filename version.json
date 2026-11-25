@@ -1,12 +1,12 @@
 {
-  "version": "3.16.0",
+  "version": "3.17.0",
   "date": "2026-11-25",
   "notes": [
-    "Calçamento da vila em tom médio, com rejunte e pedras variadas",
-    "Gráfico Leve sem mapa de sombras; Mina Velha e estradas com bem menos desenhos",
-    "Não dá mais para encostar a cara no paredão da mina",
-    "Portal de pedra na chegada da Vila em Ruínas",
-    "Dica do tutorial na forja não cobre mais a janela do Seu Bento"
+    "Entradas da Vila em Ruínas e da Pedreira Funda sem degrau invisível nem paredão",
+    "Vila mais leve (casas numa peça só) e Leve sem o halo das barracas",
+    "Robôs novos rendem mais logo no começo",
+    "Caminhos da praça no tom do calçamento; avisos iguais não se repetem",
+    "Dica da forja no alto em telas pequenas; brilho dos lampiões da mina mais suave"
   ],
   "files": [
     {
@@ -19,7 +19,7 @@
     },
     {
       "path": "index.html",
-      "size": 42459
+      "size": 42637
     },
     {
       "path": "js/audio.js",
@@ -75,11 +75,11 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 247198
+      "size": 247449
     },
     {
       "path": "js/robots.js",
-      "size": 10734
+      "size": 10788
     },
     {
       "path": "js/tutorial.js",
@@ -87,7 +87,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 40722
+      "size": 40865
     },
     {
       "path": "js/updater.js",
@@ -99,7 +99,7 @@
     },
     {
       "path": "js/world.js",
-      "size": 27083
+      "size": 27444
     },
     {
       "path": "js/zone7.js",
@@ -115,7 +115,7 @@
     },
     {
       "path": "version.json",
-      "size": 2064
+      "size": 2116
     }
   ]
 }
