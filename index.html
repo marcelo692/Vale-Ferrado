@@ -293,7 +293,7 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
   <button class="buy alt" onclick="UI.soundPanel()">🔊 Som</button>
   <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>
   <button class="buy alt" onclick="Dev.open()">🛠 Modo dev</button>
-  <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value, false, true)"><option value="alto">Bonito</option><option value="leve">Leve (mais rápido)</option></select><b></b></label>
+  <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value, false, true)"><option value="alto">Bonito</option><option value="leve">Leve</option></select><b></b></label>
   <label class="vol sens"><span>Sensibilidade do mouse</span><input type="range" min="20" max="250" value="100" id="sens" oninput="Game.S.sens=this.value/100;this.nextElementSibling.textContent=this.value+'%';Game.save()"><b>100%</b></label>
   <label class="vol sens"><span>Idioma</span><select id="langsel" onchange="setLang(this.value)"></select><b></b></label>
   <small>Esc solta o mouse e abre este menu.</small></div></div>

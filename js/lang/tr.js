@@ -632,5 +632,6 @@ I18N.tr = {
 " e 1 Cintilha": " ve 1 Parıltı",
 "✦ +1 Cintilha": "✦ +1 Parıltı",
 "✦ 1 Cintilha": "✦ 1 Parıltı",
-"Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Sırt çantası dolu: {1} türünden {0} tane taşta kaldı. Sonra gelip al."
+"Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Sırt çantası dolu: {1} türünden {0} tane taşta kaldı. Sonra gelip al.",
+"Leve": "Hafif"
 };

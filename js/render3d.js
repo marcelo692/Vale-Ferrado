@@ -211,7 +211,7 @@ const Render = {
     { const P = Game.P, cC = World.ceilingAt(P.x, P.y), inC = cC !== null && World.height(P.x, P.y) + P.z < cC - 0.5 ? 1 : 0; this.caveK = (this.caveK || 0) + (inC - (this.caveK || 0)) * 0.06;
       // serra da borda: azulada pela distância (perspectiva aérea), sem virar recorte de papel
       if (this.edgeRange) this.edgeRange.material.color.set('#3f4e60').lerp(this.scene.fog.color, 0.3);
-      const k = this.caveK; if (k > 0.01) { this.hemi.intensity *= 1 - 0.5 * k; this.sun.intensity *= 1 - 0.85 * k; this.scene.fog.color.lerp(new THREE.Color('#223040'), k); this.scene.fog.near *= 1 - 0.6 * k; this.scene.fog.far = this.scene.fog.far * (1 - k) + 95 * k; } }
+      const k = this.caveK; if (k > 0.01) { this.hemi.intensity *= 1 - 0.5 * k; this.sun.intensity *= 1 - 0.85 * k; this.scene.fog.color.lerp(new THREE.Color('#2a2622'), k); this.scene.fog.near *= 1 - 0.6 * k; this.scene.fog.far = this.scene.fog.far * (1 - k) + 95 * k; } }
     for (const m of this.ring.children) m.material.color.copy(m.userData.base).lerp(new THREE.Color('#0d1322'), (1 - df) * 0.85).lerp(new THREE.Color('#c07858'), dusk * 0.25);
     const night = 1 - df;
     this.lampMat.color.copy(L('#555555', '#ffd890', night));
@@ -418,7 +418,7 @@ const Render = {
     // grade de 1 m em volta do jogador: 160 m no Bonito, 120 m no Leve (é a peça com mais triângulos do jogo)
     let gq = ''; try { gq = localStorage.getItem('valeferrado_gfx') || ''; } catch (e) {}
     const lv = gq ? gq === 'leve' : (matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4);
-    this.nearN = lv ? 120 : 160; this.nearGeo = mk(this.nearN, this.nearN);
+    this.nearN = lv ? 100 : 160; this.nearGeo = mk(this.nearN, this.nearN);
     this.nearGround = new THREE.Mesh(this.nearGeo, gm); this.nearGround.receiveShadow = true; this.scene.add(this.nearGround);
     this.nearAt = null;
   },
@@ -458,7 +458,7 @@ const Render = {
     this.farGround.position.set(sx, 0, sy);
   },
   updateNearGround() {
-    const P = Game.P, st = this.nearN >= 160 ? 24 : 16, sx = Math.round(P.x / st) * st, sy = Math.round(P.y / st) * st;
+    const P = Game.P, st = this.nearN >= 160 ? 24 : 12, sx = Math.round(P.x / st) * st, sy = Math.round(P.y / st) * st;
     if (this.nearAt && this.nearAt[0] === sx && this.nearAt[1] === sy) return;
     if (!this.nearAt) { const g = this.nearGeo, pos = g.attributes.position; this.baseXZ = []; for (let i = 0; i < pos.count; i++) this.baseXZ.push(pos.getX(i), pos.getZ(i)); }
     this.nearAt = [sx, sy];
@@ -477,8 +477,8 @@ const Render = {
   buildCity() {
     this.city = new THREE.Group(); this.scene.add(this.city);
     const cobble = canvasTex(256, 256, (g, w, h) => {
-      g.fillStyle = '#7d7366'; g.fillRect(0, 0, w, h);
-      for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const v = 130 + Math.random() * 50 | 0; g.fillStyle = `rgb(${v},${v - 8},${v - 18})`; g.beginPath(); g.roundRect(x * 32 + (y % 2) * 16 + 2, y * 32 + 2, 28, 28, 6); g.fill(); }
+      g.fillStyle = '#6a6155'; g.fillRect(0, 0, w, h);
+      for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { const v = 108 + Math.random() * 44 | 0; g.fillStyle = `rgb(${v},${v - 8},${v - 18})`; /* calçamento mais escuro: não estoura no sol */ g.beginPath(); g.roundRect(x * 32 + (y % 2) * 16 + 2, y * 32 + 2, 28, 28, 6); g.fill(); }
     }, 10);
     const plaza = mesh(new THREE.CircleGeometry(CITY_R, 48).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: cobble }), false);
     plaza.position.y = 0.04; this.city.add(plaza);
@@ -1019,7 +1019,7 @@ const Render = {
     // boca da mina: escoramento de madeira (pilares + viga) logo na entrada, e vigas em cada laje lá dentro
     { const wood = mat('#5a3e26'), dark = mat('#3e2a18');
       for (const sg of segs) {
-        const d = sg.d0, half = World.pitHalf(R, d) - 1.2, entry = d === d0, step = entry ? 7 : half, top = sg.c;
+        const d = sg.d0, half = World.pitHalf(R, d) - 1.2, entry = d === d0, step = entry ? 7 : half * 2, top = sg.c; // lá dentro só os pilares das laterais (nada no meio do caminho)
         for (let p = -half; p <= half + 0.01; p += step) {
           const x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y), len = top - h;
           if (len < 1) continue;
@@ -1045,9 +1045,9 @@ const Render = {
     { const veins = [mat('#3ad0c0', { emissive: '#1aa898', emissiveIntensity: 0.9 }), mat('#ffb040', { emissive: '#d07a10', emissiveIntensity: 0.9 }), mat('#b070ff', { emissive: '#7a3ad0', emissiveIntensity: 0.9 })];
       for (let d = R.dMin + 10; d < R.dMax - 6; d += 9) for (const sd of [-1, 1]) {
         if (r() < 0.2) continue;
-        const half = World.pitHalf(R, d) + 0.35, vm = veins[Math.floor(r() * 3)], hb = World.height(R.ux * d + R.vx * (half - 2.5) * sd, R.uy * d + R.vy * (half - 2.5) * sd);
+        const half = World.pitHalf(R, d) + 0.6, vm = veins[Math.floor(r() * 3)], hb = World.height(R.ux * d + R.vx * (half - 2.5) * sd, R.uy * d + R.vy * (half - 2.5) * sd);
         const n = 6 + Math.floor(r() * 5), y0 = hb + 1 + r() * 4;
-        for (let i = 0; i < n; i++) { const dl = d + (i - n / 2) * 0.7 + r() * 0.3, yy = y0 + Math.sin(i * 0.9) * 0.6 + r() * 0.3; const cr = mesh(new THREE.OctahedronGeometry(0.38 + r() * 0.3, 0), vm, false); cr.scale.set(1, 1.6, 1); cr.rotation.set(r() * 3, r() * 3, r() * 3); cr.position.set(R.ux * dl + R.vx * half * sd, yy, R.uy * dl + R.vy * half * sd); G.add(cr); }
+        for (let i = 0; i < n; i++) { const dl = d + (i - n / 2) * 0.7 + r() * 0.3, yy = y0 + Math.sin(i * 0.9) * 0.6 + r() * 0.3; const cr = mesh(new THREE.OctahedronGeometry(0.3 + r() * 0.22, 0), vm, false); cr.scale.set(1, 1.6, 1); cr.rotation.set(r() * 3, r() * 3, r() * 3); cr.position.set(R.ux * dl + R.vx * half * sd, yy, R.uy * dl + R.vy * half * sd); G.add(cr); }
       } }
     for (let d = R.dMin + 2; d < R.dMax - 2; d += 1.6) {
       const p = 9, x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, h = World.height(x, y);
@@ -1096,7 +1096,7 @@ const Render = {
         const n = 2 + Math.floor(r() * 4); for (let b = 0; b < n; b++) { const bl = mesh(new THREE.BoxGeometry(1.6, 0.9, 1.1), cut[b % 3]); bl.position.set(x + (b % 2) * 1.7 - 0.8, h + 0.45 + Math.floor(b / 2) * 0.9, y + (r() - 0.5) * 0.3); bl.rotation.y = r() * 0.3; G.add(bl); }
       } }
     // Riacho das Pedras: seixos arredondados nas margens
-    { const R = REGIONS[1], N = 650, pg = new THREE.IcosahedronGeometry(1, 1), pm = new THREE.InstancedMesh(pg, new THREE.MeshLambertMaterial({ flatShading: false }), N), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color();
+    { const R = REGIONS[1], N = 650, pg = new THREE.IcosahedronGeometry(1, 0), pm = new THREE.InstancedMesh(pg, new THREE.MeshLambertMaterial({ flatShading: false }), N), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), col = new THREE.Color();
       for (let i = 0; i < N; i++) { const d = R.dMin - 30 + r() * (R.dMax - R.dMin + 60), side = r() < 0.5 ? -1 : 1, p = riverP(d) + side * (2.8 + r() * 6), x = R.ux * d + R.vx * p, y = R.uy * d + R.vy * p, s = 0.15 + r() * 0.45;
         q.setFromAxisAngle(new V3(0, 1, 0), r() * 6); sv.set(s * 1.3, s * 0.6, s); pv.set(x, World.height(x, y) + s * 0.2, y); m4.compose(pv, q, sv); pm.setMatrixAt(i, m4); col.setHSL(0.08, 0.06, 0.45 + r() * 0.25); pm.setColorAt(i, col); }
       pm.frustumCulled = false; G.add(pm); this.seixos = pm; }
@@ -1261,7 +1261,7 @@ const Render = {
   },
   // serra em volta do mapa: avisa que o mundo acaba (só aparece quando você chega perto da borda)
   buildEdgeRange() {
-    const g = jitterGeo(new THREE.ConeGeometry(1, 1, 7, 3), 0.18, 31); g.translate(0, 0.5, 0);
+    const g = jitterGeo(new THREE.ConeGeometry(1, 1, 6, 2), 0.18, 31); g.translate(0, 0.5, 0);
     const N = 150, m = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ flatShading: true, fog: false }), N * 2), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), c = new THREE.Color(), r = rng(404);
     let i = 0;
     for (let k = 0; k < N; k++) for (const ring of [3400, 3580]) {
@@ -1336,7 +1336,7 @@ const Render = {
     this.oreLod.count = i; this.oreLod.instanceMatrix.needsUpdate = true; if (this.oreLod.instanceColor) this.oreLod.instanceColor.needsUpdate = true;
   },
   // distância em que o minério aparece completo (o resto vira versão simplificada)
-  nodeFull() { return this.quality === 'leve' ? 18 : 26; }, // perto de verdade: o resto usa a versão de uma peça só (igual de longe)
+  nodeFull() { return this.quality === 'leve' ? 12 : 26; }, // perto de verdade: o resto usa a versão de uma peça só (igual de longe)
   // versão média do minério: todas as peças viram uma malha só, com a cor de cada peça pintada nos vértices
   bakeNode(g, keepClear, opt) { // keepClear: mantém as peças transparentes (vidros) em vez de descartar · opt.plain: só peças sem textura · opt.skip: grupos que ficam de fora
     if (!this.lodMat) this.lodMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
@@ -1449,7 +1449,7 @@ const Render = {
       carvao(g, s, r) { pile(g, s, r, ['#141416', '#24242a', '#1a1a1e'], 12, 0.32, 0.8, 1.1); g.traverse(o => { if (o.isMesh) o.material = mat('#1a1a1e', { shininess: 120, specular: '#666' }); }); },
       hematita(g, s, r, n) { for (let i = 0; i < 9; i++) { const z = s * (0.35 + r() * 0.25); const b = mesh(new THREE.SphereGeometry(z, 10, 8), mat(i % 2 ? '#7a2c22' : '#5a1e18', { shininess: 80, specular: '#c88' })); const a = r() * 6.28, d = Math.sqrt(r()) * s * 0.7; b.position.set(Math.cos(a) * d, z * 0.7 + r() * s * 0.4, Math.sin(a) * d); g.add(b); } },
       magnetita(g, s, r, n) { hostRock(g, s * 0.8, '#6a6e74', n.seed, 0.6); for (let i = 0; i < 6; i++) { const z = s * (0.35 + r() * 0.2); const c = mesh(new THREE.OctahedronGeometry(z, 0), mat('#22252c', { shininess: 140, specular: '#bbbbbb' })); const p = onSurface(s * 0.8, r, 0.6); c.position.copy(p); c.position.y += z * 0.3; c.rotation.set(r(), r(), r()); g.add(c); } },
-      cromita(g, s, r, n) { const m = hostRock(g, s * 1.05, '#3a3530', n.seed, 0.7); for (let i = 0; i < 4; i++) { const band = mesh(new THREE.TorusGeometry(s * (0.93 - i * 0.12), s * 0.05, 4, 14), mat('#8c949b', { shininess: 110, specular: '#cfd6dc' })); /* faixas de cromo discretas, quase dentro da rocha */ band.rotation.x = Math.PI / 2 + (r() - 0.5) * 0.3; band.scale.set(1, 1, 0.7); band.position.y = s * (0.25 + i * 0.17); g.add(band); } },
+      cromita(g, s, r, n) { const m = hostRock(g, s * 1.05, '#3a3530', n.seed, 0.7); for (let i = 0; i < 4; i++) { const band = mesh(new THREE.TorusGeometry(s * (0.9 - i * 0.12), s * 0.025, 3, 14), mat('#8c949b', { shininess: 110, specular: '#cfd6dc' })); /* faixas de cromo discretas, quase dentro da rocha */ band.rotation.x = Math.PI / 2 + (r() - 0.5) * 0.3; band.scale.set(1, 1, 0.7); band.position.y = s * (0.25 + i * 0.17); g.add(band); } },
       vanadinita(g, s, r, n) { hostRock(g, s, '#6a5a4a', n.seed, 0.6); for (let i = 0; i < 16; i++) { const h = s * (0.18 + r() * 0.2); const c = mesh(new THREE.CylinderGeometry(s * 0.06, s * 0.06, h, 6), mat('#f05a20', { emissive: '#c03000', emissiveIntensity: 0.45, shininess: 80 })); const p = onSurface(s, r, 0.6); c.position.copy(p); c.lookAt(p.clone().multiplyScalar(2)); c.rotateX(Math.PI / 2); g.add(c); } },
       // Pedreira / Mina Profunda
       marmore(g, s, r) { const b = new THREE.Group(); b.rotation.y = r(); g.add(b);
