@@ -619,5 +619,8 @@ I18N.tr = {
 "Vale Ferrado": "Vale Ferrado",
 "Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "Çorba kaşığından Vadi Çekici'ne. Topla, sat, geliştir ve dedenin kasabasını yeniden kur.",
 "Idioma": "Dil",
-"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Sırt çantası dolu: {0} {1} taşta kaldı. Sonra gelip al."
+"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Sırt çantası dolu: {0} {1} taşta kaldı. Sonra gelip al.",
+"📦 {0} encomendas do dia": "📦 {0} günlük sipariş",
+"Aperte Espaço para pular por cima, ou dê a volta pelo lado.": "Üstünden atlamak için Boşluk'a bas ya da yandan dolaş.",
+"Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Zıplaman için çok yüksek: yandan dolaş (ya da Teçhizatçı Cida'dan zıplamanı geliştir)."
 };

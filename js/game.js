@@ -26,7 +26,7 @@ function newState() {
     ladders: [], tramps: [], // escadas e camas elásticas colocadas no mapa
     riding: false, lightOn: true, detOn: true, detRes: null, detAuto: true, sound: true,
     clock: 0.3,       // hora do dia (0 = meia-noite, 0.5 = meio-dia)
-    showInv: true,    // tabela lateral de evoluções e materiais
+    showInv: false,   // tabela lateral de evoluções e materiais
     robots: 0,        // robôs auto-mineradores comprados
     cint: 3, olho: 0, // Cintilhas e nível do Olho de Garimpeiro
   };
@@ -611,7 +611,7 @@ const Game = {
         }
       } else { P.vx = P.vy = 0; }
       // limite do mundo
-      const R = Math.hypot(P.x, P.y), LIM = 4300;
+      const R = Math.hypot(P.x, P.y), LIM = 3120;
       if (R > LIM) { P.x *= LIM / R; P.y *= LIM / R; if (!this.limT || S.time - this.limT > 5) { this.limT = S.time; UI.toast(tt("Daqui pra frente só há montanhas. Volte para o vale.")); } }
     } else { P.moving = false; P.sprint = false; P.vx = P.vy = 0; }
     P.bobAmp += ((P.moving ? 1 : 0) - P.bobAmp) * Math.min(1, dt * 9);
@@ -815,7 +815,10 @@ const Game = {
     for (const o of World.solids) if (!(o.chest && !Daily.unlocked()) && Math.hypot(nx - o.x, ny - o.y) < o.r + 0.4) return;
     for (const o of World.obstacles) {
       if (P.z >= o.h * 0.9) continue; // está acima do obstáculo: pode passar (ou andar por cima)
-      if (this.inObstacle(o, nx, ny)) return; // bloqueado
+      if (this.inObstacle(o, nx, ny)) { // bloqueado: dica de pulo (ou de contornar) de vez em quando
+        if (!(this.S.time - (this.obstTipT || -99) < 25)) { this.obstTipT = this.S.time; UI.toast(this.canClear(o) ? tt("Aperte Espaço para pular por cima, ou dê a volta pelo lado.") : tt("Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).")); }
+        return;
+      }
     }
     // degraus e paredes dos valões: subir andando só o que for baixinho; o resto é pulo, escada, gancho...
     const h0 = World.height(P.x, P.y), h1 = World.height(nx, ny), feet = h0 + P.z;

@@ -619,5 +619,8 @@ I18N.es = {
 "Vale Ferrado": "Vale Ferrado",
 "Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "De la cuchara de sopa al Martillo del Valle. Recolecta, vende, mejora y reconstruye el pueblo de tu abuelo.",
 "Idioma": "Idioma",
-"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Mochila llena: {0} {1} se quedaron en la piedra. Vuelve luego a recogerlos."
+"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Mochila llena: {0} {1} se quedaron en la piedra. Vuelve luego a recogerlos.",
+"📦 {0} encomendas do dia": "📦 {0} pedidos del día",
+"Aperte Espaço para pular por cima, ou dê a volta pelo lado.": "Pulsa Espacio para saltarlo, o rodéalo por el lado.",
+"Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Demasiado alto para tu salto: rodéalo por el lado (o mejora el salto con Cida la Equipadora)."
 };

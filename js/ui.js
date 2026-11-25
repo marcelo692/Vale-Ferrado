@@ -299,9 +299,9 @@ const UI = {
     if (E.tier.length) {
       const sum = E.tier.reduce((a, e) => a + e.miss, 0);
       html += `<div class="ih">${tt("⚒ Evolução")}<small>${tt("faltam {0}", fmt(sum))}</small></div>`;
-      for (const e of E.tier.slice(0, 3)) {
+      for (const e of E.tier.slice(0, S.showInv ? 3 : 2)) {
         const st = e.have + e.bag >= e.total ? 1 : 0;
-        html += `<div class="nr s${st}">${this.ico(e.id, 26)}<b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)}/${fmt(e.total)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span><small>${e.f.slice(0, 3).join(', ')}${e.f.length > 3 ? ' +' + (e.f.length - 3) : ''}</small></div>`;
+        html += `<div class="nr s${st}">${this.ico(e.id, 26)}<b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)}/${fmt(e.total)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span>${S.showInv ? `<small>${e.f.slice(0, 3).join(', ')}${e.f.length > 3 ? ' +' + (e.f.length - 3) : ''}</small>` : ''}</div>`;
       }
       if (E.tier.every(e => e.have + e.bag >= e.total)) html += tt("<div class=\"leg\"><span class=\"s1\">● Falta só entregar: volte à cidade</span></div>");
     }
@@ -313,10 +313,12 @@ const UI = {
       if (Robots.list.length) { const carrying = Robots.list.reduce((a, r) => a + r.n, 0); html += tt("<div class=\"bagv\"><span>{0}</span>{1}</div>", Robots.list.length > 1 ? tt("🤖 {0} robôs minerando", Robots.list.length) : tt("🤖 1 robô minerando"), carrying ? tt("<small>trazendo {0}</small>", fmt(carrying)) : ''); }
     }
     const ords = Orders.list().filter(o => !o.done);
-    if (ords.length) html += `<div class="ih sm">${tt("📦 Encomendas do dia")}</div><div class="nx">` + ords.map(o => `<span title="${RES[o.res].name}">${this.ico(o.res, 20)}${fmt(o.got)}/${fmt(o.qty)}</span>`).join('') + '</div>';
+    if (!S.showInv) { /* modo enxuto: só um aviso por vez */ }
+    else if (ords.length) html += `<div class="ih sm">${tt("📦 Encomendas do dia")}</div><div class="nx">` + ords.map(o => `<span title="${RES[o.res].name}">${this.ico(o.res, 20)}${fmt(o.got)}/${fmt(o.qty)}</span>`).join('') + '</div>';
     else if (Orders.unlocked() && Orders.list().length) html += `<div class="ih sm">${tt("📦 Encomendas de hoje: todas entregues ✔")}</div>`;
-    if (Daily.available()) html += `<div class="leg"><span class="s2">${tt("🎁 Baú diário na fonte da vila")}</span></div>`;
     if (E.ready) html += tt("<div class=\"leg\"><span class=\"s2\">{0}</span></div>", E.ready > 1 ? tt("✔ {0} melhorias prontas para comprar", E.ready) : tt("✔ 1 melhoria pronta para comprar"));
+    else if (Daily.available()) html += `<div class="leg"><span class="s2">${tt("🎁 Baú diário na fonte da vila")}</span></div>`;
+    else if (!S.showInv && ords.length) html += `<div class="leg"><span>${tt("📦 {0} encomendas do dia", ords.length)}</span></div>`;
     html += `<div class="leg ft"><span><kbd>J</kbd> ${tt("todas as missões")}</span><span><kbd>I</kbd> ${S.showInv ? tt("menos") : tt("mais")}</span></div>`;
     if (html !== this.invHtml) { el.innerHTML = html; this.invHtml = html; }
   },
@@ -400,8 +402,9 @@ const UI = {
     // dica NPC
     const npc = G.npcNear();
     const ch = !npc && Daily.near(), pk = !npc && !ch && G.pickNear(), hint = npc ? tt("[E] Falar com {0}", npc.name) : ch ? (Daily.available() ? tt("[E] Abrir o baú diário") : tt("[E] Ver o baú diário")) : pk ? (S.hammer >= 60 ? tt("[E] Pegar a Picareta 61") : tt("[E] Tocar a Picareta 61 (lacrada)")) : '';
-    $('npchint').textContent = hint && !this.open ? hint : '';
-    $('npchint').style.display = hint && !this.open ? 'block' : 'none';
+    const showH = hint && !this.open && !(Tutorial.active && Tutorial.step !== 'smith'); // no tutorial só a dica do passo aparece
+    $('npchint').textContent = showH ? hint : '';
+    $('npchint').style.display = showH ? 'block' : 'none';
     // atualiza só as lojas dos NPCs (as outras janelas não são lojas)
     if (['ferreiro', 'tropeira', 'botica', 'armazem'].includes(this.open) && Math.random() < 0.05) this.renderPanel();
     // relógio

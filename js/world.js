@@ -236,7 +236,7 @@ const World = {
     if (this.WILD_SUB.nodes.length >= 2 || Math.random() > 0.22) return;
     for (let tries = 0; tries < 12; tries++) {
       const a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 90, x = P.x + Math.cos(a) * d, y = P.y + Math.sin(a) * d;
-      if (Math.hypot(x, y) < CITY_R + 25 || Math.hypot(x, y) > 4200 || this.obstacles.some(o => Game.inObstacle(o, x, y, 2))) continue;
+      if (Math.hypot(x, y) < CITY_R + 25 || Math.hypot(x, y) > 3050 || this.obstacles.some(o => Game.inObstacle(o, x, y, 2))) continue;
       const res = Math.random() < 0.6 ? RES.veiocint : RES.geodo, hp = Math.max(10, Game.force() * 4);
       const node = { x, y, pt: { used: true }, sub: this.WILD_SUB, res, size: 1, rare: 1, hp, maxHp: hp, r: 1.1, seed: Math.random() * 1000, hitT: 0, born: S.time };
       this.WILD_SUB.nodes.push(node); this.nodes.push(node);

@@ -984,10 +984,17 @@ const Render = {
     const segs = World.caveSegs(), d0 = segs[0].d0, rock = new THREE.MeshLambertMaterial({ color: '#4a3a2e', flatShading: true });
     const rot = -Math.atan2(R.uy, R.ux), r = rng(303);
     for (const sg of segs) {
-      const d = sg.d0, dd = sg.d1 - sg.d0, dc = d + dd / 2, half = World.pitHalf(R, dc) + 3, c = sg.c;
+      const d = sg.d0, dd = sg.d1 - sg.d0, dc = d + dd / 2, half = World.pitHalf(R, dc) + 12, c = sg.c; /* laje mais larga que a colisão: cobre até a borda dos degraus */
       // laje do teto: um pouco irregular por cima, com estalactites embaixo
-      const slab = mesh(jitterGeo(new THREE.BoxGeometry(dd + 0.6, 3, half * 2, 3, 1, 4), 0.5, d), rock); slab.position.set(R.ux * dc, c + 1.5, R.uy * dc); slab.rotation.y = rot; G.add(slab);
-      for (let i = 0; i < 7; i++) { const p = (r() - 0.5) * half * 1.7, dl = d + r() * dd, h = 0.8 + r() * 2.2; const st = mesh(new THREE.ConeGeometry(0.25 + r() * 0.4, h, 6), rock, false); st.rotation.x = Math.PI; st.position.set(R.ux * dl + R.vx * p, c - h / 2, R.uy * dl + R.vy * p); G.add(st); }
+      const slab = mesh(jitterGeo(new THREE.BoxGeometry(dd + 1.6, 3, half * 2, 3, 1, 4), 0.35, d), rock); slab.position.set(R.ux * dc, c + 1.5, R.uy * dc); slab.rotation.y = rot; G.add(slab);
+      // saia nas laterais da laje: desce até abaixo da borda, para não ver o céu entre o teto e a parede
+      for (const sd of [-1, 1]) { const sk = mesh(new THREE.BoxGeometry(dd + 1.6, 9, 1.6), rock); sk.position.set(R.ux * dc + R.vx * (half - 0.8) * sd, c - 4.2, R.uy * dc + R.vy * (half - 0.8) * sd); sk.rotation.y = rot; G.add(sk); }
+      // degrau entre uma laje e a próxima: parede de pedra fechando o vão (senão aparece o céu)
+      const nx = segs[segs.indexOf(sg) + 1];
+      if (!nx) { const ec = mesh(new THREE.BoxGeometry(1.6, 9, half * 2), rock); ec.position.set(R.ux * (sg.d1 + 0.6), c - 4.2, R.uy * (sg.d1 + 0.6)); ec.rotation.y = rot; G.add(ec); } // fundo da mina fechado
+      if (nx) { const lo = Math.min(c, nx.c) - 0.3, hi = Math.max(c, nx.c) + 3.2, hw = Math.max(half, World.pitHalf(R, nx.d0) + 12);
+        const sk = mesh(new THREE.BoxGeometry(1.4, hi - lo, hw * 2), rock); sk.position.set(R.ux * sg.d1, (lo + hi) / 2, R.uy * sg.d1); sk.rotation.y = rot; G.add(sk); }
+      for (let i = 0; i < 7; i++) { const p = (r() - 0.5) * (half - 9) * 1.7, dl = d + r() * dd, h = 0.8 + r() * 2.2; const st = mesh(new THREE.ConeGeometry(0.25 + r() * 0.4, h, 6), rock, false); st.rotation.x = Math.PI; st.position.set(R.ux * dl + R.vx * p, c - h / 2, R.uy * dl + R.vy * p); G.add(st); }
     }
     // boca da mina: escoramento de madeira (pilares + viga) logo na entrada, e vigas em cada laje lá dentro
     { const wood = mat('#5a3e26'), dark = mat('#3e2a18');
@@ -1223,8 +1230,8 @@ const Render = {
     const g = jitterGeo(new THREE.ConeGeometry(1, 1, 7, 3), 0.18, 31); g.translate(0, 0.5, 0);
     const N = 150, m = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ flatShading: true, fog: false }), N * 2), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new V3(), pv = new V3(), c = new THREE.Color(), r = rng(404);
     let i = 0;
-    for (let k = 0; k < N; k++) for (const ring of [4420, 4560]) {
-      const a = k / N * Math.PI * 2 + r() * 0.02, rad = ring + r() * 60, x = Math.cos(a) * rad, y = Math.sin(a) * rad, h = (ring > 4500 ? 150 : 85) + r() * 80, w = 170 + r() * 90;
+    for (let k = 0; k < N; k++) for (const ring of [3260, 3400]) {
+      const a = k / N * Math.PI * 2 + r() * 0.02, rad = ring + r() * 60, x = Math.cos(a) * rad, y = Math.sin(a) * rad, h = (ring > 3300 ? 150 : 85) + r() * 80, w = 170 + r() * 90;
       q.setFromAxisAngle(new V3(0, 1, 0), r() * 6); pv.set(x, World.height(x, y) - 4, y); sv.set(w, h, w * (0.8 + r() * 0.4)); m4.compose(pv, q, sv); m.setMatrixAt(i, m4);
       c.setHSL(0.55 + r() * 0.06, 0.08, 0.6 + r() * 0.15); m.setColorAt(i, c); i++;
     }
@@ -1594,7 +1601,12 @@ const Render = {
     g.fillStyle = 'rgba(20,14,8,0.78)'; g.beginPath(); g.roundRect(4, 4, 248, 64, 14); g.fill();
     g.strokeStyle = col; g.lineWidth = 4; g.stroke();
     g.font = '800 34px system-ui, sans-serif'; g.fillStyle = col; g.textAlign = 'left'; g.fillText(tt("Nv ") + res.ideal, 16, 48);
-    g.font = '700 26px system-ui, sans-serif'; g.fillStyle = '#ffd34d'; g.textAlign = 'right'; g.fillText(fmt(res.value), 206, 47);
+    const lw = g.measureText(tt("Nv ") + res.ideal).width;
+    // preço à direita, encolhendo a letra se encostar no nível; um tracinho separa os dois
+    let fs = 26; g.font = `700 ${fs}px system-ui, sans-serif`;
+    while (fs > 16 && 16 + lw + 22 + g.measureText(fmt(res.value)).width > 206) { fs -= 2; g.font = `700 ${fs}px system-ui, sans-serif`; }
+    g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(16 + lw + 9, 20, 2, 34);
+    g.fillStyle = '#ffd34d'; g.textAlign = 'right'; g.fillText(fmt(res.value), 206, 47);
     const cg = g.createRadialGradient(221, 33, 2, 226, 38, 13); cg.addColorStop(0, '#fff2a8'); cg.addColorStop(0.6, '#e0a820'); cg.addColorStop(1, '#8a5a10');
     g.fillStyle = cg; g.beginPath(); g.arc(226, 38, 12, 0, Math.PI * 2); g.fill();
     if (lock) { g.fillStyle = 'rgba(20,14,8,0.6)'; g.fillRect(4, 4, 248, 64); g.font = '800 30px system-ui'; g.textAlign = 'center'; g.fillStyle = '#ff6a5a'; g.fillText('🔒', 140, 47); }
@@ -2514,7 +2526,7 @@ const Render = {
   },
 
   drawMinimap() {
-    const c = this.mctx, W = this.mini.width, H = this.mini.height, cx = W / 2, cy = H / 2, MAXD = 4300, RAD = W / 2 - 6;
+    const c = this.mctx, W = this.mini.width, H = this.mini.height, cx = W / 2, cy = H / 2, MAXD = 3150, RAD = W / 2 - 6;
     // o mapa gira com você: a frente do jogador fica sempre para cima
     const rot = Game.P.yaw, rc = Math.cos(rot), rs = Math.sin(rot);
     const map = (x, y) => { const d = Math.hypot(x, y); if (d < 0.001) return [cx, cy]; const r = Math.sqrt(d / MAXD) * RAD, px = x / d * r, py = y / d * r; return [cx + px * rc - py * rs, cy + px * rs + py * rc]; };

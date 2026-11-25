@@ -619,5 +619,8 @@ I18N.en = {
 "Vale Ferrado": "Vale Ferrado",
 "Da colher de sopa ao Martelo do Vale. Colete, venda, evolua e reconstrua a cidade do seu avô.": "From a soup spoon to the Valley Hammer. Gather, sell, upgrade and rebuild your grandfather's town.",
 "Idioma": "Language",
-"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Backpack full: {0} {1} stayed in the rock. Come back later to collect them."
+"Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.": "Backpack full: {0} {1} stayed in the rock. Come back later to collect them.",
+"📦 {0} encomendas do dia": "📦 {0} daily orders",
+"Aperte Espaço para pular por cima, ou dê a volta pelo lado.": "Press Space to jump over it, or go around the side.",
+"Alto demais para o seu pulo: dê a volta pelo lado (ou melhore o pulo na Tropeira).": "Too high for your jump: go around the side (or upgrade your jump with Cida the Outfitter)."
 };
