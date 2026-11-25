@@ -229,6 +229,7 @@
   #tutbox.side { left: 16px; bottom: 16px; transform: none; max-width: 230px; font-size: 15px; flex-direction: column; align-items: flex-start; gap: 8px; }
   #tutbox.side.pop { animation: none; }
   #tutbox.side.tl { top: 130px; bottom: auto; } /* na forja: canto de cima, fora da janela do Seu Bento */
+  @media (max-width: 900px) { #tutbox.side.tl { top: 6px; left: 50%; transform: translateX(-50%); max-width: 92vw; flex-direction: row; align-items: center; font-size: 13px; } }
   #tutbox.pop { animation: tutpop .35s ease-out; }
   @keyframes tutpop { from { transform: translateX(-50%) translateY(14px) scale(.94); opacity: 0; } }
   #tutbox p { margin: 0; } #tutbox b { color: #ffd76a; }

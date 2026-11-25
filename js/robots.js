@@ -24,7 +24,7 @@ const Robots = {
   lvl(k) { return (Game.S.robotUp && Game.S.robotUp[k]) || 1; },
   // atributos dos robôs: crescem com a era do seu martelo e com as evoluções da oficina
   era() { return eraOf(Game.S.hammer); },
-  force() { return Math.max(1, HAMMERS[Game.S.hammer].f * 0.3) * ROBOT_UPS.arm.eff(this.lvl('arm')); },
+  force() { return Math.max(2, HAMMERS[Game.S.hammer].f * 0.45) * ROBOT_UPS.arm.eff(this.lvl('arm')); }, // robô novo já rende alguma coisa logo no começo
   interval() { return 1.5; },
   speed() { return (4 + this.era() * 3) * ROBOT_UPS.wheel.eff(this.lvl('wheel')); },
   cap() { return Math.round((6 + this.era() * 4) * ROBOT_UPS.cart.eff(this.lvl('cart'))); },

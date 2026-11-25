@@ -373,7 +373,7 @@ const World = {
         return { depth: 7 * k * along, inside: 0.6 * k * along, R, valley: a };
       }
       const d = x * R.ux + y * R.uy;
-      if (d < R.dMin - 3 || d > R.dMax + 3) continue;
+      if (d < R.dMin - 13 || d > R.dMax + 13) continue;
       const p = x * R.vx + y * R.vy, half = this.pitHalf(R, d);
       if (Math.abs(p) > half + 2) continue;
       if (R.id === 0) { // primeira região: plana, só descendo um pouquinho no fim
@@ -384,7 +384,10 @@ const World = {
       const P = R.pit; if (!P) continue;
       const across = smooth01(half + 0.6, half - 0.2, Math.abs(p));
       const along = smooth01(R.dMin - 0.6, R.dMin + 0.1, d) * smooth01(R.dMax + 0.6, R.dMax - 0.1, d);
-      const inside = across * along; if (inside <= 0) continue;
+      const inside = across * along;
+      // o relevo de fora some aos poucos (12 m) antes da entrada e da saída: sem degrau invisível nem paredão na chegada pela estrada
+      const fadeN = across * smooth01(R.dMin - 12, R.dMin + 0.1, d) * smooth01(R.dMax + 12, R.dMax - 0.1, d);
+      if (inside <= 0) { if (fadeN > 0) return { depth: 0, inside: 0, R, fade: fadeN }; continue; }
       // degraus com beirada reta: a queda acontece nos últimos 0,3 m antes da divisa
       const L = R.pitL, t = Math.max(0, Math.min(9.9999, (d - R.dMin) / L * 10)), k = Math.floor(t);
       const bNext = R.dMin + L * (k + 1) / 10;
@@ -398,7 +401,7 @@ const World = {
           break;
         }
       }
-      return { depth: depth * inside * P.up, inside, R };
+      return { depth: depth * inside * P.up, inside, R, fade: fadeN };
     }
     return { depth: 0, inside: 0 };
   },
@@ -417,7 +420,7 @@ const World = {
                 + Math.sin(x * 0.23 - y * 0.19) * 0.18;
     const dip = Math.max(0, Math.sin(x * 0.031 + 2.1) * Math.sin(y * 0.027 - 0.4) - 0.55) * -4.5; // buracos rasos espalhados
     const pit = this.pitAt(x, y);
-    return (h * amp + bumps + dip) * flat * flat * (1 - 0.92 * pit.inside) - pit.depth + this.mountainH(x, y);
+    return (h * amp + bumps + dip) * flat * flat * (1 - 0.92 * Math.max(pit.inside, pit.fade || 0)) - pit.depth + this.mountainH(x, y);
   },
 
     // cor do chão (biome)

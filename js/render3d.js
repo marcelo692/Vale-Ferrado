@@ -559,12 +559,12 @@ const Render = {
   buildCityDeco() {
     this.buildChest();
     const C = this.city, T = () => performance.now() / 1000, gtex = this.getGlowTex();
-    const stone = '#8a8070', light = '#b9ad98';
+    const stone = '#8a8070', light = '#9a8f7c';
     // piso: anéis de pedra clara em volta da fonte e trilhas até cada barraca
     for (const [r0, r1, col] of [[4.1, 4.5, light], [7.4, 7.65, '#6f6659']]) { const ring = mesh(new THREE.RingGeometry(r0, r1, 48).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: col }), false); ring.position.y = 0.055; C.add(ring); }
     for (const n of NPCS) {
       const a = Math.atan2(n.y, n.x), d = Math.hypot(n.x, n.y), len = d - 4.6 - 2.2;
-      const path = mesh(new THREE.BoxGeometry(len, 0.02, 1.2), new THREE.MeshLambertMaterial({ color: '#a2977f' }), false);
+      const path = mesh(new THREE.BoxGeometry(len, 0.02, 1.2), new THREE.MeshLambertMaterial({ color: '#7f7462' }), false);
       path.position.set(Math.cos(a) * (4.6 + len / 2), 0.056, Math.sin(a) * (4.6 + len / 2)); path.rotation.y = -a; C.add(path);
     }
     // fonte em dois andares com borda de pedra e jatos d'água
@@ -789,7 +789,7 @@ const Render = {
     for (const g of this.npcObjs) {
       const p = g.userData.person; if (!p || !p.userData.anim) continue;
       const gd = Math.hypot(g.position.x - P.x, g.position.z - P.y), A = p.userData.anim, near = gd < 22;
-      { const dv = gd < 80; if (g.userData.detV !== dv) { g.userData.detV = dv; for (const o of g.userData.det) o.visible = dv; } }
+      { const lv = this.quality === 'leve', dv = gd < (lv ? 45 : 80), key = dv + '' + lv; if (g.userData.detV !== key) { g.userData.detV = key; for (const o of g.userData.det) o.visible = dv; if (lv) g.userData.det[2].visible = false; } } // Leve: sem o halo em volta do símbolo
       if (!near) continue;
       A.torso.scale.set(1 + Math.sin(t * 1.6 + A.ph) * 0.015, 1, 1 + Math.sin(t * 1.6 + A.ph) * 0.02);
       // cabeça vira devagar para o jogador (limitado)
@@ -838,7 +838,7 @@ const Render = {
       }
       this.houses.add(h); k++;
     }
-    this.mergeStatic(this.houses, true);
+    this.bakeNode(this.houses, true, { plain: true }); this.mergeStatic(this.houses, true); // casas: uma peça pintada + as janelas que brilham
   },
 
   // estradas de terra visíveis de longe: das minas 2 a 6, saem da cidade e vão até a metade do caminho
@@ -1040,7 +1040,7 @@ const Render = {
         glowPts.push(x, h + 2.4, y); }
     }
     { const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(glowPts, 3));
-      const gp = new THREE.Points(gg, new THREE.PointsMaterial({ map: this.getGlowTex(), color: '#ffb050', size: 2.6, sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 })); G.add(gp); }
+      const gp = new THREE.Points(gg, new THREE.PointsMaterial({ map: this.getGlowTex(), color: '#ffb050', size: 2.1, sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.7 })); G.add(gp); }
     // poças de luz quente no chão embaixo de cada lampião
     { const pool = new THREE.MeshBasicMaterial({ map: this.getGlowTex(), color: '#ff9a40', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.38 });
       const pools = []; for (let d = R.dMin + 6; d < R.dMax - 4; d += 14) { const half = World.pitHalf(R, d) - 2.6;

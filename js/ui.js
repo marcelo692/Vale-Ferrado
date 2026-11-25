@@ -10,6 +10,7 @@ const UI = {
   open: null, hudT: 0,
 
   toast(msg, kind = '') {
+    if ([...$('toasts').children].some(c => c.textContent === msg && !c.classList.contains('out'))) return; // o mesmo aviso já está na tela
     const el = document.createElement('div');
     el.className = 'toast ' + kind; el.textContent = msg;
     $('toasts').appendChild(el);
