@@ -727,7 +727,7 @@ const Game = {
       this.floats.push({ x: n.x, y: n.y - 1, txt, c: n.rare > 1 ? '#ffe27a' : '#fff', t: 1.4 });
       if (got < units) { // mochila encheu: o resto fica na pedra (quase quebrada) esperando você voltar
         n.leftUnits = units - got; n.hp = Math.min(n.maxHp * 0.05, this.force() * 0.5);
-        UI.toast(tt("Mochila cheia: {0} {1} ficaram na pedra. Volte depois para pegar.", units - got, n.res.name), 'warn');
+        UI.toast(tt("Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.", units - got, n.res.name), 'warn');
         this.fxBurst(n.x, n.y, n.res.c, 8, 1); Snd.pickup();
         return;
       }
@@ -740,7 +740,7 @@ const Game = {
 
   gotCint(x, y, q) {
     this.S.cint = (this.S.cint || 0) + q; this.S.stats.cint = (this.S.stats.cint || 0) + q;
-    this.floats.push({ x, y: y - 0.6, txt: (q > 1 ? tt("✦ +{0} Cintilhas", q) : tt("✦ +{0} Cintilha", q)), c: '#9ff3ff', t: 1.8 });
+    this.floats.push({ x, y: y - 0.6, txt: (q > 1 ? (q === 1 ? tt("✦ +1 Cintilha") : tt("✦ +{0} Cintilhas", q)) : tt("✦ +{0} Cintilha", q)), c: '#9ff3ff', t: 1.8 });
     this.fxBurst(x, y, '#9ff3ff', 16, 1.2);
     [1568, 2093, 2637].forEach((f, i) => Snd.tone(f, 0.25, { vol: 0.07, type: 'triangle', at: i * 0.06 }));
   },
@@ -828,6 +828,8 @@ const Game = {
     // o corpo tem largura: não deixa encostar a cara na parede (senão a câmera entra nela)
     const px = nx + dx / run * 0.6, py = ny + dy / run * 0.6, hp = World.height(px, py);
     if (hp - feet > STEP_UP || (hp - feet > 0.05 && (hp - Math.max(h1, feet)) / 0.6 > 1.1)) { this.wallT = this.S.time; return; }
+    // paredão (mais alto que a cabeça) a 1,2 m: para antes — o chão desenhado é uma grade de 1 m e a câmera entraria nele
+    { const qx = nx + dx / run * 1.2, qy = ny + dy / run * 1.2; if (World.height(qx, qy) - feet > 1.7) { this.wallT = this.S.time; return; } }
     const grounded = P.vz <= 0 && P.z <= this.supportAt(P.x, P.y) + 0.01;
     P.x = nx; P.y = ny;
     // em cima de tronco/muro: continua apoiado nele; fora dele, desce rampas e morros grudado no chão

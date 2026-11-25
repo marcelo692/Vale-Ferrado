@@ -161,7 +161,7 @@ const UI = {
     $('panel').classList.remove('hidden');
     const mode = S.robotMode || 'auto', lvl = S.hammer;
     let h = `<div class="win"><div class="ph" style="--npc:#2a7a9a"><div class="avatar"></div><div><h2>${tt("🔧 Oficina dos robôs")}</h2><p>${tt("Tonho do Bazar")}</p></div><button class="x" onclick="UI.close()">✕</button></div><div class="pb">`;
-    h += tt("<p class=\"free\">Seu dinheiro: <b><i class=\"coin\"></i>{0}</b> · Equipe: <b>{1}</b> robôs · rendendo <b><i class=\"coin\"></i>{2}/min</b> (últimos 10 min) · já trouxeram {3} recursos</p>", fmt(S.money), S.robots || 0, fmt(Math.round(Robots.rate())), fmt(S.robotTotal || 0));
+    h += tt("<p class=\"free\">Seu dinheiro: <b><i class=\"coin\"></i>{0}</b> · Equipe: <b>{1}</b> · rendendo <b><i class=\"coin\"></i>{2}/min</b> (últimos 10 min) · já trouxeram {3} recursos</p>", fmt(S.money), (S.robots || 0) === 1 ? tt("1 robô") : tt("{0} robôs", S.robots || 0), fmt(Math.round(Robots.rate())), fmt(S.robotTotal || 0));
     h += tt("<h4>Evoluir a equipe</h4><p class=\"hint\" style=\"margin:0 0 8px\">Vale para todos os robôs, os de agora e os que vierem.</p><div class=\"grid\">");
     const now = { arm: tt("força {0}", fmt(Math.round(Robots.force() * 10) / 10)), wheel: tt("{0} m/s", fmt(Math.round(Robots.speed() * 10) / 10)), cart: tt("carrega {0}", fmt(Robots.cap())) };
     for (const k in ROBOT_UPS) {
@@ -372,7 +372,7 @@ const UI = {
     this.hudT -= dt; if (this.hudT > 0) return; this.hudT = 0.1;
     const S = Game.S, G = Game;
     $('money').textContent = fmt(S.money);
-    $('cint').textContent = (S.cint || 0) === 1 ? tt("✦ {0} Cintilha", fmt(S.cint || 0)) : tt("✦ {0} Cintilhas", fmt(S.cint || 0));
+    $('cint').textContent = (S.cint || 0) === 1 ? tt("✦ {0} Cintilha", fmt(S.cint || 0)) : ((S.cint || 0) === 1 ? tt("✦ 1 Cintilha") : tt("✦ {0} Cintilhas", fmt(S.cint || 0)));
     $('hname').textContent = HAMMERS[S.hammer].n;
     $('hlv').textContent = tt("Martelo nv {0} · força ", S.hammer) + fmt(G.force()) + (G.mult('force') > 1 ? ' ⚡' : '');
     const used = G.used(), cap = G.capacity();

@@ -46,7 +46,7 @@ const Daily = {
     track += '</div>';
     let body;
     if (avail) body = `<button class="buy" onclick="Daily.claim()">${tt("Abrir o baú do dia {0}", day)}</button>`;
-    else if (got && !got.doubled) body = `<p>${tt("Você ganhou {0} moedas{1}.", fmt(got.money), got.cint ? tt(" e {0} Cintilhas", got.cint) : '')}</p><button class="buy adbtn" onclick="Daily.double()">${tt("Dobrar as moedas (ver anúncio)")}</button>`;
+    else if (got && !got.doubled) body = `<p>${tt("Você ganhou {0} moedas{1}.", fmt(got.money), got.cint ? (got.cint === 1 ? tt(" e 1 Cintilha") : tt(" e {0} Cintilhas", got.cint)) : '')}</p><button class="buy adbtn" onclick="Daily.double()">${tt("Dobrar as moedas (ver anúncio)")}</button>`;
     else body = `<p>${tt("Volte amanhã para o dia {0}. Se pular um dia, a sequência recomeça.", (st.streak % 7) + 1)}</p>`;
     $('panel').innerHTML = `<div class="story daily"><h2>${tt("🎁 Baú diário")}</h2><p class="hint">${tt("Um baú por dia. Quanto mais dias seguidos, melhor o prêmio; o dia 7 é o grande.")}</p>${track}<div class="row">${body}<button class="buy alt" onclick="UI.close()">${tt("Fechar")}</button></div></div>`;
   },

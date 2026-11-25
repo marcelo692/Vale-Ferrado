@@ -185,10 +185,11 @@
   .vol input[type=range] { accent-color: #d8a040; width: 100%; } .vol b { text-align: right; color: var(--gold); }
   .vol.mute { grid-template-columns: auto 1fr; margin: 16px 0 20px; }
   .help { text-align: left; font-size: 14px; line-height: 1.8; } .row { display: flex; gap: 10px; justify-content: center; }
-  #title { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 42%, rgba(30,20,10,.72), rgba(10,6,3,.88)); z-index: 20; text-align: center; }
+  #title { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse 60% 55% at 50% 45%, rgba(20,13,6,.62), rgba(20,13,6,.28) 70%, rgba(8,5,2,.55)); /* a vila girando aparece atrás */ z-index: 20; text-align: center; }
   body.pre #tl, body.pre #mission, body.pre #loc, body.pre #tr, body.pre #bottom, body.pre #minimap, body.pre #cross, body.pre #clock, body.pre #stamwrap, body.pre #equip, body.pre #inv, body.pre #objarrow { visibility: hidden; }
   #title h1 { font: 700 64px Georgia, serif; color: var(--gold); margin: 0; text-shadow: 0 4px 0 #5a3a10, 0 10px 30px rgba(0,0,0,.6); letter-spacing: .02em; }
-  #title p { opacity: .8; max-width: 520px; line-height: 1.5; }
+  #title, #title p, #title small { text-shadow: 0 2px 6px rgba(0,0,0,.85); }
+  #title p { opacity: .95; max-width: 520px; line-height: 1.5; }
   #title .buy { font-size: 18px; padding: 12px 34px; margin-top: 14px; }
   #langs { display: flex; gap: 8px; margin-top: 22px; } #langs .lg { background: rgba(255,255,255,.07); color: var(--ink); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; } #langs .lg.on { border-color: var(--gold); color: var(--gold); }
   /* janelas pequenas (a CrazyGames testa até 821×462 e 800×450): HUD e painéis encolhem juntos para tudo caber e continuar legível */
@@ -292,7 +293,7 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
   <button class="buy alt" onclick="UI.soundPanel()">🔊 Som</button>
   <button class="buy alt" onclick="UI.help()">❔ Ajuda e progresso</button>
   <button class="buy alt" onclick="Dev.open()">🛠 Modo dev</button>
-  <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value, false, true)"><option value="alto">Bonito</option><option value="leve">Leve (para PC mais fraco)</option></select><b></b></label>
+  <label class="vol sens"><span>Gráfico</span><select id="gfx" onchange="Render.setQuality(this.value, false, true)"><option value="alto">Bonito</option><option value="leve">Leve (mais rápido)</option></select><b></b></label>
   <label class="vol sens"><span>Sensibilidade do mouse</span><input type="range" min="20" max="250" value="100" id="sens" oninput="Game.S.sens=this.value/100;this.nextElementSibling.textContent=this.value+'%';Game.save()"><b>100%</b></label>
   <label class="vol sens"><span>Idioma</span><select id="langsel" onchange="setLang(this.value)"></select><b></b></label>
   <small>Esc solta o mouse e abre este menu.</small></div></div>
@@ -342,8 +343,8 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
     if (started) { if (Render.vmScene.visible === false) Render.vmScene.visible = true; Render.draw(dt); }
     else {
       // tela de título: a câmera gira devagar em volta da fonte da vila (sem mexer na posição do jogador)
-      const P = Game.P, sv = [P.x, P.y, P.z, P.yaw, P.pitch], a = now / 1000 * 0.06 + 0.6, r = 17;
-      P.x = Math.cos(a) * r; P.y = Math.sin(a) * r; P.z = 6.5; P.yaw = Math.atan2(P.x, P.y); P.pitch = -0.3;
+      const P = Game.P, sv = [P.x, P.y, P.z, P.yaw, P.pitch], a = now / 1000 * 0.05 + 0.6, r = 30;
+      P.x = Math.cos(a) * r; P.y = Math.sin(a) * r; P.z = 12; P.yaw = Math.atan2(P.x, P.y); P.pitch = -0.36;
       Render.vmScene.visible = false; Render.draw(dt);
       [P.x, P.y, P.z, P.yaw, P.pitch] = sv;
     }
