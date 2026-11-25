@@ -1,13 +1,13 @@
 {
-  "version": "3.13.0",
+  "version": "3.14.0",
   "date": "2026-11-25",
   "notes": [
-    "Mina Velha iluminada: lanterna que acompanha você e neblina mais clara",
-    "Serra de montanhas de verdade no fim do mapa",
-    "Vila bem mais leve; celular e PC fraco começam no gráfico Leve",
-    "Noz do tutorial menor e mais bonita; martelos grandes menores na mão",
-    "Traduções corrigidas (Malaquita, 'cada', '1 golpe')",
-    "Noite mais clara, etiqueta de pulo presa ao tronco, baú do dia 1 melhor"
+    "Corrigido: dava para ver o lado de fora pela parede da Mina Velha",
+    "Mina Velha com veios coloridos brilhando, poças de luz e neblina azulada",
+    "Tela de título com a vila girando ao fundo",
+    "Gráfico Leve bem mais leve (menos triângulos no chão e nos seixos)",
+    "Noz do tutorial com casca marrom e costura; dica no canto ao minerar",
+    "Plurais certos (1 Cintilha, 1 robô) e outros ajustes"
   ],
   "files": [
     {
@@ -20,7 +20,7 @@
     },
     {
       "path": "index.html",
-      "size": 42229
+      "size": 42367
     },
     {
       "path": "js/audio.js",
@@ -36,7 +36,7 @@
     },
     {
       "path": "js/daily.js",
-      "size": 7356
+      "size": 7397
     },
     {
       "path": "js/data.js",
@@ -48,7 +48,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 59834
+      "size": 60147
     },
     {
       "path": "js/i18n.js",
@@ -56,15 +56,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 60228
+      "size": 60412
     },
     {
       "path": "js/lang/es.js",
-      "size": 62248
+      "size": 62439
     },
     {
       "path": "js/lang/tr.js",
-      "size": 61733
+      "size": 61943
     },
     {
       "path": "js/missions.js",
@@ -76,7 +76,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 242338
+      "size": 244782
     },
     {
       "path": "js/robots.js",
@@ -84,11 +84,11 @@
     },
     {
       "path": "js/tutorial.js",
-      "size": 6350
+      "size": 6369
     },
     {
       "path": "js/ui.js",
-      "size": 40624
+      "size": 40722
     },
     {
       "path": "js/updater.js",
@@ -116,7 +116,7 @@
     },
     {
       "path": "version.json",
-      "size": 2231
+      "size": 2192
     }
   ]
 }
