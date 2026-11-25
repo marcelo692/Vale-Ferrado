@@ -1,11 +1,12 @@
 {
-  "version": "3.15.0",
+  "version": "3.16.0",
   "date": "2026-11-25",
   "notes": [
-    "Começo mais rápido: Martelo 3 sem moedas, Martelo 4 mais barato e missões iniciais pagam mais",
-    "Gráfico Leve ainda mais leve",
-    "Mina Velha: sem poste no meio do caminho, veios menores e neblina marrom",
-    "Calçamento da vila mais escuro e seletor de gráfico mais curto"
+    "Calçamento da vila em tom médio, com rejunte e pedras variadas",
+    "Gráfico Leve sem mapa de sombras; Mina Velha e estradas com bem menos desenhos",
+    "Não dá mais para encostar a cara no paredão da mina",
+    "Portal de pedra na chegada da Vila em Ruínas",
+    "Dica do tutorial na forja não cobre mais a janela do Seu Bento"
   ],
   "files": [
     {
@@ -18,7 +19,7 @@
     },
     {
       "path": "index.html",
-      "size": 42352
+      "size": 42459
     },
     {
       "path": "js/audio.js",
@@ -74,7 +75,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 244904
+      "size": 247198
     },
     {
       "path": "js/robots.js",
@@ -82,7 +83,7 @@
     },
     {
       "path": "js/tutorial.js",
-      "size": 6369
+      "size": 6414
     },
     {
       "path": "js/ui.js",
@@ -114,7 +115,7 @@
     },
     {
       "path": "version.json",
-      "size": 2190
+      "size": 2064
     }
   ]
 }
