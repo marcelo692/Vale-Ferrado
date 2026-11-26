@@ -1,12 +1,11 @@
 {
-  "version": "3.19.0",
+  "version": "3.20.0",
   "date": "2026-11-25",
   "notes": [
-    "Obstáculos de cada região numa peça só e cordas das bandeirolas juntas: vila mais leve",
-    "Leve: etiquetas das pedras e nomes dos vendedores só de perto",
-    "[E] Falar com… não fica mais atrás do botão do depósito",
-    "Dica do tutorial some na pausa; recibo não corta em tela pequena",
-    "Mesmo nome em todo lugar: Próximas melhorias"
+    "Nome do vendedor some quando você chega perto (não cobre o topo da tela)",
+    "Anúncios grandes mais abaixo, longe do relógio e da seta",
+    "Primeira missão sem objetivo concorrente; dica da forja embaixo em tela pequena",
+    "Vendedores de longe numa peça só no Bonito (vila mais leve)"
   ],
   "files": [
     {
@@ -19,7 +18,7 @@
     },
     {
       "path": "index.html",
-      "size": 42982
+      "size": 42994
     },
     {
       "path": "js/audio.js",
@@ -55,15 +54,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 60475
+      "size": 60534
     },
     {
       "path": "js/lang/es.js",
-      "size": 62503
+      "size": 62559
     },
     {
       "path": "js/lang/tr.js",
-      "size": 62018
+      "size": 62083
     },
     {
       "path": "js/missions.js",
@@ -75,7 +74,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 249343
+      "size": 249926
     },
     {
       "path": "js/robots.js",
@@ -87,7 +86,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 40929
+      "size": 41051
     },
     {
       "path": "js/updater.js",
@@ -115,7 +114,7 @@
     },
     {
       "path": "version.json",
-      "size": 2087
+      "size": 2134
     }
   ]
 }
