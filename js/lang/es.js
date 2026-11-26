@@ -634,5 +634,6 @@ I18N.es = {
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Mochila llena: quedaron {0} de {1} en la piedra. Vuelve luego a recogerlos.",
 "Leve": "Ligero",
 "⚒ Próximas melhorias": "⚒ Próximas mejoras",
-"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Próximas mejoras</h3>"
+"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Próximas mejoras</h3>",
+"📜 Missões e melhorias": "📜 Misiones y mejoras"
 };

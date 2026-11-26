@@ -634,5 +634,6 @@ I18N.en = {
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Backpack full: {0} of {1} left in the rock. Come back later to collect.",
 "Leve": "Light",
 "⚒ Próximas melhorias": "⚒ Next upgrades",
-"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Next upgrades</h3>"
+"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Next upgrades</h3>",
+"📜 Missões e melhorias": "📜 Missions and upgrades"
 };

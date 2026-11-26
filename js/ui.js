@@ -297,7 +297,7 @@ const UI = {
     const c = Missions.current();
     if (c) html += `<div class="ih">📜 ${c.n ? tt("Missão {0}/{1}", c.n, c.of) : tt("Missão")}${c.reward ? `<small class="rw"><i class="coin"></i>+${fmt(c.reward)}</small>` : ''}</div><div class="mt">${c.t}</div>${c.max > 1 ? `<i class="mpb"><em style="width:${c.cur / c.max * 100}%"></em></i><div class="mc">${fmt(c.cur)} / ${fmt(c.max)}</div>` : ''}`;
     const E = Game.evoNeeds();
-    if (E.tier.length) {
+    if (E.tier.length && !(Game.S.mi === 0 && Game.S.hammer <= 2)) { // na 1ª missão, um objetivo só (as nozes); as melhorias aparecem em seguida
       const sum = E.tier.reduce((a, e) => a + e.miss, 0);
       html += `<div class="ih">${tt("⚒ Próximas melhorias")}<small>${tt("faltam {0}", fmt(sum))}</small></div>`;
       for (const e of E.tier.slice(0, S.showInv ? 3 : 2)) {
@@ -419,7 +419,7 @@ const UI = {
     this.updateDetectorHud();
     this.updateInvHud();
     Missions.hud();
-    { const mb = $('missbtn'); if (mb && !mb.dataset.t) { mb.dataset.t = 1; mb.innerHTML = tt("📜 Missões e evoluções") + ' <kbd>J</kbd>'; } if (mb) mb.style.display = !document.pointerLockElement && !this.open && typeof started !== 'undefined' && started ? 'block' : 'none'; }
+    { const mb = $('missbtn'); if (mb && !mb.dataset.t) { mb.dataset.t = 1; mb.innerHTML = tt("📜 Missões e melhorias") + ' <kbd>J</kbd>'; } if (mb) mb.style.display = !document.pointerLockElement && !this.open && typeof started !== 'undefined' && started ? 'block' : 'none'; }
     { const rb = $('recall'), ok = S.hammer >= RECALL_LVL && !G.inCity && !G.travel && !this.open;
       rb.style.display = ok ? 'inline-flex' : 'none';
       if (ok) { const c = G.recallCost(); $('recallc').innerHTML = `<i class="coin"></i>${fmt(c)}`; rb.classList.toggle('off', S.money < c); }

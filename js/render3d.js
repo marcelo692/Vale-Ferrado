@@ -792,8 +792,11 @@ const Render = {
     for (const g of this.npcObjs) {
       const p = g.userData.person; if (!p || !p.userData.anim) continue;
       const gd = Math.hypot(g.position.x - P.x, g.position.z - P.y), A = p.userData.anim, near = gd < 22;
-      { const lv = this.quality === 'leve', dv = gd < (lv ? 45 : 80), dl = gd < (lv ? 20 : 80), key = dv + '' + lv + dl;
-        if (lv && !g.userData.pBaked) { g.userData.pBaked = true; this.bakeNode(p, true); this.bakeNode(g, true, { skip: new Set([g.userData.det[1]]) }); this.mergeStatic(g, true); } // Leve: barraca inteira numa peça só (só o símbolo continua girando) // Leve: vendedor vira uma peça só (para de gesticular)
+      { const lv = this.quality === 'leve', dv = gd < (lv ? 45 : 80), dl = gd < (lv ? 20 : 80) && gd > 6, key = dv + '' + lv + dl; // nome some quando chega perto (senão cobre o topo da tela)
+        // Bonito: vendedor longe (> 9 m) troca por uma cópia de uma peça só; perto volta o que gesticula
+        if (!lv && !g.userData.pBaked) { let st = g.userData.pStatic; if (!st) { st = g.userData.pStatic = p.clone(); this.bakeNode(st, true); p.parent.add(st); }
+          const an = gd < 9; if (p.visible !== an || st.visible !== (!an && dv)) { p.visible = an; st.visible = !an && dv; } }
+        if (lv && !g.userData.pBaked) { if (g.userData.pStatic) { g.userData.pStatic.removeFromParent(); g.userData.pStatic = null; } p.visible = true; g.userData.pBaked = true; this.bakeNode(p, true); this.bakeNode(g, true, { skip: new Set([g.userData.det[1]]) }); this.mergeStatic(g, true); } // Leve: barraca inteira numa peça só (só o símbolo continua girando) // Leve: vendedor vira uma peça só (para de gesticular)
         if (g.userData.detV !== key) { g.userData.detV = key; for (const o of g.userData.det) o.visible = dv; if (lv) g.userData.det[2].visible = false; g.userData.det[3].visible = dl; } } // Leve: sem o halo em volta do símbolo
       if (!near || g.userData.pBaked) continue;
       A.torso.scale.set(1 + Math.sin(t * 1.6 + A.ph) * 0.015, 1, 1 + Math.sin(t * 1.6 + A.ph) * 0.02);

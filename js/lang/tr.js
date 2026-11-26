@@ -634,5 +634,6 @@ I18N.tr = {
 "Mochila cheia: sobraram {0} de {1} na pedra. Volte depois para pegar.": "Sırt çantası dolu: {1} türünden {0} tane taşta kaldı. Sonra gelip al.",
 "Leve": "Hafif",
 "⚒ Próximas melhorias": "⚒ Sonraki geliştirmeler",
-"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Sonraki geliştirmeler</h3>"
+"<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Sonraki geliştirmeler</h3>",
+"📜 Missões e melhorias": "📜 Görevler ve geliştirmeler"
 };
