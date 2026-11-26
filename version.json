@@ -1,11 +1,10 @@
 {
-  "version": "3.20.0",
-  "date": "2026-11-25",
+  "version": "3.21.0",
+  "date": "2026-11-26",
   "notes": [
-    "Nome do vendedor some quando você chega perto (não cobre o topo da tela)",
-    "Anúncios grandes mais abaixo, longe do relógio e da seta",
-    "Primeira missão sem objetivo concorrente; dica da forja embaixo em tela pequena",
-    "Vendedores de longe numa peça só no Bonito (vila mais leve)"
+    "Corrigido: em tela pequena a dica do tutorial tampava o botão Forjar",
+    "Missão 1 sozinha também no painel J",
+    "Anúncios esperam o painel fechar; na cena do vendedor ficam acima da barraca"
   ],
   "files": [
     {
@@ -18,7 +17,7 @@
     },
     {
       "path": "index.html",
-      "size": 42994
+      "size": 43225
     },
     {
       "path": "js/audio.js",
@@ -66,7 +65,7 @@
     },
     {
       "path": "js/missions.js",
-      "size": 18462
+      "size": 18623
     },
     {
       "path": "js/platform.js",
@@ -86,7 +85,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 41051
+      "size": 41202
     },
     {
       "path": "js/updater.js",
@@ -114,7 +113,7 @@
     },
     {
       "path": "version.json",
-      "size": 2134
+      "size": 2076
     }
   ]
 }
