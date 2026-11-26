@@ -167,7 +167,8 @@ const Missions = {
       h += `</ul>`;
     }
     // evoluções: o que cada próxima compra pede, com a foto de cada material
-    const E = Game.evoNeeds();
+    let E = Game.evoNeeds(); const first = S.mi === 0 && S.hammer <= 2; // 1ª missão: só ela, sem objetivos concorrentes
+    if (first) { E = Object.assign({}, E, { tier: [], ups: [] }); }
     if (E.tier.length) h += tt("<h3 class=\"evoh\">⚒ Missão de evolução</h3><p class=\"hint\">Comece pelo material mais barato que falta; os outros vêm junto.</p>") + '<ul class="evo">' + E.tier.map(e => `<li>${UI.ico(e.id, 28)}<b>${RES[e.id].name.split(' (')[0]}</b><span>${fmt(e.have)} / ${fmt(e.total)}${e.bag ? ` <em>+${fmt(e.bag)}🎒</em>` : ''}</span></li>`).join('') + '</ul>';
     if (E.ups.length) {
       h += tt("<h3 class=\"evoh\">Próximas melhorias</h3>") + '<div class="evotab">';

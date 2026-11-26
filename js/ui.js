@@ -180,7 +180,8 @@ const UI = {
   },
 
   // faixa grande no meio da tela (vendedor novo, tutorial, baú…)
-  banner(title, sub, ms) {
+  banner(title, sub, ms, tries = 0) {
+    if (this.open && tries < 30) { setTimeout(() => this.banner(title, sub, ms, tries + 1), 400); return; } // painel aberto: espera fechar
     let el = $('banner'); if (!el) { el = document.createElement('div'); el.id = 'banner'; document.body.appendChild(el); }
     el.innerHTML = `<b>${title}</b>${sub ? `<span>${sub}</span>` : ''}`;
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
