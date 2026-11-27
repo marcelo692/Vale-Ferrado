@@ -1,10 +1,11 @@
 {
-  "version": "3.21.0",
+  "version": "3.22.0",
   "date": "2026-11-26",
   "notes": [
-    "Corrigido: em tela pequena a dica do tutorial tampava o botão Forjar",
-    "Missão 1 sozinha também no painel J",
-    "Anúncios esperam o painel fechar; na cena do vendedor ficam acima da barraca"
+    "Missão dos cliques explica: solte o botão e clique rápido (com dica se estiver segurando)",
+    "Tela pequena: dica do tutorial compacta no canto, recibo só com o total, anúncio menor",
+    "Etiquetas das pedras não entram mais na faixa do relógio",
+    "Pausa no meio de uma cena sem as faixas pretas atrás do menu"
   ],
   "files": [
     {
@@ -17,7 +18,7 @@
     },
     {
       "path": "index.html",
-      "size": 43225
+      "size": 43936
     },
     {
       "path": "js/audio.js",
@@ -45,7 +46,7 @@
     },
     {
       "path": "js/game.js",
-      "size": 60147
+      "size": 60538
     },
     {
       "path": "js/i18n.js",
@@ -53,19 +54,19 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 60534
+      "size": 61008
     },
     {
       "path": "js/lang/es.js",
-      "size": 62559
+      "size": 63066
     },
     {
       "path": "js/lang/tr.js",
-      "size": 62083
+      "size": 62551
     },
     {
       "path": "js/missions.js",
-      "size": 18623
+      "size": 18668
     },
     {
       "path": "js/platform.js",
@@ -73,7 +74,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 249926
+      "size": 250074
     },
     {
       "path": "js/robots.js",
@@ -113,7 +114,7 @@
     },
     {
       "path": "version.json",
-      "size": 2076
+      "size": 1978
     }
   ]
 }
