@@ -112,6 +112,7 @@ const Missions = {
   current() {
     const S = Game.S;
     // segredo do fim do jogo: a Picareta 61 leva até a Zona 7
+    if (S.hammer >= 61 && S.seal && !S.dunVisited) return { t: tt("Entre pela porta rúnica da Zona 7: a Masmorra Rúnica te espera"), cur: 0, max: 1, reward: 0, target: { x: Dungeon.doorPt().x, y: Dungeon.doorPt().y, label: tt("Porta rúnica"), always: true } };
     if (S.hammer >= 61 && !S.seal) return { t: tt("Vá até a Zona 7, a Sudeste, e rompa a Pedra Selada"), cur: 0, max: 1, reward: 0, target: { x: Z7.at(-8, 0).x, y: Z7.at(-8, 0).y, label: tt("Zona 7"), always: true } };
     if (S.mi < MISSION_CHAIN.length) { const m = MISSION_CHAIN[S.mi]; return { n: S.mi + 1, of: MISSION_CHAIN.length, t: m.t, d: m.d, cur: Math.max(0, Math.min(m.max, m.cur(S.mb))), max: m.max, reward: m.reward, target: m.target() }; }
     if (!S.rot.length) this.fill();

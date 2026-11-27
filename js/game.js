@@ -78,6 +78,7 @@ const Game = {
     this.fixSoldSpecials();
     Missions.init();
     Vendors.init();
+    Dungeon.init();
     if (this.S.world) World.restore(this.S.world);
     World.setupSeal();
     // lanternas e drones saíram do jogo (v3.6): devolve o que o jogador pagou
@@ -202,6 +203,7 @@ const Game = {
   // golpe por clique: mais rápido, mas gasta fôlego
   clickStrike() {
     if (Dragon.riding) return; // no dragão o clique cospe fogo
+    if (Dungeon.tryHole()) return; // masmorra: em cima do chão rachado, um golpe quebra e a gente cai
     const P = this.P, n = this.target;
     if (UI.open || !n || !this.onGround() || this.travel) return;
     if (this.clickCD > 0) return;
@@ -229,6 +231,7 @@ const Game = {
   },
   interact() {
     if (Dragon.riding) return;
+    if (Dungeon.nearPortal()) { Dungeon.leave(); return; }
     const n = this.npcNear();
     if (n) UI.openNpc(n.id); else if (Daily.near()) Daily.open(); else if (this.pickNear()) this.takePick61();
   },
@@ -261,7 +264,7 @@ const Game = {
   needs() {
     const need = {};
     const add = c => c.mats.forEach(m => { need[m.id] = (need[m.id] || 0) + m.qty; });
-    if (this.S.hammer < MAX_LEVEL) add(hammerCost(this.S.hammer + 1));
+    if (canForge(this.S.hammer)) add(hammerCost(this.S.hammer + 1));
     for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(attrCost(k, this.S.attrs[k] + 1));
     for (const g of this.gadgetUps()) add(g.c);
     return need;
@@ -284,7 +287,7 @@ const Game = {
   keepCap(id, q) {
     const m = this.sellMode(); if (m === 'guardar') return q; if (m === 'vender') return 0;
     if (RES[id].special || this.S.hammer < 3) return q;
-    const hm = this.S.hammer < MAX_LEVEL ? hammerCost(this.S.hammer + 1).mats.find(x => x.id === id) : null;
+    const hm = canForge(this.S.hammer) ? hammerCost(this.S.hammer + 1).mats.find(x => x.id === id) : null;
     const forHammer = hm ? Math.max(0, hm.qty - (this.S.stock[id] || 0)) : 0;
     return Math.max(Math.min(q, forHammer), Math.floor(q * 0.6));
   },
@@ -307,7 +310,7 @@ const Game = {
   needsBy() {
     const by = {};
     const add = (label, c) => c.mats.forEach(m => { (by[m.id] = by[m.id] || []).push(label); });
-    if (this.S.hammer < MAX_LEVEL) add(tt("Martelo nv {0}", this.S.hammer + 1), hammerCost(this.S.hammer + 1));
+    if (canForge(this.S.hammer)) add(tt("Martelo nv {0}", this.S.hammer + 1), hammerCost(this.S.hammer + 1));
     for (const k in ATTRS) if (this.S.attrs[k] < MAX_LEVEL) add(ATTRS[k].short + tt(" nv ") + (this.S.attrs[k] + 1), attrCost(k, this.S.attrs[k] + 1));
     for (const g of this.gadgetUps()) add(g.label, g.c);
     return by;
@@ -369,7 +372,7 @@ const Game = {
     c.mats.forEach(m => { this.S.stock[m.id] -= m.qty; });
   },
   buyHammer() {
-    const L = this.S.hammer + 1; if (L > MAX_LEVEL) return;
+    const L = this.S.hammer + 1; if (!canForge(this.S.hammer)) return;
     const c = hammerCost(L); if (!this.canPay(c)) return;
     this.pay(c); this.S.hammer = L; Snd.forge(); this.mark('martelo' + L);
     if ({ 20: 1, 40: 1, 50: 1, 60: 1 }[L]) setTimeout(() => UI.toast(L === 60 ? tt("🥚 O ovo de dragão está pronto para chocar! (o dragão chega numa próxima grande atualização)") : tt("🥚 Crack! O ovo de dragão da praça rachou mais um pouco…"), 'veio'), 2500);
@@ -404,6 +407,7 @@ const Game = {
     const P = this.P, S = this.S;
     if (this.travel || UI.open) return;
     if (Dragon.riding) Dragon.dismount(true);
+    if (Dungeon.active) { UI.toast(tt("Na Masmorra Rúnica não dá para voltar: só se sai pelo portal do último andar."), 'warn'); return; }
     if (S.hammer < RECALL_LVL) { UI.toast(tt("Voltar à cidade libera no martelo nível {0}.", RECALL_LVL)); return; }
     const d = Math.hypot(P.x, P.y);
     if (d < CITY_R + 2) { UI.toast(tt("Você já está na cidade.")); return; }
@@ -466,7 +470,7 @@ const Game = {
     this.S.detOn = !this.S.detOn; Snd.toggle(this.S.detOn); UI.toast(this.S.detOn ? tt("Detector ligado: a seta volta a guiar (segure G para escolher o que ela procura)") : tt("Detector desligado: a seta some"));
   },
   defaultDetRes() {
-    const L = Math.min(MAX_LEVEL, this.S.hammer + 1);
+    const L = Math.min(HAMMER_MAX, this.S.hammer + 1);
     return HAMMERS[L].mat[0] || resourceForLevel(this.S.hammer).id;
   },
   // materiais que ainda faltam (descontando depósito e mochila), na ordem: martelo, mineração, mochila, movimento, pulo
@@ -474,7 +478,7 @@ const Game = {
   // total = soma do que cada evolução consome (cada compra gasta o seu), menos o que já está guardado
   evoNeeds() {
     const S = this.S, ups = [];
-    if (S.hammer < MAX_LEVEL) ups.push({ label: tt("Martelo"), kind: 'hammer', c: hammerCost(S.hammer + 1) });
+    if (canForge(S.hammer)) ups.push({ label: tt("Martelo"), kind: 'hammer', c: hammerCost(S.hammer + 1) });
     if (Vendors.isOpen('tropeira')) for (const k in ATTRS) if (S.attrs[k] < MAX_LEVEL) ups.push({ label: ATTRS[k].short, kind: k, c: attrCost(k, S.attrs[k] + 1) });
     if (Vendors.isOpen('bazar')) for (const g of this.gadgetUps()) ups.push({ label: g.label, kind: 'gadget', c: g.c });
     const need = new Map();
@@ -492,7 +496,7 @@ const Game = {
   missingList() {
     const S = this.S, need = this.needs(), seen = new Set(), list = [];
     const ups = [];
-    if (S.hammer < MAX_LEVEL) ups.push(hammerCost(S.hammer + 1));
+    if (canForge(S.hammer)) ups.push(hammerCost(S.hammer + 1));
     for (const k of ['mine', 'bag', 'move', 'jump']) if (S.attrs[k] < MAX_LEVEL) ups.push(attrCost(k, S.attrs[k] + 1));
     if (Vendors.isOpen('bazar')) for (const g of this.gadgetUps()) ups.push(g.c);
     for (const c of ups) for (const m of c.mats) {
@@ -640,6 +644,7 @@ const Game = {
     if (this.jumpBuf > 0 && this.onGround() && !this.travel) { this.jumpBuf = 0; this.jump(); }
 
     // cidade e venda automática
+    Dungeon.update(dt); // masmorra: entrada pela porta rúnica, paredes, portal
     this.inCity = Math.hypot(P.x, P.y) < CITY_R;
     // entrega na vila: espera um instante (dá tempo de trocar o modo com N) e entrega conforme o modo
     if (this.inCity && Object.keys(S.bag).length && !this.travel) { if (this.unloadT === undefined) this.unloadT = 2.2; this.unloadT -= dt; if (this.unloadT <= 0) { this.unloadT = undefined; this.unload(); } }
@@ -773,7 +778,7 @@ const Game = {
     S.seal = 1; S.stats.seal = 1; this.gotCint(n.x, n.y, 30); this.shake = 1;
     World.breakNode(n); if (this.target === n) this.target = null;
     Render.openSeal(true);
-    setTimeout(() => { UI.toast(tt("🐉 A porta se entreabriu… do outro lado, algo respira bem devagar. O dragão ainda dorme. Volte quando o ovo chocar."), 'level'); Snd.levelUp(); }, 900);
+    setTimeout(() => { UI.toast(tt("🐉 A porta rúnica se abriu! Lá dentro fica a Masmorra Rúnica: andares que só descem, com minérios do nível 61 ao 70."), 'level'); Snd.levelUp(); }, 900);
     Platform.happy(); this.save();
   },
   // Picareta 61 no pedestal da vila: só quem completou o Martelo 60 pode pegar
@@ -812,7 +817,7 @@ const Game = {
     for (const o of World.obstacles) if (o.h > h && this.P.z >= o.h * 0.9 - 0.05 && this.inObstacle(o, x, y, 0.45)) h = o.h;
     // teto da caverna visto de fora: a laje é chão firme por cima (não dá para cair através dela)
     const c = World.ceilingAt(x, y);
-    if (c !== null) { const g = World.height(x, y); if ((feet === undefined ? g + this.P.z : feet) >= c - 1) h = Math.max(h, c + ROOF_T - g); }
+    if (c !== null && !Dungeon.active) { const g = World.height(x, y); if ((feet === undefined ? g + this.P.z : feet) >= c - 1) h = Math.max(h, c + ROOF_T - g); } // (na masmorra a gente cai pelo buraco do teto)
     return h;
   },
   onGround() { return this.P.vz <= 0 && this.P.z <= this.supportAt(this.P.x, this.P.y) + 0.01; },

@@ -61,13 +61,13 @@ const UI = {
     if (id === 'ferreiro') {
       const L = S.hammer;
       h += tt("<div class=\"cur\"><span class=\"lv\">Nível {0}</span><h3>{1}</h3><p>Força {2}</p></div>", L, HAMMERS[L].n, fmt(HAMMERS[L].f));
-      if (L < MAX_LEVEL) {
+      if (canForge(L)) {
         const c = hammerCost(L + 1);
         h += tt("<div class=\"card big\">{0}<span class=\"lv\">Próximo · nível {1}</span><h3>{2}</h3><p>Força {3} → <b>{4}</b></p>{5}{6}\n          <button class=\"buy\" {7} onclick=\"Game.buyHammer();UI.renderPanel()\">Forjar</button></div>", this.pics('hammer', L + 1, true), L + 1, HAMMERS[L + 1].n, fmt(HAMMERS[L].f), fmt(HAMMERS[L + 1].f), this.costHtml(c), SPECIAL_AT[L + 1] ? tt("<p class=\"rare\">⛰ {0} só existe perto do topo das montanhas da região {1}</p>", RES[SPECIAL_AT[L + 1]].name, REGIONS[RES[SPECIAL_AT[L + 1]].region].name) : '', Game.canPay(c) ? '' : 'disabled');
         h += tt("<h4>Pela frente</h4><ol class=\"road\" start=\"{0}\">", L + 2);
-        for (let i = L + 2; i <= Math.min(MAX_LEVEL, L + 4); i++) h += tt("<li>{0} <i>força {1}</i></li>", HAMMERS[i].n, fmt(HAMMERS[i].f));
+        for (let i = L + 2; i <= Math.min(L < 60 ? 60 : HAMMER_MAX, L + 4); i++) h += tt("<li>{0} <i>força {1}</i></li>", HAMMERS[i].n, fmt(HAMMERS[i].f));
         h += `</ol>`;
-      } else h += tt("<p class=\"done\">Você tem o Martelo do Vale. Não existe nada mais forte.</p>");
+      } else h += L === 60 ? tt("<p class=\"done\">Você tem o Martelo do Vale. A Picareta 61 espera no pedestal da praça.</p>") : L >= HAMMER_MAX ? tt("<p class=\"done\">Você tem a Picareta do Dragão. Não existe nada mais forte.</p>") : tt("<p class=\"done\">Você tem o Martelo do Vale. Não existe nada mais forte.</p>");
       h += tt("<p class=\"hint\">Os materiais saem do depósito.</p>");
     }
 
@@ -387,7 +387,8 @@ const UI = {
     // local
     const sub = World.subAt(G.P.x, G.P.y);
     let loc;
-    if (G.inCity) loc = tt("<b>Vale Ferrado</b>");
+    if (Dungeon.active) loc = tt("<b>Masmorra Rúnica</b> · andar {0} de {1}", Dungeon.floor + 1, DUN.floors);
+    else if (G.inCity) loc = tt("<b>Vale Ferrado</b>");
     else if (sub) loc = tt("<b>{0}</b> · <i>martelo {1}</i>", sub.R.name, sub.level);
     else loc = tt("<b>Campos de Vale Ferrado</b> · {0} m", Math.round(Math.hypot(G.P.x, G.P.y)));
     if (World.veio) loc += tt("<br><span class=\"veio\">⛏ Veio de {0} aflorado: {1} s</span>", RES[World.veio.res].name, Math.ceil(World.veio.t));
@@ -403,7 +404,7 @@ const UI = {
     $('pws').innerHTML = pw; $('pws').style.display = pw ? 'flex' : 'none';
     // dica NPC
     const npc = G.npcNear();
-    const ch = !npc && Daily.near(), pk = !npc && !ch && G.pickNear(), hint = npc ? tt("[E] Falar com {0}", npc.name) : ch ? (Daily.available() ? tt("[E] Abrir o baú diário") : tt("[E] Ver o baú diário")) : pk ? (S.hammer >= 60 ? tt("[E] Pegar a Picareta 61") : tt("[E] Tocar a Picareta 61 (lacrada)")) : '';
+    const ch = !npc && Daily.near(), pk = !npc && !ch && G.pickNear(), hint = npc ? tt("[E] Falar com {0}", npc.name) : ch ? (Daily.available() ? tt("[E] Abrir o baú diário") : tt("[E] Ver o baú diário")) : pk ? (S.hammer >= 60 ? tt("[E] Pegar a Picareta 61") : tt("[E] Tocar a Picareta 61 (lacrada)")) : Dungeon.nearPortal() ? tt("[E] Entrar no portal e voltar para fora") : Dungeon.onHole() ? tt("Clique: quebrar o chão rachado e descer") : Dungeon.nearHole() ? tt("Fique em cima do chão rachado e bata uma vez") : '';
     const showH = hint && !this.open && !(Tutorial.active && Tutorial.step !== 'smith'); // no tutorial só a dica do passo aparece
     $('npchint').textContent = showH ? hint : '';
     $('npchint').style.display = showH ? 'block' : 'none';

@@ -232,6 +232,7 @@
   #tutbox.side { left: 16px; bottom: 16px; transform: none; max-width: 230px; font-size: 15px; flex-direction: column; align-items: flex-start; gap: 8px; }
   #tutbox.side.pop { animation: none; }
   body.paused #tutbox { display: none; }
+  #dunfade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 30; } #dunfade.on { animation: dunfade 1.1s ease-out; } @keyframes dunfade { 0% { opacity: 1; } 100% { opacity: 0; } }
   #tutbox { pointer-events: none; } #tutbox button { pointer-events: auto; } /* a dica nunca rouba o clique (só o Pular é clicável) */
   body.cine #banner { top: 7%; } /* na cena do vendedor, o anúncio fica acima da barraca */
   #tutbox.side.tl { top: 130px; bottom: auto; } /* na forja: canto de cima, fora da janela do Seu Bento */
@@ -333,6 +334,7 @@ addEventListener('unhandledrejection', e => { const m = String((e.reason && e.re
 <script src="js/render3d.js"></script>
 <script src="js/zone7.js"></script>
 <script src="js/dragon.js"></script>
+<script src="js/dungeon.js"></script>
 <script src="js/updater.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/dev.js"></script>

@@ -49,7 +49,7 @@ const World = {
       const a = R.ang * Math.PI / 180;
       R.ux = Math.cos(a); R.uy = Math.sin(a);       // direção
       R.vx = -R.uy; R.vy = R.ux;                    // perpendicular
-      R.res = RESOURCES.filter(r => r.region === R.id && !r.special);
+      R.res = RESOURCES.filter(r => r.region === R.id && !r.special && !r.dun);
       this.pitSetup(R);
       for (let k = 0; k < 10; k++) {
         const d0 = R.dMin + (R.dMax - R.dMin) * k / 10;
@@ -297,7 +297,7 @@ const World = {
       this.veioTimer -= dt;
       if (this.veioTimer <= 0) {
         const maxEra = Math.min(6, eraOf(Game.S.hammer) + 1);
-        const cands = RESOURCES.filter(r => !r.special && REGIONS[r.region].era <= maxEra);
+        const cands = RESOURCES.filter(r => !r.special && !r.dun && REGIONS[r.region].era <= maxEra);
         const res = cands[Math.floor(Math.random() * cands.length)];
         const R = REGIONS[res.region];
         this.veio = { res: res.id, t: 120 };

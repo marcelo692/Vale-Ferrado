@@ -63,6 +63,19 @@ const SPECIALS = [
   { id: 'coracao',      name: tt("Coração da Montanha"),  region: 5, ideal: 59, hard: 10000000, kind: 'special', c: '#c01830', c2: '#ffd34d', special: true },
 ];
 RESOURCES.push(...SPECIALS);
+// minérios da Masmorra Rúnica (atrás da porta da Zona 7): níveis 61 a 70, um andar para cada faixa
+RESOURCES.push(
+  { id: 'pedrarunica', name: tt("Pedra Rúnica"), region: 5, ideal: 61, hard: 14000000, kind: 'stalag', c: '#4a3f5e', c2: '#ffd34d', dun: true },
+  { id: 'cristaleco', name: tt("Cristal de Eco"), region: 5, ideal: 62, hard: 17780000, kind: 'stalag', c: '#5a8ab0', c2: '#bff0ff', dun: true },
+  { id: 'mitril', name: tt("Mitril"), region: 5, ideal: 63, hard: 22581000, kind: 'stalag', c: '#9aa8b8', c2: '#e8f4ff', dun: true },
+  { id: 'ambardragao', name: tt("Âmbar de Dragão"), region: 5, ideal: 64, hard: 28677000, kind: 'stalag', c: '#b0560e', c2: '#ffb43a', dun: true },
+  { id: 'escamafossil', name: tt("Escama Fóssil"), region: 5, ideal: 65, hard: 36420000, kind: 'stalag', c: '#2f6a58', c2: '#7affc8', dun: true },
+  { id: 'adamantita', name: tt("Adamantita"), region: 5, ideal: 66, hard: 46254000, kind: 'stalag', c: '#3a2a4e', c2: '#d07aff', dun: true },
+  { id: 'pedralua', name: tt("Pedra-da-Lua"), region: 5, ideal: 67, hard: 58742000, kind: 'stalag', c: '#6a7aa0', c2: '#e8f0ff', dun: true },
+  { id: 'rubichama', name: tt("Rubi-Chama"), region: 5, ideal: 68, hard: 74603000, kind: 'stalag', c: '#8a1020', c2: '#ff5a3a', dun: true },
+  { id: 'abissal', name: tt("Obsidiana Abissal"), region: 5, ideal: 69, hard: 94745000, kind: 'stalag', c: '#120a1a', c2: '#7a5aff', dun: true },
+  { id: 'coracaodragao', name: tt("Coração de Dragão"), region: 5, ideal: 70, hard: 120327000, kind: 'stalag', c: '#a01428', c2: '#ffe27a', dun: true },
+);
 const RES = {};
 // escada de tamanho dos minérios: pequeno 1x, médio 2x, grande e especial 3x de altura (largura cresce metade)
 function oreMul(n) { const M = (n.res.wild || n.res.sealed) ? 1 : (n.res.special || n.size >= 2) ? 3 : n.size >= 1 ? 2 : 1; return { M, W: 1 + (M - 1) * 0.5 }; }
@@ -135,8 +148,20 @@ const HAMMERS = [
   { n: tt("Martelo de ferro meteórico"),          f: 800000,  mat: ['meteoro'] },
   { n: tt("Martelo do Vale"),                     f: 1000000, mat: ['nucleo'] },
   { n: tt("Picareta Rúnica"),                     f: 1400000, mat: [] }, // nível 61: segredo da Zona 7 (não entra na forja)
+  // 62 a 70: forjadas com os minérios da Masmorra Rúnica
+  { n: tt("Picareta de Pedra Rúnica"), f: 1778000, mat: ['pedrarunica', 'cristaleco'] },
+  { n: tt("Picareta de Eco"), f: 2258000, mat: ['cristaleco', 'mitril'] },
+  { n: tt("Picareta de Mitril"), f: 2868000, mat: ['mitril', 'ambardragao'] },
+  { n: tt("Picareta de Âmbar de Dragão"), f: 3642000, mat: ['ambardragao', 'escamafossil'] },
+  { n: tt("Picareta de Escama"), f: 4625000, mat: ['escamafossil', 'adamantita'] },
+  { n: tt("Picareta de Adamantita"), f: 5874000, mat: ['adamantita', 'pedralua'] },
+  { n: tt("Picareta da Lua"), f: 7460000, mat: ['pedralua', 'rubichama'] },
+  { n: tt("Picareta Rubi-Chama"), f: 9475000, mat: ['rubichama', 'abissal'] },
+  { n: tt("Picareta do Dragão"), f: 12033000, mat: ['abissal', 'coracaodragao'] },
 ];
-const MAX_LEVEL = 60;
+const MAX_LEVEL = 60;          // atributos e martelos da forja normal
+const HAMMER_MAX = 70;         // picaretas da masmorra vão até 70 (a 61 vem do pedestal)
+function canForge(L) { return L < HAMMER_MAX && L !== 60; } // do 60 para o 61 é pelo pedestal
 
 // Cor da cabeça do martelo por nível (visual)
 function hammerLook(L) {
@@ -162,6 +187,7 @@ function hammerLook(L) {
     if (L <= 47) return { head: '#d9a21a', head2: '#ffe27a', handle: '#222', type: 'machine' };
     return { head: '#8d96a6', head2: '#e6ecf5', handle: '#222', type: 'machine' };
   }
+  if (L >= 61) { const o = RESOURCES.find(r => r.dun && r.ideal === Math.min(70, L)); return { head: o ? o.c2 : '#ffe27a', head2: '#ffffff', handle: '#1a1424', type: 'crystal', glow: o ? o.c2 : '#ffe27a' }; }
   const crystal = { 51: '#d9dde6', 52: '#9b6ad6', 53: '#2ec27e', 54: '#e8324f', 55: '#3a74f0', 56: '#c06af0', 57: '#bdf2ff', 58: '#ff8a3d', 59: '#ff6a2a', 60: '#7af0ff' };
   return { head: crystal[L], head2: '#ffffff', handle: '#2a2238', type: L >= 58 ? 'meteor' : 'crystal', glow: crystal[L] };
 }
@@ -196,7 +222,7 @@ function attrLabel(key, lvl) {
 function hammerCost(L) { // custo para chegar ao nível L
   const h = HAMMERS[L];
   // primeiros martelos bem baratos: a primeira evolução sai em menos de 1 minuto
-  const qty = L <= 4 ? L : L <= 12 ? Math.round(2 + L * 0.4) : 3 + Math.floor(L / 2); // 5 a 12: menos material (a pedra do seu nível é a lenta)
+  const qty = L > 61 ? 10 : L <= 4 ? L : L <= 12 ? Math.round(2 + L * 0.4) : 3 + Math.floor(L / 2); // 5 a 12: menos material (a pedra do seu nível é a lenta)
   const money = L <= 4 ? [0, 0, 0, 0, 18][L] : Math.round(25 * Math.pow(1.31, L - 2) * Math.min(1, 0.55 + (L - 4) * 0.05)); // martelos 5 a 12 mais baratos: o Martelo 10 sai perto dos 10 minutos
   const mats = h.mat.map(id => ({ id, qty }));
   if (SPECIAL_AT[L]) mats.push({ id: SPECIAL_AT[L], qty: 5 });

@@ -108,6 +108,7 @@ const Dragon = {
     if (!this.owned()) return;
     if (this.riding) { this.dismount(); return; }
     if (UI.open || Game.travel) return;
+    if (Dungeon.active || World.ceilingAt(Game.P.x, Game.P.y) !== null) { UI.toast(tt("🐉 Aqui dentro o dragão não cabe. Ele só voa ao ar livre."), 'warn'); Snd.denied && Snd.denied(); return; }
     this.build();
     const P = Game.P;
     this.riding = true; this.landing = false;
@@ -151,6 +152,8 @@ const Dragon = {
     // altura absoluta, sem entrar no chão nem no teto da mina
     let alt = g0 + P.z + this.vel.y * dt;
     P.x += this.vel.x * dt; P.y += this.vel.z * dt;
+    // lugar fechado (Mina Velha): o dragão não entra, para na boca
+    if (World.ceilingAt(P.x, P.y) !== null) { P.x -= this.vel.x * dt * 1.5; P.y -= this.vel.z * dt * 1.5; this.vel.x *= -0.2; this.vel.z *= -0.2; if (!this.roofT || Game.S.time - this.roofT > 4) { this.roofT = Game.S.time; UI.toast(tt("🐉 O dragão não cabe em lugar fechado. Pouse do lado de fora e entre a pé."), 'warn'); } }
     const g1 = World.height(P.x, P.y), ceil = World.ceilingAt(P.x, P.y);
     alt = Math.max(g1 + 0.4, Math.min(alt, 420));
     if (ceil !== null) alt = Math.min(alt, ceil - 3.2);
@@ -193,7 +196,7 @@ const Dragon = {
 
   // ---------- animação e câmera (chamado pelo Render a cada quadro) ----------
   frame(dt, cam) {
-    if (!this.owned() && !this.riding) { if (this.g) this.g.visible = false; return; }
+    if ((!this.owned() && !this.riding) || Dungeon.active) { if (this.g) this.g.visible = false; return; } // dentro da masmorra ele some
     this.build();
     const P = Game.P, t = Render.t;
     if (!this.pos) { // primeira vez: pousado ao lado da fonte

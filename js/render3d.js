@@ -1591,7 +1591,18 @@ const Render = {
     const g = new THREE.Group(), res = n.res, r = rng(Math.floor(n.seed * 1000)), s = n.r * 0.55;
     const rock = (col, sz, seed) => mesh(jitterGeo(new THREE.IcosahedronGeometry(sz, 0), sz * 0.35, seed), mat(col));
     const kind = res.kind;
-    if (kind === 'nut') {
+    if (kind === 'stalag') {
+      // estalagmites da masmorra: cones de pedra escura com veios e pontas de cristal da cor do minério
+      const stone = mat('#2e2834', { shininess: 6 }), vein = mat(res.c, { emissive: res.c2, emissiveIntensity: 0.25, shininess: 60 }), tip = new THREE.MeshBasicMaterial({ color: res.c2 });
+      const n0 = 3 + Math.floor(r() * 3);
+      for (let i = 0; i < n0; i++) {
+        const a = r() * 6.28, d = i ? s * (0.5 + r() * 0.6) : 0, h = s * (i ? 1.4 + r() * 1.2 : 2.6 + r() * 0.8), rad = s * (i ? 0.28 + r() * 0.12 : 0.45);
+        const c = mesh(jitterGeo(new THREE.ConeGeometry(rad, h, 6, 3), rad * 0.18, n.seed + i), i % 2 ? vein : stone); c.position.set(Math.cos(a) * d, h / 2, Math.sin(a) * d); c.rotation.set((r() - 0.5) * 0.25, r() * 6, (r() - 0.5) * 0.25); g.add(c);
+        const t = new THREE.Mesh(new THREE.OctahedronGeometry(rad * 0.55, 0), tip); t.scale.y = 1.8; t.position.set(Math.cos(a) * d, h * 0.82, Math.sin(a) * d); g.add(t);
+      }
+      for (let i = 0; i < 5; i++) { const a = r() * 6.28, c = mesh(new THREE.OctahedronGeometry(s * (0.12 + r() * 0.1), 0), vein); c.position.set(Math.cos(a) * s * 0.7, s * (0.2 + r() * 0.9), Math.sin(a) * s * 0.7); c.rotation.set(r() * 3, r() * 3, r() * 3); g.add(c); }
+      const base = mesh(jitterGeo(new THREE.CylinderGeometry(s * 0.9, s * 1.1, s * 0.4, 7), s * 0.1, 7), stone); base.position.y = s * 0.15; g.add(base);
+    } else if (kind === 'nut') {
       // monte de nozes: uma grande na frente e menores em volta, casca marrom-clara enrugada com a "costura" no meio
       const shells = ['#7a4a22', '#6c401c', '#87532a', '#5f3a1a'];
       const nut = (sz, x, y, z, i) => {
@@ -1765,7 +1776,7 @@ const Render = {
   // ---------- picaretas (martelos 31 a 59): cada faixa fica mais enfeitada, com brilho e partículas crescentes ----------
   makePick(L, g, handle, len, hw, hl) {
     const p = Math.min(1, (L - 31) / 28), tier = L >= 61 ? 9 : L <= 34 ? 0 : L <= 37 ? 1 : L <= 40 ? 2 : L <= 44 ? 3 : L <= 47 ? 4 : L <= 50 ? 5 : L <= 55 ? 6 : L <= 57 ? 7 : 8;
-    const gem = L >= 61 ? '#ffe27a' : hammerLook(L).head;
+    const gem = L === 61 ? '#ffe27a' : hammerLook(L).head;
     const PAL = [
       { h: '#8e949c', t: '#c4cad0', glow: null },
       { h: '#5f6a76', t: '#c9d3dd', glow: '#bfe6ff' },
@@ -1846,7 +1857,7 @@ const Render = {
     const len = 0.5 + L * 0.02, hw = 0.07 + L * 0.004, hl = 0.18 + L * 0.011;
     const emi = look.glow ? { emissive: look.glow, emissiveIntensity: 0.35 } : {};
     const handle = mesh(new THREE.CylinderGeometry(0.022 + L * 0.0006, 0.028 + L * 0.0006, len, 6), mat(look.handle), false); handle.position.y = len / 2; g.add(handle);
-    if ((L >= 31 && L <= 59) || L === 61) return this.makePick(L, g, handle, len, hw, hl);
+    if ((L >= 31 && L <= 59) || L >= 61) return this.makePick(L, g, handle, len, hw, hl);
     let head;
     if (L === 1) { // colher de sopa: cabo fininho de metal e a concha na ponta
       handle.visible = false;
@@ -1932,7 +1943,7 @@ const Render = {
     if (G.era >= 4) { const brace = mesh(new THREE.BoxGeometry(0.09, 0.09, 0.1), mat(G.era === 6 ? '#2a3a48' : '#9aa0a8', { shininess: 60 }), false); brace.position.z = 0.09; wrist.add(brace); }
     if (G.era >= 5) { const pis = mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 6), mat('#d8dde2', { shininess: 80 }), false); pis.rotation.x = Math.PI / 2; pis.position.set(0.05, 0.04, 0.14); wrist.add(pis); }
     // martelo/picareta: cresce com o nível; nos cabos compridos a mão segura mais embaixo, para todos acertarem o mesmo ponto
-    const ham = this.hammerInHand(L), sc = (0.3 + (L - 1) / 60 * 0.22) * (L === 60 ? 1 : L >= 40 ? 0.52 : L >= 31 ? 0.62 : 1);
+    const ham = this.hammerInHand(L), sc = (0.3 + (L - 1) / 60 * 0.22) * (L === 60 ? 1 : L >= 61 ? 0.4 : L >= 40 ? 0.52 : L >= 31 ? 0.62 : 1);
     ham.scale.setScalar(sc); ham.rotation.set(-0.15, 0, 0); ham.position.set(0, -0.03, 0); wrist.add(ham); this.vmHam = ham;
     if (ham.userData.head) { wrist.updateWorldMatrix(true, true); const hp = wrist.worldToLocal(ham.userData.head.getWorldPosition(new V3())); if (hp.length() > 0.3) ham.position.sub(hp.sub(hp.clone().setLength(0.3))); else if (hp.length() < 0.24) ham.scale.multiplyScalar(0.24 / hp.length()); } // curtos crescem até alcançar
     if (this.quality === 'leve') { const u = ham.userData; this.bakeNode(ham, true, { skip: new Set([u.orbit, u.ring].filter(Boolean)) }); } // Leve: martelo da mão numa peça só
@@ -2521,7 +2532,8 @@ const Render = {
     this.t += dt;
     const P = Game.P;
     this.updateDayNight();
-    this.cullFar(); this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateOreLod(); this.updateGrass(); this.updateBirds(dt); this.updateVendors(dt); this.updateChest(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
+    const inDun = typeof Dungeon !== 'undefined' && Dungeon.active; // dentro da masmorra o terreno de fora não é redesenhado
+    this.cullFar(); if (!inDun) { this.updateNearGround(); this.updateFarGround(); this.updateDecor(); this.updateGrass(); } this.updateOreLod(); this.updateBirds(dt); this.updateVendors(dt); this.updateChest(); this.updateHouses(); this.syncNodes(); this.updateFx(); this.updatePlayer();
     // câmera
     const gh = World.height(P.x, P.y);
     const bob = P.z === 0 ? Math.sin(P.walkT * (P.sprint ? 2.6 : 2.2) * 2) * (P.sprint ? 0.06 : 0.035) * (P.bobAmp || 0) : 0;

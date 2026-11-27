@@ -212,7 +212,7 @@ Object.assign(Render, {
     inner.onBeforeRender = () => {
       const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
       S7.cur += (S7.target - S7.cur) * (1 - Math.exp(-dt * 1.4));
-      for (const [pv, sd] of leaves) pv.rotation.y = -sd * S7.cur * 0.34;
+      for (const [pv, sd] of leaves) pv.rotation.y = -sd * S7.cur * 1.25; // Pedra Selada quebrada: a porta abre de vez (entrada da Masmorra Rúnica)
       inner.material.opacity = S7.cur * (0.75 + Math.sin(now / 600) * 0.1); spill.material.opacity = S7.cur * 0.55;
       const blink = Math.sin(now / 1900) > 0.93 ? 0 : 1; eyes.forEach(e => { e.material.opacity = S7.cur * 0.9 * blink; });
     };
