@@ -1,11 +1,8 @@
 {
-  "version": "3.22.0",
+  "version": "3.23.0",
   "date": "2026-11-26",
   "notes": [
-    "Missão dos cliques explica: solte o botão e clique rápido (com dica se estiver segurando)",
-    "Tela pequena: dica do tutorial compacta no canto, recibo só com o total, anúncio menor",
-    "Etiquetas das pedras não entram mais na faixa do relógio",
-    "Pausa no meio de uma cena sem as faixas pretas atrás do menu"
+    "Novo: o dragão! Montaria que voa livre pelo mapa, com sopro de fogo (por enquanto liberado pelo modo dev)"
   ],
   "files": [
     {
@@ -18,7 +15,7 @@
     },
     {
       "path": "index.html",
-      "size": 43936
+      "size": 43973
     },
     {
       "path": "js/audio.js",
@@ -42,11 +39,15 @@
     },
     {
       "path": "js/dev.js",
-      "size": 10808
+      "size": 11390
+    },
+    {
+      "path": "js/dragon.js",
+      "size": 17717
     },
     {
       "path": "js/game.js",
-      "size": 60538
+      "size": 61014
     },
     {
       "path": "js/i18n.js",
@@ -54,15 +55,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 61008
+      "size": 61358
     },
     {
       "path": "js/lang/es.js",
-      "size": 63066
+      "size": 63437
     },
     {
       "path": "js/lang/tr.js",
-      "size": 62551
+      "size": 62920
     },
     {
       "path": "js/missions.js",
@@ -74,7 +75,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 250074
+      "size": 250525
     },
     {
       "path": "js/robots.js",
@@ -114,7 +115,7 @@
     },
     {
       "path": "version.json",
-      "size": 1978
+      "size": 2102
     }
   ]
 }
