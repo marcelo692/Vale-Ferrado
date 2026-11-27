@@ -29,6 +29,7 @@ function newState() {
     showInv: false,   // tabela lateral de evoluções e materiais
     robots: 0,        // robôs auto-mineradores comprados
     cint: 3, olho: 0, // Cintilhas e nível do Olho de Garimpeiro
+    dragon: false,    // dragão (montaria voadora do fim do jogo)
   };
 }
 
@@ -145,7 +146,7 @@ const Game = {
       if (k === 'v') Render.toggleView();
       if (k === 'b') { this.S.showBadges = this.S.showBadges === false; UI.toast(this.S.showBadges === false ? tt("Etiquetas dos recursos escondidas (B mostra)") : tt("Etiquetas dos recursos visíveis")); }
       if (k === 'i') { this.S.showInv = !this.S.showInv; Snd.toggle(this.S.showInv); }
-      if (k === 'r') this.toggleRide();
+      if (k === 'r') { if (this.S.dragon) Dragon.toggle(); else this.toggleRide(); } // com o dragão, R monta/pousa
       if (k === 'g' && !e.repeat) { this.gHold = setTimeout(() => { this.gHold = null; this.gMenu = true; UI.detectorPanel(); }, 400); }
       if (k === 't') UI.detectorPanel();
       if (k === 'n') this.cycleSellMode();
@@ -200,6 +201,7 @@ const Game = {
 
   // golpe por clique: mais rápido, mas gasta fôlego
   clickStrike() {
+    if (Dragon.riding) return; // no dragão o clique cospe fogo
     const P = this.P, n = this.target;
     if (UI.open || !n || !this.onGround() || this.travel) return;
     if (this.clickCD > 0) return;
@@ -226,6 +228,7 @@ const Game = {
     return best;
   },
   interact() {
+    if (Dragon.riding) return;
     const n = this.npcNear();
     if (n) UI.openNpc(n.id); else if (Daily.near()) Daily.open(); else if (this.pickNear()) this.takePick61();
   },
@@ -400,6 +403,7 @@ const Game = {
   recall() {
     const P = this.P, S = this.S;
     if (this.travel || UI.open) return;
+    if (Dragon.riding) Dragon.dismount(true);
     if (S.hammer < RECALL_LVL) { UI.toast(tt("Voltar à cidade libera no martelo nível {0}.", RECALL_LVL)); return; }
     const d = Math.hypot(P.x, P.y);
     if (d < CITY_R + 2) { UI.toast(tt("Você já está na cidade.")); return; }
@@ -558,9 +562,10 @@ const Game = {
     for (let i = S.active.length - 1; i >= 0; i--) { S.active[i].left -= dt; if (S.active[i].left <= 0) { UI.toast(tt("{0} acabou.", POWERUPS[S.active[i].id].name)); S.active.splice(i, 1); } }
 
 
-    const climbing = !this.travel && !Dev.fly && this.updateClimb(dt);
-    if (!Dev.fly) this.updateJet(dt);
+    const climbing = !this.travel && !Dev.fly && !Dragon.riding && this.updateClimb(dt);
+    if (!Dev.fly && !Dragon.riding) this.updateJet(dt);
     if (Dev.fly && !UI.open) { Dev.updateFly(dt); } // modo dev: voo livre sem colisão
+    else if (Dragon.riding) { if (!UI.open) Dragon.fly(dt); } // montado no dragão
     else if (this.travel) { this.updateTravel(dt); }
     else if (climbing) { /* gancho ou escada */ }
     else if (!UI.open) {
@@ -620,13 +625,13 @@ const Game = {
     // pulo e queda: dá para subir em cima de troncos, muros e pedras e andar por cima deles
     const support = this.supportAt(P.x, P.y);
     if (support > 0 && !this.onObs) { this.onObs = true; this.S.stats.hops++; } else if (support <= 0) this.onObs = false;
-    if (this.travel || this.hook || this.ladder || Dev.fly) { /* voando de volta, escalando ou no voo livre do modo dev */ }
+    if (this.travel || this.hook || this.ladder || Dev.fly || Dragon.riding) { /* voando de volta, escalando ou no voo livre do modo dev */ }
     else if (P.z > support + 0.001 || P.vz > 0) {
       const g = GRAV * (P.vz < 0 ? 1.25 : 1); P.z += P.vz * dt - 0.5 * g * dt * dt; P.vz -= g * dt; // conta exata: o pulo tem a mesma altura em 30, 60, 144 ou 165 quadros por segundo P.peak = Math.max(P.peak || 0, P.z);
       if (P.z <= support && P.vz <= 0) { const fall = (P.peak || 0) - support; P.z = support; P.vz = 0; this.fxBurst(P.x, P.y, '#b8a888', 5, 0.4); Snd.land(Math.max(0, fall)); if (fall > 0.35) this.landDip = Math.min(0.3, 0.04 + fall * 0.045); }
     } else { P.z = support; P.vz = 0; }
     // teto da caverna: não deixa a cabeça atravessar a rocha (pulo, jetpack, cama elástica)
-    if (!Dev.fly) { const ceil = World.ceilingAt(P.x, P.y); if (ceil !== null) { const g0 = World.height(P.x, P.y), maxZ = ceil - 1.85 - g0; if (maxZ > 0 && P.z > maxZ && g0 + P.z < ceil - 0.5) { P.z = maxZ; if (P.vz > 0) P.vz = 0; } } }
+    if (!Dev.fly && !Dragon.riding) { const ceil = World.ceilingAt(P.x, P.y); if (ceil !== null) { const g0 = World.height(P.x, P.y), maxZ = ceil - 1.85 - g0; if (maxZ > 0 && P.z > maxZ && g0 + P.z < ceil - 0.5) { P.z = maxZ; if (P.vz > 0) P.vz = 0; } } }
 
     this.landDip = (this.landDip || 0) * Math.exp(-dt * 9);
     // pulo mais perdoador: 0,1 s de tolerância ao sair de uma borda e 0,12 s de pulo antecipado
@@ -642,13 +647,13 @@ const Game = {
     this.wasInCity = this.inCity;
 
     // mineração
-    this.target = UI.open || this.travel ? null : Render.pickTarget(this.reach());
+    this.target = UI.open || this.travel || Dragon.riding ? null : Render.pickTarget(this.reach());
     // segurar = velocidade normal sem gastar fôlego; clicar = golpes rápidos que gastam fôlego (clickStrike)
     this.clickCD = Math.max(0, (this.clickCD || 0) - dt);
     this.swingAnim = Math.max(0, (this.swingAnim || 0) - dt);
     if (this.mouse.down) this.mouse.holdT = (this.mouse.holdT || 0) + dt;
     const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear() && !this.pickNear());
-    const mining = !UI.open && !this.travel && this.target && holding && (this.onGround() || Dev.fly);
+    const mining = !Dragon.riding && !UI.open && !this.travel && this.target && holding && (this.onGround() || Dev.fly);
     if (mining) {
       // missão dos cliques: quem segura o botão recebe a dica (uma vez a cada 30 s)
       if (this.mouse.holdT > 2 && MISSION_CHAIN[this.S.mi] && MISSION_CHAIN[this.S.mi].id === 'clique' && !(this.S.time - (this.clickTipT || -99) < 30)) { this.clickTipT = this.S.time; UI.toast(tt("Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)"), 'money'); }

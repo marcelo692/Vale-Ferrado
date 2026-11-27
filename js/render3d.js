@@ -2504,7 +2504,8 @@ const Render = {
     this.legs[0].rotation.x = w; this.legs[1].rotation.x = -w;
     const s = P.swing, raise = s < 0.7 ? s / 0.7 : 1 - (s - 0.7) / 0.3;
     this.pArm.rotation.x = raise * 2.4;
-    const fp = this.view === 'fp';
+    const fp = this.view === 'fp' && !((typeof Dragon !== 'undefined') && Dragon.riding);
+    if ((typeof Dragon !== 'undefined') && Dragon.riding && Dragon.seat) { Dragon.seatPos(g.position); g.rotation.y = Dragon.yaw; this.legs[0].rotation.x = -1.2; this.legs[1].rotation.x = -1.2; } // sentado na sela
     // primeira pessoa: o corpo aparece ao olhar para baixo; só a cabeça, o braço do martelo e a mochila somem
     if (this._fpWas !== fp || this._fpSig !== this.sig.pl) {
       this._fpWas = fp; this._fpSig = this.sig.pl;
@@ -2535,6 +2536,7 @@ const Render = {
       const cx = P.x + fx * back + Math.cos(P.yaw) * 0.7, cz = P.y + fz * back - Math.sin(P.yaw) * 0.7; // câmera sobre o ombro
       this.cam.position.set(cx, Math.max(World.height(cx, cz) + 0.5, gh + P.z + 1.7 + bs * 0.9 - Math.sin(P.pitch) * back), cz);
     }
+    if ((typeof Dragon !== 'undefined')) Dragon.frame(dt, this.cam); // dragão: anima e, montado, põe a câmera atrás dele
     const rr = Game.ride(); const wantFov = Game.travel ? 72 + Math.min(34, (P.speedNow || 0) * 0.12) : (P.sprint ? 82 : 72) + (rr && P.moving ? Math.min(14, rr.mult * 2.5) : 0); this.cam.fov += (wantFov - this.cam.fov) * Math.min(1, dt * 6); this.cam.updateProjectionMatrix();
     // céu, montanhas e nuvens acompanham o jogador (horizonte infinito)
     this.sky.position.copy(this.cam.position);
@@ -2561,7 +2563,7 @@ const Render = {
     this.r.render(this.scene, this.cam);
     this.updateArrow();
     if (!UI.open && !Cine.busy()) {
-      const fpv = this.view === 'fp'; this.vm.visible = fpv;
+      const fpv = this.view === 'fp' && !((typeof Dragon !== 'undefined') && Dragon.riding); this.vm.visible = fpv;
       if (fpv) this.updateViewModel(dt);
       if (fpv || this.arrowPivot.visible) { this.r.clearDepth(); this.r.render(this.vmScene, this.vmCam); }
     }

@@ -82,6 +82,8 @@ const Dev = {
       <h4>🎒 ${tt("Equipamentos")}</h4>${gadRows}
       <h4>🤖 ${tt("Robôs")}</h4>
       <div class="dv-row"><span>${tt("Robôs")}</span><b>${S.robots || 0}</b>${b('+1', 'Dev.robot(1)')}${b('−1', 'Dev.robot(-1)')}${b(tt('Oficina no máximo'), 'Dev.robotMax()')}</div>
+      <h4>🐉 ${tt("Dragão")}</h4>
+      <div class="dv-row"><span>${Game.S.dragon ? tt('Você tem o dragão') : tt('Sem dragão')}</span>${b(Game.S.dragon ? tt('Tirar o dragão') : tt('Ganhar o dragão'), 'Dev.dragon()', Game.S.dragon ? 'alt' : '')}${Game.S.dragon ? b(tt('Montar agora (R)'), 'UI.close();Game.lock();Dragon.toggle()') : ''}</div>
       <h4>🌍 ${tt("Ir para")}</h4>
       <div class="dv-grid">${b('🏠 ' + tt('Vila'), 'Dev.tpXY(0,6)')}${regs}${b('🔒 ' + tt('Zona 7'), 'Dev.tpXY(Z7.x,Z7.y)')}${b('⛰ ' + tt('Montanha rara mais próxima'), 'Dev.tpMtn()')}</div>
       <h4>⚙ ${tt("Mundo e sistemas")}</h4>
@@ -90,6 +92,7 @@ const Dev = {
     </div></div>`;
   },
   after() { Game.save(); this.badge(); },
+  dragon() { const S = Game.S; if (S.dragon && Dragon.riding) Dragon.dismount(true); S.dragon = !S.dragon; if (S.dragon) { Dragon.pos = null; UI.toast(tt('🐉 Dragão liberado! Aperte R para montar.'), 'level'); } this.after(); },
   hammer(d) { const S = Game.S; S.hammer = Math.max(1, Math.min(61, S.hammer + d)); S.npcOpen = S.npcOpen || {}; for (const n of NPCS) if (S.hammer >= n.unlock) S.npcOpen[n.id] = true; /* sem fila de cenas */ if (S.hammer > 1 && !S.tut) S.tut = 'skip'; if (typeof Tutorial !== 'undefined' && Tutorial.active) Tutorial.finish(true); this.after(); },
   money(v) { const S = Game.S; S.money = Math.max(0, S.money + v); if (v > 0) S.earned += v; this.after(); },
   cint(v) { const S = Game.S; S.cint = (S.cint || 0) + v; this.after(); },

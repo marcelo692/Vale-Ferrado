@@ -638,5 +638,8 @@ I18N.tr = {
 "📜 Missões e melhorias": "📜 Görevler ve geliştirmeler",
 "Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)": "Görev: düğmeyi bırak ve taşa art arda birkaç kez tıkla (tık, tık, tık!)",
 "Solte o botão: dê 10 cliques rápidos numa pedra": "Düğmeyi bırak: bir taşa 10 kez hızlıca tıkla",
-"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "Basılı tutmak yerine art arda tıkla: çok daha hızlı vurur ama nefes harcar."
+"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "Basılı tutmak yerine art arda tıkla: çok daha hızlı vurur ama nefes harcar.",
+"🐉 No dragão! W voa · mouse guia · Espaço sobe · C desce · Shift rápido · clique cospe fogo · R pousa": "🐉 Ejderhadasın! W uç · fare yönlendirir · Boşluk yukarı · C aşağı · Shift hızlı · tık ateş püskürtür · R iner",
+"🐉 Pousando…": "🐉 İniyor…",
+"🐉 Pousou. R para montar de novo.": "🐉 İndi. Tekrar binmek için R."
 };

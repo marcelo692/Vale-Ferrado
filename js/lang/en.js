@@ -638,5 +638,8 @@ I18N.en = {
 "📜 Missões e melhorias": "📜 Missions and upgrades",
 "Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)": "Mission: let go of the button and click the rock several times in a row (click, click, click!)",
 "Solte o botão: dê 10 cliques rápidos numa pedra": "Let go: click a rock 10 times quickly",
-"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "Instead of holding, click several times in a row: it hits much faster, but uses stamina."
+"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "Instead of holding, click several times in a row: it hits much faster, but uses stamina.",
+"🐉 No dragão! W voa · mouse guia · Espaço sobe · C desce · Shift rápido · clique cospe fogo · R pousa": "🐉 On the dragon! W flies · mouse steers · Space up · C down · Shift fast · click breathes fire · R lands",
+"🐉 Pousando…": "🐉 Landing…",
+"🐉 Pousou. R para montar de novo.": "🐉 Landed. Press R to ride again."
 };

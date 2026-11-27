@@ -638,5 +638,8 @@ I18N.es = {
 "📜 Missões e melhorias": "📜 Misiones y mejoras",
 "Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)": "Misión: suelta el botón y haz clic varias veces seguidas en la piedra (¡clic, clic, clic!)",
 "Solte o botão: dê 10 cliques rápidos numa pedra": "Suelta el botón: haz 10 clics rápidos en una piedra",
-"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "En vez de mantener pulsado, haz clic varias veces seguidas: golpea mucho más rápido, pero gasta aliento."
+"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "En vez de mantener pulsado, haz clic varias veces seguidas: golpea mucho más rápido, pero gasta aliento.",
+"🐉 No dragão! W voa · mouse guia · Espaço sobe · C desce · Shift rápido · clique cospe fogo · R pousa": "🐉 ¡En el dragón! W vuela · el ratón guía · Espacio sube · C baja · Shift rápido · clic escupe fuego · R aterriza",
+"🐉 Pousando…": "🐉 Aterrizando…",
+"🐉 Pousou. R para montar de novo.": "🐉 Aterrizó. R para montar de nuevo."
 };
