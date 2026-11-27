@@ -1,10 +1,9 @@
 {
-  "version": "3.24.0",
-  "date": "2026-11-26",
+  "version": "3.25.0",
+  "date": "2026-11-27",
   "notes": [
-    "Novo: Masmorra Rúnica atrás da porta da Zona 7 — 4 andares que só descem (quebre o chão rachado), minérios do nível 61 ao 70 e portal de saída",
-    "Picaretas 62 a 70 forjadas com os minérios da masmorra",
-    "O dragão não entra em lugar fechado (Mina Velha e masmorra)"
+    "Bigorna Rúnica no último andar da masmorra: guarda a mochila e forja as picaretas ali mesmo",
+    "Dois portais de saída: para a vila (perto do Seu Bento) ou para a porta rúnica"
   ],
   "files": [
     {
@@ -49,11 +48,11 @@
     },
     {
       "path": "js/dungeon.js",
-      "size": 15578
+      "size": 18926
     },
     {
       "path": "js/game.js",
-      "size": 61496
+      "size": 61606
     },
     {
       "path": "js/i18n.js",
@@ -61,15 +60,15 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 64462
+      "size": 65779
     },
     {
       "path": "js/lang/es.js",
-      "size": 66655
+      "size": 67991
     },
     {
       "path": "js/lang/tr.js",
-      "size": 65999
+      "size": 67274
     },
     {
       "path": "js/missions.js",
@@ -93,7 +92,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 41770
+      "size": 41912
     },
     {
       "path": "js/updater.js",
@@ -121,7 +120,7 @@
     },
     {
       "path": "version.json",
-      "size": 1948
+      "size": 2189
     }
   ]
 }
