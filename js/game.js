@@ -231,7 +231,8 @@ const Game = {
   },
   interact() {
     if (Dragon.riding) return;
-    if (Dungeon.nearPortal()) { Dungeon.leave(); return; }
+    { const q = Dungeon.nearPortal(); if (q) { Dungeon.leave(q.dest); return; } }
+    if (Dungeon.nearAnvil()) { Dungeon.useAnvil(); return; }
     const n = this.npcNear();
     if (n) UI.openNpc(n.id); else if (Daily.near()) Daily.open(); else if (this.pickNear()) this.takePick61();
   },
@@ -407,7 +408,7 @@ const Game = {
     const P = this.P, S = this.S;
     if (this.travel || UI.open) return;
     if (Dragon.riding) Dragon.dismount(true);
-    if (Dungeon.active) { UI.toast(tt("Na Masmorra Rúnica não dá para voltar: só se sai pelo portal do último andar."), 'warn'); return; }
+    if (Dungeon.active) { UI.toast(tt("Na Masmorra Rúnica não dá para voltar: só se sai pelos portais do último andar (vila ou porta rúnica)."), 'warn'); return; }
     if (S.hammer < RECALL_LVL) { UI.toast(tt("Voltar à cidade libera no martelo nível {0}.", RECALL_LVL)); return; }
     const d = Math.hypot(P.x, P.y);
     if (d < CITY_R + 2) { UI.toast(tt("Você já está na cidade.")); return; }

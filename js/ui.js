@@ -404,7 +404,7 @@ const UI = {
     $('pws').innerHTML = pw; $('pws').style.display = pw ? 'flex' : 'none';
     // dica NPC
     const npc = G.npcNear();
-    const ch = !npc && Daily.near(), pk = !npc && !ch && G.pickNear(), hint = npc ? tt("[E] Falar com {0}", npc.name) : ch ? (Daily.available() ? tt("[E] Abrir o baú diário") : tt("[E] Ver o baú diário")) : pk ? (S.hammer >= 60 ? tt("[E] Pegar a Picareta 61") : tt("[E] Tocar a Picareta 61 (lacrada)")) : Dungeon.nearPortal() ? tt("[E] Entrar no portal e voltar para fora") : Dungeon.onHole() ? tt("Clique: quebrar o chão rachado e descer") : Dungeon.nearHole() ? tt("Fique em cima do chão rachado e bata uma vez") : '';
+    const ch = !npc && Daily.near(), pk = !npc && !ch && G.pickNear(), hint = npc ? tt("[E] Falar com {0}", npc.name) : ch ? (Daily.available() ? tt("[E] Abrir o baú diário") : tt("[E] Ver o baú diário")) : pk ? (S.hammer >= 60 ? tt("[E] Pegar a Picareta 61") : tt("[E] Tocar a Picareta 61 (lacrada)")) : Dungeon.nearAnvil() ? tt("[E] Bigorna Rúnica: guardar a mochila e forjar") : Dungeon.nearPortal() ? (Dungeon.nearPortal().dest === 'vila' ? tt("[E] Portal para a vila") : tt("[E] Portal para a porta rúnica")) : Dungeon.onHole() ? tt("Clique: quebrar o chão rachado e descer") : Dungeon.nearHole() ? tt("Fique em cima do chão rachado e bata uma vez") : '';
     const showH = hint && !this.open && !(Tutorial.active && Tutorial.step !== 'smith'); // no tutorial só a dica do passo aparece
     $('npchint').textContent = showH ? hint : '';
     $('npchint').style.display = showH ? 'block' : 'none';

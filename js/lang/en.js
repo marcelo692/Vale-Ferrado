@@ -682,5 +682,18 @@ I18N.en = {
 "Chão rachado": "Cracked floor",
 "fique em cima e bata uma vez": "stand on it and hit once",
 "Portal": "Portal",
-"leva de volta para fora": "takes you back outside"
+"leva de volta para fora": "takes you back outside",
+"[E] Bigorna Rúnica: guardar a mochila e forjar": "[E] Runic Anvil: store your backpack and forge",
+"[E] Portal para a vila": "[E] Portal to the village",
+"[E] Portal para a porta rúnica": "[E] Portal to the runic door",
+"Na Masmorra Rúnica não dá para voltar: só se sai pelos portais do último andar (vila ou porta rúnica).": "You can't go back from the Runic Dungeon: the only way out is the portals on the last floor (village or runic door).",
+"✦ O portal te trouxe para a vila. Para voltar à masmorra, é a porta rúnica da Zona 7.": "✦ The portal brought you to the village. To go back to the dungeon, use the runic door in Zone 7.",
+"⚒ A bigorna guardou {0} itens da mochila no depósito.": "⚒ The anvil stored {0} backpack items in the warehouse.",
+"Último andar: forje na Bigorna Rúnica e saia pelo portal da vila ou da porta": "Last floor: forge at the Runic Anvil and leave through the village or door portal",
+"🏠 Portal da vila": "🏠 Village portal",
+"leva para a praça, perto do Seu Bento": "takes you to the plaza, near Bento the Blacksmith",
+"ᚱ Portal da porta rúnica": "ᚱ Runic door portal",
+"leva para a entrada da masmorra": "takes you to the dungeon entrance",
+"⚒ Bigorna Rúnica": "⚒ Runic Anvil",
+"[E] guardar a mochila e forjar": "[E] store backpack and forge"
 };

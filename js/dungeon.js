@@ -2,7 +2,8 @@
 // Vale Ferrado — Masmorra Rúnica (atrás da porta da Zona 7)
 // Um "prédio" de 4 andares fechados, só de descida: em cada andar há um chão rachado;
 // fique em cima dele e bata uma vez com a picareta para cair no andar de baixo.
-// Os minérios mudam a cada andar (níveis 61 a 70). No 4º andar, um portal leva de volta para fora.
+// Os minérios mudam a cada andar (níveis 61 a 70). No 4º andar: a Bigorna Rúnica (forja ali mesmo)
+// e dois portais, um para a vila e outro para a porta rúnica.
 // Dentro não tem dragão nem voo. Só se sai pelo portal (não dá para subir nem usar o H).
 // =============================================================
 'use strict';
@@ -14,7 +15,7 @@ const DUN = {
 };
 
 const Dungeon = {
-  active: false, floor: 0, hole: null, portal: null, g: null, fx: [],
+  active: false, floor: 0, hole: null, portals: [], anvil: null, g: null, fx: [],
 
   center() { if (!this._c) this._c = Z7.at(Z7.WALL_A + 150, 0); return this._c; },
   inside(x, y) { const c = this.center(); return Math.abs(x - c.x) < DUN.half + 4 && Math.abs(y - c.y) < DUN.half + 4; },
@@ -43,7 +44,7 @@ const Dungeon = {
     const c = this.center(), m = DUN.half - 0.8;
     P.x = Math.max(c.x - m, Math.min(c.x + m, P.x)); P.y = Math.max(c.y - m, Math.min(c.y + m, P.y));
     // portal do último andar: encostou, saiu
-    if (this.portal && Math.hypot(P.x - this.portal.x, P.y - this.portal.y) < 1.4 && P.z < 1.5) this.leave();
+    for (const q of this.portals) if (Math.hypot(P.x - q.x, P.y - q.y) < 1.4 && P.z < 1.5) { this.leave(q.dest); break; }
     this.animate(dt);
   },
   enter() {
@@ -59,15 +60,21 @@ const Dungeon = {
     UI.banner(tt("Masmorra Rúnica"), tt("Andar 1 de 4 · aqui só se desce: ache o chão rachado e bata nele"), 3600);
     Game.save();
   },
-  leave() {
+  leave(dest = 'porta') {
     const P = Game.P;
     this.fade(); this.clear();
-    this.active = false; this.portal = null; this.hole = null;
-    const e = this.exitPt(), d = this.doorPt(); P.x = e.x; P.y = e.y; P.z = 0; P.vz = 0; P.vx = P.vy = 0;
-    P.yaw = Math.atan2(-(e.x - d.x), -(e.y - d.y)); P.pitch = 0;
+    this.active = false; this.portals = []; this.anvil = null; this.hole = null;
+    if (dest === 'vila') { // na praça, de frente para o Seu Bento
+      const f = NPCS.find(v => v.id === 'ferreiro'), a = f.ang * Math.PI / 180;
+      P.x = Math.cos(a) * 8.5; P.y = Math.sin(a) * 8.5; P.yaw = Math.atan2(-(f.x - P.x), -(f.y - P.y));
+      UI.toast(tt("✦ O portal te trouxe para a vila. Para voltar à masmorra, é a porta rúnica da Zona 7."), 'level');
+    } else {
+      const e = this.exitPt(), d = this.doorPt(); P.x = e.x; P.y = e.y; P.yaw = Math.atan2(-(e.x - d.x), -(e.y - d.y));
+      UI.toast(tt("✦ O portal te trouxe de volta para a Zona 7. A porta rúnica continua aberta."), 'level');
+    }
+    P.z = 0; P.vz = 0; P.vx = P.vy = 0; P.pitch = 0;
     Render.nearAt = null; // o chão de fora volta a ser desenhado
     Snd.levelUp && Snd.levelUp();
-    UI.toast(tt("✦ O portal te trouxe de volta para a Zona 7. A porta rúnica continua aberta."), 'level');
     Game.S.dunClears = (Game.S.dunClears || 0) + 1; Game.save();
   },
   fade() { let el = document.getElementById('dunfade'); if (!el) { el = document.createElement('div'); el.id = 'dunfade'; document.body.appendChild(el); } el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); },
@@ -75,7 +82,16 @@ const Dungeon = {
   // ---------- chão rachado ----------
   onHole() { if (!this.active || !this.hole) return false; const P = Game.P; return Math.hypot(P.x - this.hole.x, P.y - this.hole.y) < this.hole.r && Game.onGround(); },
   nearHole() { if (!this.active || !this.hole) return false; const P = Game.P; return Math.hypot(P.x - this.hole.x, P.y - this.hole.y) < this.hole.r + 4; },
-  nearPortal() { if (!this.active || !this.portal) return false; const P = Game.P; return Math.hypot(P.x - this.portal.x, P.y - this.portal.y) < 3.2; },
+  nearPortal() { if (!this.active) return null; const P = Game.P; return this.portals.find(q => Math.hypot(P.x - q.x, P.y - q.y) < 3.2) || null; },
+  nearAnvil() { if (!this.active || !this.anvil) return false; const P = Game.P; return Math.hypot(P.x - this.anvil.x, P.y - this.anvil.y) < 3.4; },
+  // Bigorna Rúnica: guarda a mochila no depósito (sem vender) e abre a forja do Seu Bento
+  useAnvil() {
+    const S = Game.S; let n = 0;
+    for (const [id, q] of Object.entries(S.bag)) { S.stock[id] = (S.stock[id] || 0) + q; n += q; }
+    S.bag = {};
+    if (n) UI.toast(tt("⚒ A bigorna guardou {0} itens da mochila no depósito.", n));
+    Snd.forge && Snd.forge(); UI.openNpc('ferreiro');
+  },
   // chamado no clique: em cima da rachadura, um golpe quebra o chão
   tryHole() {
     if (!this.onHole()) return false;
@@ -87,7 +103,7 @@ const Dungeon = {
     this.buildFloor(prev);
     P.z += DUN.floorH; P.vz = 0; // cai de verdade até o chão de baixo
     const last = this.floor === DUN.floors - 1;
-    setTimeout(() => UI.banner(tt("Andar {0} de {1}", this.floor + 1, DUN.floors), last ? tt("Último andar: o portal brilhante leva de volta para fora") : tt("Minérios novos. Ache o próximo chão rachado para descer"), 3200), 700);
+    setTimeout(() => UI.banner(tt("Andar {0} de {1}", this.floor + 1, DUN.floors), last ? tt("Último andar: forje na Bigorna Rúnica e saia pelo portal da vila ou da porta") : tt("Minérios novos. Ache o próximo chão rachado para descer"), 3200), 700);
     return true;
   },
 
@@ -108,7 +124,15 @@ const Dungeon = {
     const start = fromHole || { x: c.x - H + 3, y: c.y - H + 3 };
     const spot = pick([{ x: start.x, y: start.y, d: 14 }]);
     this.hole = last ? null : { x: spot.x, y: spot.y, r: 2.4 };
-    this.portal = last ? { x: spot.x, y: spot.y } : null;
+    // último andar: dois portais lado a lado (vila e porta rúnica) e a bigorna no meio
+    this.portals = []; this.anvil = null;
+    if (last) {
+      const ax = c.x - spot.x, ay = c.y - spot.y, al = Math.hypot(ax, ay) || 1, sx = -ay / al, sy = ax / al; // lado (perpendicular ao centro)
+      const cl = v => Math.max(-H + 4, Math.min(H - 4, v));
+      this.portals.push({ x: c.x + cl(spot.x - c.x + sx * 6), y: c.y + cl(spot.y - c.y + sy * 6), dest: 'vila' });
+      this.portals.push({ x: c.x + cl(spot.x - c.x - sx * 6), y: c.y + cl(spot.y - c.y - sy * 6), dest: 'porta' });
+      this.anvil = { x: spot.x + ax / al * 2.5, y: spot.y + ay / al * 2.5 };
+    }
 
     const G = this.g = new THREE.Group(); Render.scene.add(G);
     const stoneTex = Render.z7StoneTex().clone(); stoneTex.needsUpdate = true; stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping; stoneTex.repeat.set(6, 6);
@@ -166,20 +190,34 @@ const Dungeon = {
       this.addDust(this.hole.x, this.hole.y, fy, '#ffd38a', 0.9, 40);
       const lab = labelSprite(tt("Chão rachado"), tt("fique em cima e bata uma vez"), '#ffd34d', 1); lab.position.set(this.hole.x, fy + 3.2, this.hole.y); G.add(lab);
     }
-    // portal de volta (último andar): anel em pé, disco girando e partículas subindo
-    if (this.portal) {
-      const p = this.portal, pg = new THREE.Group(); pg.position.set(p.x, fy, p.y); G.add(pg);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.22, 8, 40), new THREE.MeshBasicMaterial({ color: '#ffd34d' })); ring.position.y = 2.5; pg.add(ring);
-      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.45, 0.08, 6, 40), new THREE.MeshBasicMaterial({ color: '#c08aff' })); ring2.position.y = 2.5; pg.add(ring2);
-      const disc = new THREE.Mesh(new THREE.CircleGeometry(2, 40), new THREE.MeshBasicMaterial({ map: Render.getGlowTex(), color: '#b07aff', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); disc.position.y = 2.5; pg.add(disc);
+    // portais de saída (último andar): anel em pé, disco girando e partículas subindo
+    for (const p of this.portals) {
+      const vila = p.dest === 'vila', col = vila ? '#ffcf5a' : '#b07aff', col2 = vila ? '#fff1b0' : '#c08aff';
+      const pg = new THREE.Group(); pg.position.set(p.x, fy, p.y); G.add(pg);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.22, 8, 40), new THREE.MeshBasicMaterial({ color: vila ? '#ffd34d' : '#d8b0ff' })); ring.position.y = 2.5; pg.add(ring);
+      const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.45, 0.08, 6, 40), new THREE.MeshBasicMaterial({ color: col2 })); ring2.position.y = 2.5; pg.add(ring2);
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(2, 40), new THREE.MeshBasicMaterial({ map: Render.getGlowTex(), color: col, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })); disc.position.y = 2.5; pg.add(disc);
       const base = mesh(new THREE.CylinderGeometry(2.6, 2.9, 0.4, 16), dark); base.position.y = 0.2; pg.add(base);
-      const gl = new THREE.Sprite(glowM('#c08aff')); gl.scale.setScalar(10); gl.position.y = 2.5; pg.add(gl);
+      const gl = new THREE.Sprite(glowM(col)); gl.scale.setScalar(10); gl.position.y = 2.5; pg.add(gl);
       this.fx.push({ t: 'portal', o: pg, ring, ring2, disc, gl });
-      this.addDust(p.x, p.y, fy, '#d8b0ff', 2.2, 80);
-      const lab = labelSprite(tt("Portal"), tt("leva de volta para fora"), '#e0c0ff', 1.1); lab.position.set(p.x, fy + 5.6, p.y); G.add(lab);
+      this.addDust(p.x, p.y, fy, vila ? '#ffe2a0' : '#d8b0ff', 2.2, 70);
+      const lab = vila ? labelSprite(tt("🏠 Portal da vila"), tt("leva para a praça, perto do Seu Bento"), '#ffe27a', 1.1) : labelSprite(tt("ᚱ Portal da porta rúnica"), tt("leva para a entrada da masmorra"), '#e0c0ff', 1.1);
+      lab.position.set(p.x, fy + 5.6, p.y); G.add(lab);
+    }
+    // Bigorna Rúnica: forja as picaretas aqui mesmo
+    if (this.anvil) {
+      const a = this.anvil, ag = new THREE.Group(); ag.position.set(a.x, fy, a.y); ag.rotation.y = Math.atan2(c.x - a.x, c.y - a.y); G.add(ag);
+      const iron = mat('#3a3a44', { shininess: 80, specular: '#9aa0b0' }), rune = new THREE.MeshBasicMaterial({ color: '#ffd34d' });
+      const blk = mesh(jitterGeo(new THREE.BoxGeometry(1.4, 0.9, 1.0), 0.05, 4), dark); blk.position.y = 0.45; ag.add(blk);
+      const waist = mesh(new THREE.BoxGeometry(0.5, 0.35, 0.45), iron); waist.position.y = 1.07; ag.add(waist);
+      const top = mesh(new THREE.BoxGeometry(1.3, 0.3, 0.55), iron); top.position.y = 1.38; ag.add(top);
+      const horn = mesh(new THREE.ConeGeometry(0.27, 0.8, 6), iron); horn.rotation.z = Math.PI / 2; horn.position.set(-1.0, 1.38, 0); ag.add(horn);
+      for (const sx of [-0.4, 0, 0.4]) { const r1 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.02), rune); r1.position.set(sx, 0.5, 0.51); ag.add(r1); }
+      const em = new THREE.Sprite(glowM('#ff8a2a')); em.scale.setScalar(3.4); em.position.y = 1.6; ag.add(em); this.fx.push({ t: 'fire', o: em, ph: 1 });
+      const lab = labelSprite(tt("⚒ Bigorna Rúnica"), tt("[E] guardar a mochila e forjar"), '#ffb347', 1); lab.position.set(a.x, fy + 3.4, a.y); G.add(lab);
     }
     // minérios do andar
-    const avoid = [{ x: start.x, y: start.y, d: 4 }, { x: spot.x, y: spot.y, d: 5 }];
+    const avoid = [{ x: start.x, y: start.y, d: 4 }, { x: spot.x, y: spot.y, d: 5 }, ...this.portals.map(q => ({ x: q.x, y: q.y, d: 4.5 }))];
     for (let i = 0; i < 16; i++) {
       let x, y, ok = false;
       for (let t = 0; t < 40 && !ok; t++) { x = c.x + (r() - 0.5) * (H * 2 - 5); y = c.y + (r() - 0.5) * (H * 2 - 5); ok = avoid.every(a => Math.hypot(x - a.x, y - a.y) > a.d); }

@@ -682,5 +682,18 @@ I18N.tr = {
 "Chão rachado": "Çatlak zemin",
 "fique em cima e bata uma vez": "üstüne çık ve bir kez vur",
 "Portal": "Portal",
-"leva de volta para fora": "seni dışarı götürür"
+"leva de volta para fora": "seni dışarı götürür",
+"[E] Bigorna Rúnica: guardar a mochila e forjar": "[E] Rün Örsü: çantayı depola ve dövme yap",
+"[E] Portal para a vila": "[E] Köye portal",
+"[E] Portal para a porta rúnica": "[E] Rün kapısına portal",
+"Na Masmorra Rúnica não dá para voltar: só se sai pelos portais do último andar (vila ou porta rúnica).": "Rün Zindanı'ndan geri dönülmez: tek çıkış son kattaki portallar (köy ya da rün kapısı).",
+"✦ O portal te trouxe para a vila. Para voltar à masmorra, é a porta rúnica da Zona 7.": "✦ Portal seni köye getirdi. Zindana dönmek için Bölge 7'deki rün kapısını kullan.",
+"⚒ A bigorna guardou {0} itens da mochila no depósito.": "⚒ Örs çantadaki {0} eşyayı depoya koydu.",
+"Último andar: forje na Bigorna Rúnica e saia pelo portal da vila ou da porta": "Son kat: Rün Örsü'nde dövme yap ve köy ya da kapı portalından çık",
+"🏠 Portal da vila": "🏠 Köy portalı",
+"leva para a praça, perto do Seu Bento": "seni meydana, Bento Usta'nın yanına götürür",
+"ᚱ Portal da porta rúnica": "ᚱ Rün kapısı portalı",
+"leva para a entrada da masmorra": "seni zindanın girişine götürür",
+"⚒ Bigorna Rúnica": "⚒ Rün Örsü",
+"[E] guardar a mochila e forjar": "[E] çantayı depola ve dövme yap"
 };

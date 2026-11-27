@@ -682,5 +682,18 @@ I18N.es = {
 "Chão rachado": "Suelo agrietado",
 "fique em cima e bata uma vez": "párate encima y golpea una vez",
 "Portal": "Portal",
-"leva de volta para fora": "te lleva de vuelta afuera"
+"leva de volta para fora": "te lleva de vuelta afuera",
+"[E] Bigorna Rúnica: guardar a mochila e forjar": "[E] Yunque Rúnico: guarda la mochila y forja",
+"[E] Portal para a vila": "[E] Portal a la aldea",
+"[E] Portal para a porta rúnica": "[E] Portal a la puerta rúnica",
+"Na Masmorra Rúnica não dá para voltar: só se sai pelos portais do último andar (vila ou porta rúnica).": "En la Mazmorra Rúnica no se puede volver: solo se sale por los portales del último piso (aldea o puerta rúnica).",
+"✦ O portal te trouxe para a vila. Para voltar à masmorra, é a porta rúnica da Zona 7.": "✦ El portal te trajo a la aldea. Para volver a la mazmorra, es la puerta rúnica de la Zona 7.",
+"⚒ A bigorna guardou {0} itens da mochila no depósito.": "⚒ El yunque guardó {0} objetos de la mochila en el depósito.",
+"Último andar: forje na Bigorna Rúnica e saia pelo portal da vila ou da porta": "Último piso: forja en el Yunque Rúnico y sal por el portal de la aldea o de la puerta",
+"🏠 Portal da vila": "🏠 Portal de la aldea",
+"leva para a praça, perto do Seu Bento": "te lleva a la plaza, cerca de Don Bento",
+"ᚱ Portal da porta rúnica": "ᚱ Portal de la puerta rúnica",
+"leva para a entrada da masmorra": "te lleva a la entrada de la mazmorra",
+"⚒ Bigorna Rúnica": "⚒ Yunque Rúnico",
+"[E] guardar a mochila e forjar": "[E] guardar la mochila y forjar"
 };
