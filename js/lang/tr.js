@@ -635,5 +635,8 @@ I18N.tr = {
 "Leve": "Hafif",
 "⚒ Próximas melhorias": "⚒ Sonraki geliştirmeler",
 "<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Sonraki geliştirmeler</h3>",
-"📜 Missões e melhorias": "📜 Görevler ve geliştirmeler"
+"📜 Missões e melhorias": "📜 Görevler ve geliştirmeler",
+"Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)": "Görev: düğmeyi bırak ve taşa art arda birkaç kez tıkla (tık, tık, tık!)",
+"Solte o botão: dê 10 cliques rápidos numa pedra": "Düğmeyi bırak: bir taşa 10 kez hızlıca tıkla",
+"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "Basılı tutmak yerine art arda tıkla: çok daha hızlı vurur ama nefes harcar."
 };

@@ -635,5 +635,8 @@ I18N.en = {
 "Leve": "Light",
 "⚒ Próximas melhorias": "⚒ Next upgrades",
 "<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Next upgrades</h3>",
-"📜 Missões e melhorias": "📜 Missions and upgrades"
+"📜 Missões e melhorias": "📜 Missions and upgrades",
+"Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)": "Mission: let go of the button and click the rock several times in a row (click, click, click!)",
+"Solte o botão: dê 10 cliques rápidos numa pedra": "Let go: click a rock 10 times quickly",
+"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "Instead of holding, click several times in a row: it hits much faster, but uses stamina."
 };

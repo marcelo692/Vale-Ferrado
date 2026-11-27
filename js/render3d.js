@@ -1712,7 +1712,8 @@ const Render = {
         if (!m.userData.badge) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: true, transparent: true, fog: false, sizeAttenuation: false })); sp.scale.set(0.2, 0.056, 1); sp.renderOrder = 4; m.userData.badge = sp; this.scene.add(sp); }
         const sp = m.userData.badge, tex = this.badgeTex(n.res, need);
         if (sp.material.map !== tex) { sp.material.map = tex; sp.material.needsUpdate = true; }
-        sp.position.set(m.userData.base.x, m.userData.base.y + n.r * 1.25 * oreMul(n).M + 0.6, m.userData.base.z); sp.visible = true;
+        sp.position.set(m.userData.base.x, m.userData.base.y + n.r * 1.25 * oreMul(n).M + 0.6, m.userData.base.z);
+        { const v = this._bv || (this._bv = new V3()); v.copy(sp.position).project(this.cam); sp.visible = v.y < 0.8; } // não entra na faixa do relógio lá em cima
       } else if (m.userData.badge) m.userData.badge.visible = false;
     }
     for (const [n, m] of this.nodeMeshes) if (!seen.has(n) || n.dead) { this.scene.remove(m); this.disposeObj(m); if (m.userData.badge) { this.scene.remove(m.userData.badge); m.userData.badge.material.dispose(); } this.nodeMeshes.delete(n); }

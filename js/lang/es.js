@@ -635,5 +635,8 @@ I18N.es = {
 "Leve": "Ligero",
 "⚒ Próximas melhorias": "⚒ Próximas mejoras",
 "<h3 class=\"evoh\">Próximas melhorias</h3>": "<h3 class=\"evoh\">Próximas mejoras</h3>",
-"📜 Missões e melhorias": "📜 Misiones y mejoras"
+"📜 Missões e melhorias": "📜 Misiones y mejoras",
+"Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)": "Misión: suelta el botón y haz clic varias veces seguidas en la piedra (¡clic, clic, clic!)",
+"Solte o botão: dê 10 cliques rápidos numa pedra": "Suelta el botón: haz 10 clics rápidos en una piedra",
+"Em vez de segurar, clique várias vezes seguidas: bate bem mais rápido, mas gasta fôlego.": "En vez de mantener pulsado, haz clic varias veces seguidas: golpea mucho más rápido, pero gasta aliento."
 };

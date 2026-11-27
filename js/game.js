@@ -650,6 +650,8 @@ const Game = {
     const holding = (this.mouse.down && this.mouse.holdT >= 0.3) || this.keys['f'] || (this.keys['e'] && !this.npcNear() && !this.pickNear());
     const mining = !UI.open && !this.travel && this.target && holding && (this.onGround() || Dev.fly);
     if (mining) {
+      // missão dos cliques: quem segura o botão recebe a dica (uma vez a cada 30 s)
+      if (this.mouse.holdT > 2 && MISSION_CHAIN[this.S.mi] && MISSION_CHAIN[this.S.mi].id === 'clique' && !(this.S.time - (this.clickTipT || -99) < 30)) { this.clickTipT = this.S.time; UI.toast(tt("Missão: solte o botão e clique várias vezes seguidas na pedra (clique, clique, clique!)"), 'money'); }
       this.mineT += dt;
       const iv = this.interval();
       P.swing = Math.min(1, this.mineT / iv);
