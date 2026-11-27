@@ -1,8 +1,10 @@
 {
-  "version": "3.23.0",
+  "version": "3.24.0",
   "date": "2026-11-26",
   "notes": [
-    "Novo: o dragão! Montaria que voa livre pelo mapa, com sopro de fogo (por enquanto liberado pelo modo dev)"
+    "Novo: Masmorra Rúnica atrás da porta da Zona 7 — 4 andares que só descem (quebre o chão rachado), minérios do nível 61 ao 70 e portal de saída",
+    "Picaretas 62 a 70 forjadas com os minérios da masmorra",
+    "O dragão não entra em lugar fechado (Mina Velha e masmorra)"
   ],
   "files": [
     {
@@ -15,7 +17,7 @@
     },
     {
       "path": "index.html",
-      "size": 43973
+      "size": 44231
     },
     {
       "path": "js/audio.js",
@@ -35,7 +37,7 @@
     },
     {
       "path": "js/data.js",
-      "size": 25609
+      "size": 28450
     },
     {
       "path": "js/dev.js",
@@ -43,11 +45,15 @@
     },
     {
       "path": "js/dragon.js",
-      "size": 17717
+      "size": 18370
+    },
+    {
+      "path": "js/dungeon.js",
+      "size": 15578
     },
     {
       "path": "js/game.js",
-      "size": 61014
+      "size": 61496
     },
     {
       "path": "js/i18n.js",
@@ -55,19 +61,19 @@
     },
     {
       "path": "js/lang/en.js",
-      "size": 61358
+      "size": 64462
     },
     {
       "path": "js/lang/es.js",
-      "size": 63437
+      "size": 66655
     },
     {
       "path": "js/lang/tr.js",
-      "size": 62920
+      "size": 65999
     },
     {
       "path": "js/missions.js",
-      "size": 18668
+      "size": 18932
     },
     {
       "path": "js/platform.js",
@@ -75,7 +81,7 @@
     },
     {
       "path": "js/render3d.js",
-      "size": 250525
+      "size": 252106
     },
     {
       "path": "js/robots.js",
@@ -87,7 +93,7 @@
     },
     {
       "path": "js/ui.js",
-      "size": 41202
+      "size": 41770
     },
     {
       "path": "js/updater.js",
@@ -99,11 +105,11 @@
     },
     {
       "path": "js/world.js",
-      "size": 27444
+      "size": 27464
     },
     {
       "path": "js/zone7.js",
-      "size": 29606
+      "size": 29682
     },
     {
       "path": "lib/THREE-LICENSE",
@@ -115,7 +121,7 @@
     },
     {
       "path": "version.json",
-      "size": 2102
+      "size": 1948
     }
   ]
 }
